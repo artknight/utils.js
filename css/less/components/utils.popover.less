@@ -1,0 +1,63 @@
+@import (once) "../globals/variables";
+@import (once) "../globals/mixins";
+
+.popover {
+	max-width:300px;
+
+	&.editable-container {
+		.popover-content {
+			padding:10px !important;
+		}
+	}
+
+	&.popover-custom, &.popover-editable {
+		z-index:100000;
+
+		.popover-title {
+			text-align:center;
+			font-weight:600;
+		}
+		.popover-content {
+			padding:0 0 9px 0;
+
+			.list-group {
+				margin-bottom:0;
+
+				.list-group-item {
+					border:0;
+					cursor:pointer;
+					padding:5px;
+
+					&:first-child {
+						border-top-left-radius:0;
+						border-top-right-radius:0;
+					}
+					&:last-child {
+						border-bottom-left-radius:0;
+						border-bottom-right-radius:0;
+					}
+
+					& + .list-group-item {
+						border-top:1px solid #eee;
+					}
+				}
+			}
+		}
+	}
+}
+
+.box.edit-box .popover:not(.popover-editable) {
+	max-width:300px;
+}
+
+//popover-add-report
+.popover-add-report {
+	.add-custom-report {
+		background:@brand-primary-retro;
+		color:#fff;
+
+		&:hover {
+			background:darken(@brand-primary-retro,10%);
+		}
+	}
+}

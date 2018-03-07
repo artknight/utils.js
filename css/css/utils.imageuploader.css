@@ -1,0 +1,316 @@
+.image-uploader-dropzone {
+  background-color: #fff;
+  text-align: center;
+  position: relative;
+  border: 2px dashed #fff;
+  display: inline-block;
+  /* not an image */
+  /*& canvas.final { background-color: #eee;}*/
+}
+.image-uploader-dropzone.no-image {
+  border-color: #ddd;
+}
+.image-uploader-dropzone.no-image:hover {
+  background: #eee;
+  border-color: #ccc;
+}
+.image-uploader-dropzone:after {
+  content: attr(data-content);
+  font-size: 30px;
+  color: #bbb;
+  position: absolute;
+  bottom: 60%;
+  left: 0;
+  text-align: center;
+  z-index: 0;
+  margin: 0 10px;
+}
+.image-uploader-dropzone:before {
+  content: '';
+  font-family: "Glyphicons Halflings";
+  font-size: 60px;
+  color: #dbdbdb;
+  position: absolute;
+  top: 40%;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  z-index: 0;
+}
+.image-uploader-dropzone.loading:after {
+  content: 'Please wait, image is loading';
+}
+.image-uploader-dropzone.loading:before {
+  content: '';
+}
+.image-uploader-dropzone.done:after,
+.image-uploader-dropzone.done:before {
+  content: '';
+}
+.image-uploader-dropzone.notAnImage {
+  background-color: #f2dede;
+  border-color: #ebccd1;
+}
+.image-uploader-dropzone.notAnImage:after {
+  content: 'The selected file is not an image!';
+  color: #a94442;
+}
+.image-uploader-dropzone.notAnImage:before {
+  content: '';
+  color: #ebccd1;
+}
+.image-uploader-dropzone.alert-danger {
+  background-color: #f2dede;
+}
+.image-uploader-dropzone.alert-danger:after {
+  content: '';
+}
+.image-uploader-dropzone.smalltext:after {
+  font-size: 20px;
+}
+.image-uploader-dropzone > span {
+  font-size: 30px;
+  color: #bbb;
+  position: absolute;
+  top: 35%;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  z-index: 0;
+}
+.image-uploader-dropzone > span.loader {
+  display: none;
+}
+.image-uploader-dropzone > input[type=file] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+  height: 100% /* IE HACK*/;
+}
+.image-uploader-dropzone > input[type=text] {
+  display: none;
+}
+.image-uploader-dropzone .progress {
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  display: none;
+}
+.image-uploader-dropzone .cropWrapper {
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background-color: #eee;
+  text-align: left;
+}
+.image-uploader-dropzone img {
+  z-index: 5;
+  position: relative;
+}
+.image-uploader-dropzone img.ghost {
+  opacity: .2;
+  z-index: auto;
+  float: left /* HACK for not scrolling*/;
+}
+.image-uploader-dropzone img.main {
+  cursor: move;
+}
+.image-uploader-dropzone img.preview {
+  width: 100%;
+}
+.image-uploader-dropzone .final img.main {
+  cursor: auto;
+}
+.image-uploader-dropzone .tools {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 100;
+  display: inline-block;
+}
+.image-uploader-dropzone .tools > * {
+  margin: 0 0 0 5px;
+}
+.image-uploader-dropzone.smalltools .tools .btn {
+  padding: 0.1rem 0.2rem;
+}
+.image-uploader-dropzone .download {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 100;
+  display: inline-block;
+}
+.image-uploader-dropzone .download > * {
+  margin: 0 0 0 5px;
+}
+.icon-flipped {
+  transform: scaleX(-1);
+  -moz-transform: scaleX(-1);
+  -webkit-transform: scaleX(-1);
+  -ms-transform: scaleX(-1);
+}
+.rotate_90 {
+  -webkit-transform: rotate(90deg);
+          transform: rotate(90deg);
+}
+.image-uploader {
+  background-color: #eee;
+  text-align: center;
+  position: relative;
+  border: 1px solid #ddd;
+  display: inline-block;
+  /* not an image */
+  /*& canvas.final			{ background-color: #eee;}*/
+}
+.image-uploader:after {
+  content: 'Drop image here or click to add';
+  font-size: 30px;
+  color: #bbb;
+  position: absolute;
+  bottom: 60%;
+  left: 0;
+  text-align: center;
+  z-index: 0;
+  margin: 0 10px;
+}
+.image-uploader:before {
+  content: '';
+  font-family: "Glyphicons Halflings";
+  font-size: 60px;
+  color: #dbdbdb;
+  position: absolute;
+  top: 40%;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  z-index: 0;
+}
+.image-uploader.loading:after {
+  content: 'Please wait, image is loading';
+}
+.image-uploader.loading:before {
+  content: '';
+}
+.image-uploader.done:after {
+  content: '';
+}
+.image-uploader.done:before {
+  content: '';
+}
+.image-uploader.notAnImage {
+  background-color: #f2dede;
+  border-color: #ebccd1;
+}
+.image-uploader.notAnImage:after {
+  content: 'The selected file is not an image!';
+  color: #a94442;
+}
+.image-uploader.notAnImage:before {
+  content: '';
+  color: #ebccd1;
+}
+.image-uploader.alert-danger {
+  background-color: #f2dede;
+}
+.image-uploader.alert-danger:after {
+  content: '';
+}
+.image-uploader.smalltext:after {
+  font-size: 20px;
+}
+.image-uploader > span {
+  font-size: 30px;
+  color: #bbb;
+  position: absolute;
+  top: 35%;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  z-index: 0;
+}
+.image-uploader > span.loader {
+  display: none;
+}
+.image-uploader > input[type=file] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+  height: 100% /* IE HACK*/;
+}
+.image-uploader > input[type=text] {
+  display: none;
+}
+.image-uploader .progress {
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  display: none;
+}
+.image-uploader .cropWrapper {
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background-color: #eee;
+}
+.image-uploader img {
+  z-index: 20;
+  position: relative;
+}
+.image-uploader img.ghost {
+  opacity: .2;
+  z-index: auto;
+  float: left /* HACK for not scrolling*/;
+}
+.image-uploader img.main {
+  cursor: move;
+}
+.image-uploader img.preview {
+  width: 100%;
+}
+.image-uploader .final img.main {
+  cursor: auto;
+}
+.image-uploader .tools {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 100;
+  display: inline-block;
+}
+.image-uploader .tools > * {
+  margin: 0 0 0 5px;
+}
+.image-uploader .download {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 100;
+  display: inline-block;
+}
+.image-uploader .download > * {
+  margin: 0 0 0 5px;
+}
+.image-uploader.smalltools .tools .btn {
+  padding: 0.1rem 0.2rem;
+}

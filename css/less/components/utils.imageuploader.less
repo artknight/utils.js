@@ -1,0 +1,197 @@
+
+.image-uploader-dropzone { 
+	background-color:#fff; 
+	text-align: center; 
+	position: relative; 
+	border: 2px dashed #fff;
+	display: inline-block;
+
+	&.no-image {
+		border-color: #ddd;
+
+		&:hover {
+			background:#eee;
+			border-color:#ccc;
+		}
+	}
+	
+	&:after { content: attr(data-content); font-size: 30px; color: #bbb; position: absolute; bottom: 60%; left: 0; text-align: center; z-index:0; margin:0 10px; }
+	&:before { content: ''; font-family:"Glyphicons Halflings"; font-size: 60px; color: #dbdbdb; position: absolute; top: 40%; left: 0; width: 100%; text-align: center; z-index:0;}
+
+
+	&.loading:after	{ content: 'Please wait, image is loading'; }
+	&.loading:before { content: ''; }
+
+	&.done:after, &.done:before { content: '';}
+
+	/* not an image */
+	&.notAnImage {
+		background-color: #f2dede;
+		border-color: #ebccd1;
+
+		&:after { content: 'The selected file is not an image!'; color: #a94442; }
+		&:before { content: ''; color: #ebccd1; }
+	}
+
+	&.alert-danger {
+		background-color: #f2dede;
+
+		&:after { content: ''; }
+	}
+
+	&.smalltext:after { font-size: 20px; }
+
+	& > span {
+		font-size: 30px;
+		color: #bbb;
+		position: absolute;
+		top: 35%;
+		left: 0;
+		width: 100%;
+		text-align:
+		center; z-index:0;
+
+		&.loader { display: none; }
+	}
+
+	& > input[type=file] { position: absolute; top: 0; left: 0; bottom: 0; right: 0; width: 100%; opacity: 0; cursor: pointer; z-index:2; height: 100% /* IE HACK*/ }
+	& > input[type=text] { display: none; }
+
+	& .progress { bottom: 10px; left: 10px; right: 10px; display: none;  }
+
+	& .cropWrapper { overflow: hidden; position: absolute; top:0; bottom: 0; left: 0; right: 0; z-index: 10; background-color: #eee; text-align: left;}
+	/*& canvas.final { background-color: #eee;}*/
+
+	& img { 
+		z-index: 5; 
+		position: 
+		relative;
+
+		&.ghost	{ opacity: .2; z-index: auto; float:left /* HACK for not scrolling*/; }
+		&.main { cursor: move; }
+		&.preview { width: 100%; }
+	}
+	& .final img.main { cursor: auto; }
+
+	& .tools { 
+		position: absolute; 
+		top: 10px; 
+		right: 10px; 
+		z-index: 100;
+		display: inline-block;
+
+		& > * { margin: 0 0 0 5px; }
+	}
+	
+	&.smalltools .tools .btn	{
+		padding: 0.1rem 0.2rem;
+	}
+
+	& .download { 
+		position: absolute; 
+		bottom: 10px; 
+		left: 10px; 
+		z-index: 100;
+		display: inline-block;
+
+		& > * { margin: 0 0 0 5px; }
+	}
+}
+
+.icon-flipped { transform: scaleX(-1); -moz-transform: scaleX(-1); -webkit-transform: scaleX(-1); -ms-transform: scaleX(-1); }
+
+.rotate_90 { transform: rotate(90deg); }
+
+.image-uploader { 
+	background-color: #eee; 
+	text-align: center; 
+	position: relative; 
+	border: 1px solid #ddd; 
+	display: inline-block;
+
+	&:after { content: 'Drop image here or click to add'; font-size: 30px; color: #bbb; position: absolute; bottom: 60%; left: 0; text-align: center; z-index:0; margin:0 10px; }
+	&:before { content: ''; font-family:"Glyphicons Halflings"; font-size: 60px; color: #dbdbdb; position: absolute; top: 40%; left: 0; width: 100%; text-align: center; z-index:0;}
+
+	&.loading {
+		&:after { content: 'Please wait, image is loading'; }
+		&:before { content: ''; }
+	}
+
+	&.done {
+		&:after { content: '';}
+		&:before { content: '';}
+	}
+
+	/* not an image */
+	&.notAnImage {
+		background-color: #f2dede;
+		border-color: #ebccd1;
+
+		&:after { content: 'The selected file is not an image!'; color: #a94442; }
+		&:before { content: ''; color: #ebccd1; }
+	}
+
+	&.alert-danger {
+		background-color: #f2dede;
+
+		&:after	{ content: ''; }
+	}
+
+	&.smalltext:after { font-size: 20px; }
+
+	& > span {
+		font-size: 30px;
+		color: #bbb;
+		position: absolute;
+		top: 35%;
+		left: 0;
+		width: 100%;
+		text-align:
+		center; z-index:0;
+
+		&.loader { display: none; }
+	}
+
+	& > input[type=file] { position: absolute; top: 0; left: 0; bottom: 0; right: 0; width: 100%; opacity: 0; cursor: pointer; z-index:2; height: 100% /* IE HACK*/ }
+	& > input[type=text] { display: none; }
+
+	& .progress { bottom: 10px; left: 10px; right: 10px; display: none;  }
+
+	& .cropWrapper { overflow: hidden; position: absolute; top:0; bottom: 0; left: 0; right: 0; z-index: 10; background-color: #eee}
+	/*& canvas.final			{ background-color: #eee;}*/
+
+	& img {
+		z-index: 20;
+		position: relative;
+
+		&.ghost { opacity: .2; z-index: auto; float:left /* HACK for not scrolling*/; }
+		&.main { cursor: move; }
+		&.preview { width: 100%; }
+	}
+
+	& .final img.main 		{ cursor: auto; }
+
+	& .tools {
+		position: absolute;
+		top: 10px;
+		right: 10px;
+		z-index: 100;
+		display: inline-block;
+
+		& > * { margin: 0 0 0 5px; }
+	}
+	& .download	{
+		position: absolute;
+		bottom: 10px;
+		left: 10px;
+		z-index: 100;
+		display: inline-block;
+
+		& > * { margin: 0 0 0 5px; }
+	}
+
+	&.smalltools .tools .btn {
+		padding: 0.1rem 0.2rem;
+	}
+	
+}

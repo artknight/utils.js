@@ -1,0 +1,42 @@
+.popover-editable {
+  max-width: 350px;
+}
+.popover-editable .popup-editable-content {
+  padding: 0 10px;
+}
+.popover-editable .popover-editable-control {
+  padding: 0 6px;
+}
+.popover-editable .popover-editable-control + .popover-editable-control {
+  padding-left: 0;
+}
+.popover-editable .popover-editable-control.save {
+  color: #6cbb23;
+}
+.popover-editable .popover-editable-control.cancel {
+  color: #eee;
+}
+.popover-editable .popover-editable-control i.mdi {
+  font-size: 20px;
+}
+form.editable-form {
+  position: relative;
+}
+form.editable-form.radio-type {
+  padding-left: 15px;
+}
+form.editable-form .form-group,
+form.editable-form .form-control {
+  width: 100%;
+}
+.editable-target {
+  cursor: pointer;
+  border-bottom: 1px dashed #6cbb23;
+  word-wrap: break-word;
+  color: #6cbb23;
+}
+.editable-target.readonly {
+  border-bottom: none;
+  cursor: default;
+  color: inherit;
+}

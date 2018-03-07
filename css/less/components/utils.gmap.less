@@ -1,0 +1,67 @@
+@import (once) "../globals/variables";
+@import (once) "../globals/mixins";
+
+.gmap-marker { 
+	position:relative; 
+	overflow:visible; 
+	z-index:100; 
+	top:-48px; 
+	left:-170px;
+	& .gmap-content {
+		&:before {
+			width:96px;
+			height:52px;
+			left:-96px;
+			top:50px;
+			z-index:3;
+			background:url('@{path-base-icons}gmap-info_583x383.png') 0 0 no-repeat;
+		}
+		&:before,
+		&:after { content:""; position:absolute; }
+		
+		position:absolute;
+		z-index:101;
+		top:62px;
+		right:0;
+		width:340px;
+		padding:17px;
+		border:1px solid @gray;
+		background:#fff;
+		& img { width:340px; height:160px; border:0; }
+		& h2.gmap-marker-header { font-size:20px; letter-spacing:0; margin:10px 0 5px; color:@gray-darker; line-height:20px; }
+		& .gmap-marker-body {  }
+	}
+	& .gmap-shadow { position:absolute; top:105px; right:-150px; width:583px; height:305px; background:url('@{path-base-icons}gmap-info_583x383.png') 0 -78px no-repeat; }
+} //.gmap-marker
+
+table.gmap-marker-content { 
+	width:100%; 
+	border:0; 
+	margin:0;
+
+	& th,
+	& td { border:0; vertical-align:top; }
+	& td { 
+		width:60%; 
+		font-size:13px; 
+		line-height:18px; 
+		padding:0;
+		& + td { width:40%; padding-left:20px; }
+		& ul.address li { padding:0; }
+		& span.addr { margin-top:5px; }
+		& span.phone { font-weight:bold; color:#000; }
+		& span.email { text-transform:lowercase !important; margin-top:14px; }
+		& a.sn { 
+			margin-left:5px; 
+			font-size:13px;
+			text-decoration:none;
+			&:hover { text-decoration:underline; color:#da4f49; }
+			&.zocial,
+			&.iconsweets,
+			&.zocial i,
+			&.iconsweets i { color:#0e4a77; }
+			&.zocial i { margin-right:5px; line-height:1.5; }
+			&.iconsweets i { font-size:18px; }
+		}
+	}
+} //table.gmap-marker-content

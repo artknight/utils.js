@@ -1,0 +1,51 @@
+.center-vert() {
+	position:relative;
+	top:50%;
+	transform: translateY(-50%);
+}
+.center-hor() {
+	position:relative;
+	margin-left:auto;
+	margin-right:auto;
+}
+.cfx() {
+	&:before,
+	&:after {
+		content: " "; // 1
+		display: table; // 2
+	}
+	&:after {
+		clear: both;
+	}
+}
+
+.fade() {
+	opacity: 0;
+	transition: opacity .15s linear;
+	&.in { opacity: 1; }
+}
+
+// requires inline-block or block for proper styling
+.text-overflow() {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.readonly() {
+	pointer-events:none !important;
+	cursor:default;
+	text-decoration:none !important;
+	opacity:0.5;
+}
+
+.blink() {
+	animation:blink-animation 1s steps(5, start) infinite;
+	-webkit-animation:blink-animation 1s steps(5, start) infinite;
+
+	@keyframes blink-animation { to { visibility:hidden; } }
+	@-webkit-keyframes blink-animation { to { visibility:hidden; } }
+}
+
+//bootstrap 4
+@import "../vendors/bootstrap/_mixins.less";

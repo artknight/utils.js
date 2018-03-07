@@ -1,0 +1,55 @@
+@import (once) "../globals/variables";
+@import (once) "../globals/mixins";
+
+.popover-editable {
+	max-width:350px;
+
+	.popup-editable-content {
+		padding:0 10px;
+	}
+
+	.popover-editable-control {
+		padding:0 6px;
+
+		& + .popover-editable-control {
+			padding-left:0;
+		}
+
+		&.save {
+			color:@brand-primary;
+		}
+		&.cancel {
+			color:@gray-lighter;
+		}
+		i.mdi {
+			font-size:20px;
+		}
+	}
+
+}
+
+form.editable-form {
+	position:relative;
+
+	&.radio-type {
+		padding-left: 15px;
+	}
+
+	.form-group, .form-control {
+		width:100%;
+	}
+}
+
+//editable-target
+.editable-target {
+	cursor: pointer;
+	border-bottom: 1px dashed @brand-primary;
+	word-wrap: break-word;
+	color: @brand-primary;
+
+	&.readonly {
+		border-bottom: none;
+		cursor: default;
+		color: inherit;
+	}
+}

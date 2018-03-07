@@ -1,0 +1,93 @@
+@import (once) "../globals/variables";
+@import (once) "../globals/mixins";
+
+.spinner {
+	position:relative;
+	z-index:1005;
+
+	& .spinner-icon { position:relative; float:left; }
+	& .spinner-msg { position:relative; float:left; white-space:nowrap; }
+	&.tiny {
+		padding:2px;
+		border-radius: 1px;
+		& .spinner-msg {
+			font-size:10px;
+			line-height:11px;
+			margin-top:1px;
+			& span { margin-left:4px; }
+		}
+	}
+	&.small {
+		padding:3px;
+		border-radius:3px;
+		& .spinner-msg {
+			font-size:11px;
+			line-height:13px;
+			margin-top:1px;
+			& span { margin-left:4px; }
+		}
+	}
+	&.medium {
+		padding:4px;
+		border-radius: 5px;
+		& .spinner-msg {
+			font-size:14px;
+			line-height:14px;
+			margin-top:7px;
+			& span { margin-left:6px; }
+		}
+	}
+	&.large {
+		padding:6px;
+		border-radius: 7px;
+		& .spinner-msg {
+			font-size:20px;
+			line-height:22px;
+			margin-top:12px;
+			& span { margin-left:10px; }
+		}
+	}
+	&.x2 {
+		padding:8px;
+		border-radius: 10px;
+		& .spinner-msg {
+			font-size:26px;
+			line-height:28px;
+			margin-top:22px;
+			& span { margin-left:10px; }
+		}
+	}
+	&.x3 {
+		padding:10px;
+		border-radius: 13px;
+		& .spinner-msg {
+			font-size:40px;
+			line-height:42px;
+			margin-top:35px;
+			& span { margin-left:15px; }
+		}
+	}
+
+	//modes
+	&.spinner-mode {
+		padding-left:10px;
+		padding-right:10px;
+
+		.spinner-mode-icon { font-size:1.7em; }
+		.spinner-msg span { font-size:1.5em; }
+
+		&.success {
+			background-color:@brand-success !important;
+			.spinner-mode-icon { color:#fff; margin-top:2px; }
+			.spinner-msg span { color:#fff; }
+		}
+		&.error {
+			background-color:@brand-danger !important;
+			.spinner-mode-icon { color:#fff; margin-top:2px; }
+			.spinner-msg span { color:#fff; }
+		}
+	}
+
+	//work-around for bootstrap-datepicker
+	.datepicker > & { display:block; }
+}
