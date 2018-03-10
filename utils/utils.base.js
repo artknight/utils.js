@@ -1,10 +1,10 @@
 if (!UTILS) var UTILS = {};
 
 UTILS.Base = class {
-	constructor(data){
+	constructor(data={}){
 		this.values = {
 			object:'utils.base',
-			version:'0.1.5',
+			version:'0.1.6',
 			id: UTILS.uuid(), //id of the class
 			$target: $('body'), //holds the target elm
 			ajax:{ url:'', method:'', type:'POST', params:{} },
@@ -12,8 +12,7 @@ UTILS.Base = class {
 			fns: {} //holds the callback stack
 		};
 		//lets update the default values
-		('getDefaults' in this) && (this.values = _.extend(this.values,this.getDefaults()));
-		this.values = _.extend(this.values,data);
+		_.extend(this.values,this.getDefaults(),data);
 
 		//analizing data
 		if (_.isPlainObject(data)){

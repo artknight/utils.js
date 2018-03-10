@@ -18,7 +18,7 @@ UTILS.SCache = class {
 	getDefaults(){
 		return {
 			object: 'utils.scache',
-			version:'0.5.3',
+			version:'0.5.4',
 			id: 0, //holds the project id
 			name: '', //holds the name
 			fns: {},
@@ -120,12 +120,33 @@ UTILS.SCache = class {
 
 		}.bind(this);
 
-		fetch(script.script_url)
-			.then((response) => response.text())
-			.then(_onSuccess)
-			.catch();
+		var script_url = this._getFilteredUrl(script.script_url);
 
+		//if external URL we need to get the content regardless of CORS
+		if (/^http/i.test(script_url))
+			script_url = 'http://cors-anywhere.herokuapp.com/'+script_url;
+
+		if (!/\^nocache=/i.test(script.script_url)){
+			fetch(script_url)
+				.then((response) => response.text())
+				.then(_onSuccess)
+				.catch();
+		}
+		else
+			script.promise_tuple.resolve();
+		
 		return this;
+	}
+
+	_getFilteredUrl(script_url){
+		//lets remove '^type,^usebase,^nocache'
+		return script_url
+			.replace(/(\?|&)\^type=(js|css)/g,'$1')
+			.replace(/(\?|&)\^usebase=(true|false)/g,'$1')
+			.replace(/(\?|&)\^nocache=(true|false)/g,'$1')
+			.replace(/(&&)+/g,'&')
+			.replace(/(\?&)+/g,'?')
+			.replace(/(\?|&)+$/g,'');
 	}
 
 	getBaseUrl(script_url){
@@ -141,7 +162,7 @@ UTILS.SCache = class {
 			$title = document.getElementsByTagName('title')[0],
 			$insert_before_elm = script.is_js ? $head.firstChild : $title; //the order matters in CSS, so we have to add elements DESC
 
-		this.log(this.getObjectName() + ' --> added to HEAD',script.script_url);
+		this.log(this.getObjectName() + ' --> added to HEAD',this._getFilteredUrl(script.script_url));
 
 		$head.insertBefore(script.$script,$insert_before_elm);
 
@@ -176,8 +197,11 @@ UTILS.SCache = class {
 
 		return this;
 	}
+
 	loadJS(script){
 		script.$script = this.getScriptElm(script);
+
+		var script_url = this._getFilteredUrl(script.script_url);
 
 		//script.$script.onload = this.addToCache.bind(this,script);
 		//script.$script.setAttribute('src', script.script_url);
@@ -186,7 +210,7 @@ UTILS.SCache = class {
 		if (/^wait/.test(script.base_url))
 			this.values.LAB = this.values.LAB.wait(script.promise_tuple.resolve);
 		else
-			this.values.LAB = this.values.LAB.script(script.script_url).wait(this.addToCache.bind(this,script));
+			this.values.LAB = this.values.LAB.script(script_url).wait(this.addToCache.bind(this,script));
 
 		return this;
 	}
@@ -277,6 +301,10 @@ UTILS.SCache = class {
 					is_js: this.isJS(base_url),
 					promise_tuple: { resolve:null, reject:null }
 				};
+
+			//lets check if '^type=js' exists to override the default type
+			if (/\^type=js/i.test(script_url))
+				script.is_js = true;
 
 			//lets check if the script already exists
 			if (!this.values.loaded_scripts.find(s => s.base_url.includes(script.base_url))){
