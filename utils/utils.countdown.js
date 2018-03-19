@@ -1,11 +1,11 @@
 /*
-    == COUNTDOWN ==
+    == UTILS.Countdown ==
 
     == dependencies ==
     moment.js
     moment-duration-format.js
 
-	ex. var Countdown = new COUNTDOWN({ target:$('#results') });
+	ex. var Countdown = new UTILS.Countdown({ target:$('#results') });
 
 	== definitions ==
 	@target - (required) DOM elm where the countdown will be inserted --> defaults to 'body'
@@ -18,7 +18,7 @@
 	@color - (optional) color of the background & text --> defaults to 'black'
 
 */
-const COUNTDOWN =  class extends UTILS.Base {
+UTILS.Countdown =  class extends UTILS.Base {
 	constructor(data){
 		super(data);
 		_log(this.getObjectName()+' --> instantiated!',this.getId(),this);

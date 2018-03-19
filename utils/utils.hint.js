@@ -1,7 +1,7 @@
 /*
  	utils.hint.js
 
-	ex. var hint1 = new HINT({target:$('#results'),color:'black',direction:'right',msg:'this is the name field'}).show();
+	ex. var hint1 = new UTILS.Hint({target:$('#results'),color:'black',direction:'right',msg:'this is the name field'}).show();
 
 	== definitions ==
 	@target - (required) DOM elm to show the hint on
@@ -14,7 +14,7 @@
 	@onCreate - (optional) function to execute when 'onCreate' happens --> defaults to null
 	@is_error - (optional) marks if the hint is an error --> defaults to false
 */
-const HINT = class extends UTILS.Base {
+UTILS.Hint = class extends UTILS.Base {
 	constructor(data){
 		super(data);
 		_log(this.getObjectName()+' --> instantiated!',this.getId(),this);
@@ -95,7 +95,7 @@ const HINT = class extends UTILS.Base {
 	isInputOrSelect(){
 		return (this.values.$elm.is('input') || this.values.$elm.is('select'));
 	}
-	//private - only is used when the HINT is an error, we hightlight the border red of the input field
+	//private - only is used when the UTILS.Hint is an error, we hightlight the border red of the input field
 	highlight(){
 		if (this.values.is_error){
 			if (!('highlight' in this.values.history)){
@@ -115,7 +115,7 @@ const HINT = class extends UTILS.Base {
 	adjustDirection(){
 		//if direction is either 'left' | 'right', check for width
 		if (('direction' in this.values.css) && this.values.css.direction.match(/hint-left|hint-right/)){
-			//check if target is inside a BOX, make sure that the target has enough space to show the hint
+			//check if target is inside a UTILS.Box, make sure that the target has enough space to show the hint
 			var $box_mainbody = this.values.$target.parent('div.box-mainbody');
 
 			if ($box_mainbody.length && ($box_mainbody.outerWidth()-this.values.$target.outerWidth()) < Math.min(this.values.msg.length*5.5,250))
@@ -262,7 +262,7 @@ if (!TOOLTIP){
 			if (_.isPlainObject(options) && ('target' in options)){
 				var options = {
 					target: $(options.target),
-					msg: ERRORS.getMessage(options.msg),
+					msg: UTILS.Errors.getMessage(options.msg),
 					color: colors[options.type] || colors['default'],
 					duration: options.duration || 'always',
 					direction: options.direction || 'right',
@@ -273,10 +273,10 @@ if (!TOOLTIP){
 				};
 				var hint = TOOLTIP.getHint(options.target); //get previously stored hint
 
-				if (hint && hint instanceof HINT)
+				if (hint && hint instanceof UTILS.Hint)
 					hint.set(options);
 				else {
-					hint = new HINT(options);
+					hint = new UTILS.Hint(options);
 					TOOLTIP.values.hints.push(hint);
 				}
 

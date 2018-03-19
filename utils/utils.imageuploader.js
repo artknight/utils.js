@@ -715,7 +715,7 @@
 			if ('onError' in options)
 				options.onError(response);
 			else if (error instanceof Error)
-				ERRORS.show(error.message);
+				UTILS.Errors.show(error.message);
 
 			_.isFunction(callback) && callback.delay(2000);
 		},

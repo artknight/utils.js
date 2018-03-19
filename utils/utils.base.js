@@ -45,8 +45,13 @@ UTILS.Base = class {
 			}.bind(this));
 
 			//lets trigger a traditional event
-			var event = `${this.getObjectName()}.${type.toLowerCase()}`.replace(/\./g,'-');
-			this.getTarget().trigger(event,options);
+			var event = `${this.getObjectName()}.${type.toLowerCase()}`.replace(/\./g,'-'),
+				$target = this.getTarget();
+
+			if ($target instanceof UTILS.Box)
+				$target = $target.getBox();
+
+			$target.trigger(event,options);
 		}
 	}
 	addCallback(type,callback){
@@ -70,7 +75,7 @@ UTILS.Base = class {
 		return this.values.$target;
 	}
 	setTarget(target){
-		this.values.$target = (target instanceof BOX) ? target.getMainbody() : $(target);
+		this.values.$target = (target instanceof UTILS.Box) ? target.getMainbody() : $(target);
 
 		//lets add 'this' to target
 		this.values.$target.data(this.getObjectName(),this);

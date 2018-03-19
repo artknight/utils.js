@@ -1,9 +1,8 @@
 /*
-	== ENC ==
-	ENC.sha1 - used in encrypting passwords at login
-	ENC.base64.encode - used in encrypting passwords to pass at saving
+	UTILS.Encryption.sha1 - used in encrypting passwords at login
+	UTILS.Encryption.base64.encode - used in encrypting passwords to pass at saving
 */
-var ENC = {
+UTILS.Encryption = {
 	sha1: function(msg){
  
 		var rotate_left = function(n,s){
@@ -161,7 +160,7 @@ var ENC = {
 			var output = '';
 			var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
 			var i = 0;
-			input = ENC.base64._utf8_encode(input);
+			input = UTILS.Encryption.base64._utf8_encode(input);
 
 			while (i < input.length){
 
@@ -214,7 +213,7 @@ var ENC = {
 
 			}
 
-			output = ENC.base64._utf8_decode(output);
+			output = UTILS.Encryption.base64._utf8_decode(output);
 
 			return output;
 

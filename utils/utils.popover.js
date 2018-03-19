@@ -1,11 +1,11 @@
 /*
-    == POPOVER ==
+    == UTILS.Popover ==
 
 	== dependencies ==
 	jquery.js
 	bootstrap.js
 
-	ex. var dropdown = new POPOVER({target:$('#button'),items:[{label:'',value:''},{label:'',value:''}],onSelect:function(){...}});
+	ex. var dropdown = new UTILS.Popover({target:$('#button'),items:[{label:'',value:''},{label:'',value:''}],onSelect:function(){...}});
 		dropdown.enable();
 
 	== definitions ==
@@ -16,7 +16,7 @@
 	@direction - (optional) direction of the popover --> defaults to 'bottom'
 	@onSelect - (optional) stack of functions to execute when the spinner is shown (REPEAT EXECUTION) --> defaults to 'null'
 */
-const POPOVER = class extends UTILS.Base {
+UTILS.Popover = class extends UTILS.Base {
 	constructor(data){
 		super(data);
 
@@ -26,6 +26,7 @@ const POPOVER = class extends UTILS.Base {
 			('title' in data) && this.setTitle(data.title);
 			('direction' in data) && this.setDirection(data.direction);
 			('blur' in data) && this.setBlurState(data.blur);
+			('width' in data) && this.setWidth(data.width);
 			('hide_on_click' in data) && this.setHideOnClickState(data.hide_on_click);
 			('toggle' in data) && this.setToggleAction(data.toggle);
 			('template' in data) && this.setTemplate(data.template);
@@ -43,7 +44,7 @@ const POPOVER = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object:'utils.popover',
-			version:'0.1.5',
+			version:'0.1.6',
 			items: [], //holds the items
 			$content: '', //holds the content of the popover
 			title: '', //holds the title
@@ -51,17 +52,25 @@ const POPOVER = class extends UTILS.Base {
 			$container: $('body'), //holds DOM where popover will be appended to
 			is_enabled: false, //holds the enable/disable state of the popover
 			PopoverElm: null, //holds the bootstrap popover instance
-			Blur: null, //holds the BLUR object
-			is_blur: false, //holds the whether to show the BLUR
+			Blur: null, //holds the UTILS.Blur object
+			is_blur: false, //holds the whether to show the UTILS.Blur
 			hide_on_click: true, //hides popover on outside click
 			is_shown: false, //holds the display state
 			toggle_action: 'click', //toggle action to show/hide the popover
+			width: null, //holds the width of the bootstrap popover
 			$template: $('<div class="popover popover-custom" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"></div></div>')
 		};
 	}
 	//method to simplify getting the $tip of the bootstrap popover
 	getPopoverElmContainer(){
 		return this.getPopoverElm().$tip;
+	}
+	getWidth(){
+		return this.values.width;
+	}
+	setWidth(width=300){
+		this.values.width = parseInt(width);
+		return this;
 	}
 	getTemplate(){
 		return this.values.$template;
@@ -81,13 +90,19 @@ const POPOVER = class extends UTILS.Base {
 			var $target = this.getTarget(),
 				toggle_action = this.getToggleAction(),
 				title = this.getTitle(),
-				options = {
+				$templace = this.getTemplate(),
+				width = this.getWidth();
+
+			if (width)
+				$template.css({ width:width, 'max-width':width });
+
+			var	options = {
 					html: true,
 					content: this.getContent.bind(this),
 					placement: $(window).width()>768 ? this.getDirection() : 'bottom',
 					container: this.getContainer(),
 					trigger: (toggle_action=='dblclick') ? 'manual' : toggle_action,
-					template: this.getTemplate()[0]
+					template: $template[0]
 				};
 
 			(title.length) && (options.title = title);
@@ -139,7 +154,7 @@ const POPOVER = class extends UTILS.Base {
 	setBlur(){
 		if (this.isBlur()){
 			if (!this.values.Blur)
-				this.values.Blur = new BLUR({ target:this.getContainer(), color:'white' })
+				this.values.Blur = new UTILS.Blur({ target:this.getContainer(), color:'white' })
 			else
 				this.values.Blur.setTarget(this.getContainer());
 		}

@@ -1,7 +1,7 @@
 /*
-    == SPINNER ==
+    == UTILS.Spinner ==
 
-	ex. var spin1 = new SPINNER({target:$('#results'),type:'small',msg:'loading...'});
+	ex. var spin1 = new UTILS.Spinner({target:$('#results'),type:'small',msg:'loading...'});
 		spin1.show();
 
 	== definitions ==
@@ -12,7 +12,7 @@
 	@color - (optional) specifies the color of the spinner --> defaults to 'none' (transparent)
 	@center - (optional) centers the spinner within the target --> defaults to 'false'
 	@shadow - (optional) specifies if the spinner has a shadow --> defaults to 'false'
-	@blur - (optional) blurs out the target elm ( it could be true/false or specific BLUR options like color ) --> defaults to 'false'
+	@blur - (optional) blurs out the target elm ( it could be true/false or specific UTILS.Blur options like color ) --> defaults to 'false'
 	@onCreate - (optional) function to execute when box is first created (ONE-TIME EXECUTION) --> defaults to 'null'
 	@onShow - (optional) stack of functions to execute when the spinner is shown (REPEAT EXECUTION) --> defaults to 'null'
 	@onBeforeShow - (optional) stack of functions to execute right before the spinner is shown (REPEAT EXECUTION) --> defaults to 'null'
@@ -22,7 +22,7 @@
 	jquery.js
 	spin.js  (fgnass.github.com)
 */
-const SPINNER =  class extends UTILS.Base {
+UTILS.Spinner =  class extends UTILS.Base {
 	constructor(data={}){
 		super(data);
 		_log(this.getObjectName()+' --> instantiated!',this.getId(),this);
@@ -98,7 +98,7 @@ const SPINNER =  class extends UTILS.Base {
 		if (this.values.blur && this.values.$target.length){
 			blur_instance = this.values.$target.data('utils.blur');
 
-			if (!(blur_instance instanceof BLUR)){
+			if (!(blur_instance instanceof UTILS.Blur)){
 				var blur_options = {
 					target: this.values.$target,
 					color: 'white'
@@ -107,7 +107,7 @@ const SPINNER =  class extends UTILS.Base {
 				if (typeof this.values.blur==='object')
 					_.assign(blur_options,this.values.blur);
 
-				blur_instance = new BLUR(blur_options);
+				blur_instance = new UTILS.Blur(blur_options);
 			}
 
 			blur_instance.set({resize: this.values.$target.is('body')}).show();
@@ -146,7 +146,7 @@ const SPINNER =  class extends UTILS.Base {
 		return this;
 	}
 	setTarget(target){
-		this.values.$target = (target instanceof BOX) ? target.values.$elm : $(target);
+		this.values.$target = (target instanceof UTILS.Box) ? target.values.$elm : $(target);
 
 		//lets add 'this' to target
 		this.values.$target.data(this.getObjectName(),this);

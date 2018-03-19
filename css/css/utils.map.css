@@ -53,57 +53,57 @@ table.map-marker-content {
   border: 0;
   margin: 0;
 }
-table.gmap-marker-content th,
-table.gmap-marker-content td {
+table.map-marker-content th,
+table.map-marker-content td {
   border: 0;
   vertical-align: top;
 }
-table.gmap-marker-content td {
+table.map-marker-content td {
   width: 55%;
   font-size: 13px;
   line-height: 18px;
   padding: 0;
 }
-table.gmap-marker-content td + td {
+table.map-marker-content td + td {
   width: 45%;
   padding-left: 20px;
 }
-table.gmap-marker-content td ul.address li {
+table.map-marker-content td ul.address li {
   padding: 0;
 }
-table.gmap-marker-content td span {
+table.map-marker-content td span {
   display: block;
 }
-table.gmap-marker-content td span.addr {
+table.map-marker-content td span.addr {
   margin-top: 5px;
 }
-table.gmap-marker-content td span.phone {
+table.map-marker-content td span.phone {
   font-weight: bold;
   color: #000;
 }
-table.gmap-marker-content td span.email {
+table.map-marker-content td span.email {
   text-transform: lowercase !important;
   margin-top: 14px;
 }
-table.gmap-marker-content td a.sn {
+table.map-marker-content td a.sn {
   margin-left: 5px;
   font-size: 13px;
   text-decoration: none;
 }
-table.gmap-marker-content td a.sn:hover {
+table.map-marker-content td a.sn:hover {
   text-decoration: underline;
   color: #da4f49;
 }
-table.gmap-marker-content td a.sn.zocial,
-table.gmap-marker-content td a.sn.iconsweets,
-table.gmap-marker-content td a.sn.zocial i,
-table.gmap-marker-content td a.sn.iconsweets i {
+table.map-marker-content td a.sn.zocial,
+table.map-marker-content td a.sn.iconsweets,
+table.map-marker-content td a.sn.zocial i,
+table.map-marker-content td a.sn.iconsweets i {
   color: #0e4a77;
 }
-table.gmap-marker-content td a.sn.zocial i {
+table.map-marker-content td a.sn.zocial i {
   margin-right: 5px;
   line-height: 1.5;
 }
-table.gmap-marker-content td a.sn.iconsweets i {
+table.map-marker-content td a.sn.iconsweets i {
   font-size: 18px;
 }

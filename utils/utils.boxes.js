@@ -1,5 +1,5 @@
-//extends the regular BOX object
-APP.BOX = class extends BOX {
+//extends the regular UTILS.Box object
+APP.Box = class extends UTILS.Box {
 	constructor(data){
 		if (!('object' in data))
 			data.object = 'utils.box[app.box]';
@@ -40,10 +40,10 @@ APP.BOX = class extends BOX {
 };
 
 /*
-	== APP.CONFIRM ==
-	extends the APP.BOX object
+	== APP.Confirm ==
+	extends the APP.Box object
  */
-APP.CONFIRM = class extends APP.BOX{
+APP.Confirm = class extends APP.Box{
 	constructor(data){
 		var defaults = {
 			w:400, title:'',
@@ -98,8 +98,8 @@ APP.CONFIRM = class extends APP.BOX{
 };
 
 /*
-	== APP.ALERT ==
-	extends the BOX object
+	== APP.Alert ==
+	extends the UTILS.Box object
 
 	--> used in displaying error messages (center of page) or notifications (right-bottom corner)
  */
@@ -107,7 +107,7 @@ APP.CONFIRM = class extends APP.BOX{
 //holds all the opened alert boxes
 var alert_boxes = { error:[], success:[], info:[], warning:[] };
 
-APP.ALERT = class extends BOX {
+APP.Alert = class extends UTILS.Box {
 	constructor(data){
 		if (!('type' in data))
 			data.type = 'info';
@@ -217,7 +217,7 @@ APP.ALERT = class extends BOX {
 	}
 };
 
-//stack of opened BOXes
+//stack of opened Boxes
 APP.stack = {
 	values: {
 		boxes: [] //holds the open boxes
@@ -238,7 +238,7 @@ APP.stack = {
 	addBox: function(box){
 		var is_added = false;
 
-		if (box instanceof BOX && !APP.stack.boxExists(box)){
+		if (box instanceof UTILS.Box && !APP.stack.boxExists(box)){
 			APP.stack.values.boxes.push(box);
 			is_added = true;
 		}

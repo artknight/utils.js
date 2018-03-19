@@ -1,4 +1,4 @@
-var ERRORS = {
+UTILS.Errors = {
 	values:{
 		space:{}, //will be populated from DB
 		effects: { //effects to apply to base elm before showing the errors
@@ -11,11 +11,11 @@ var ERRORS = {
 	},
 
 	setSpace: function(errors={}){
-		_.extend(ERRORS.values.space,errors);
+		_.extend(UTILS.Errors.values.space,errors);
 	},
 
 	setEffects: function(effects={}){
-		_.extend(ERRORS.values.effects,effects);
+		_.extend(UTILS.Errors.values.effects,effects);
 	},
 
 	/*
@@ -30,7 +30,7 @@ var ERRORS = {
 			if ('container' in data){
 				var html = '<div class="alert alert-danger" role="alert"><i class="mdi mdi-alert mdi-24px margin-r10"></i>'+this.getMessage(error.error)+'</div>';
 
-				if (data.container instanceof BOX)
+				if (data.container instanceof UTILS.Box)
 					data.container.set({ html:html });
 				else
 					$(data.container).html(html);
@@ -56,12 +56,12 @@ var ERRORS = {
 							});
 						}
 						else
-							TOOLTIP.hint({ target:$input, type:'error', msg:ERRORS.getMessage(error.error), duration:50000, direction:direction });
+							TOOLTIP.hint({ target:$input, type:'error', msg:UTILS.Errors.getMessage(error.error), duration:50000, direction:direction });
 					}
 				});
 			}
 			else
-				ERRORS.show(error.error);
+				UTILS.Errors.show(error.error);
 
 			//run callback if available
 			if ('callback' in data && _.isFunction(data.callback))
@@ -82,11 +82,11 @@ var ERRORS = {
 		if ('errors' in data && data.errors.length){
 
 			var _onComplete = function(){
-				(!silent) && ERRORS.showTooltips(data);
+				(!silent) && UTILS.Errors.showTooltips(data);
 			};
 
 			if ('fx' in data && data.fx){
-				effect = ERRORS.values.effects[data.fx.effect];
+				effect = UTILS.Errors.values.effects[data.fx.effect];
 
 				if (effect)
 					$(data.fx.base).velocity(effect,{ complete:_onComplete });
@@ -101,19 +101,19 @@ var ERRORS = {
 	},
 
 	//pass @error to get the full message
-	// ex. var message = ERRORS.getMesssage('invalidUsername');
+	// ex. var message = UTILS.Errors.getMesssage('invalidUsername');
 	getMessage: function(error){
-		return (error in ERRORS.values.space) ? ERRORS.values.space[error] : error.replace(/\\n/g,'<br>');
+		return (error in UTILS.Errors.values.space) ? UTILS.Errors.values.space[error] : error.replace(/\\n/g,'<br>');
 	},
 
 	show: function(error,callback){
-		var message = ERRORS.getMessage(error);
+		var message = UTILS.Errors.getMessage(error);
 
 		if (message.length)
-			new APP.ALERT({ type:'error', html:message.replace(/\\n/g,'<br>'), onClose:callback }).show();
+			new APP.Alert({ type:'error', html:message.replace(/\\n/g,'<br>'), onClose:callback }).show();
 	}
 
 };
 
 if (APP.values.errors)
-	ERRORS.setSpace(APP.values.errors);
+	UTILS.Errors.setSpace(APP.values.errors);

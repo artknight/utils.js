@@ -1,8 +1,8 @@
 /*
-	== BOX ==
+	== UTILS.Box ==
 
 	ex.
-	var box = new BOX({
+	var box = new UTILS.Box({
 		id:'test-box',
 		w:600,
 		title:'please note',
@@ -54,7 +54,7 @@
 	velocity.js
 	ResizeSensor.js
 */
-const BOX =  class extends UTILS.Base {
+UTILS.Box =  class extends UTILS.Base {
 	constructor(data={}){
 		super(data);
 		_log(this.getObjectName()+' --> instantiated!',this.getId(),this);
@@ -122,7 +122,7 @@ const BOX =  class extends UTILS.Base {
 	}
 	setTarget(target){
 		if (target)
-			this.values.$target = (target instanceof BOX) ? target : $(target);
+			this.values.$target = (target instanceof UTILS.Box) ? target : $(target);
 		return this;
 	}
 	//private - removes the div
@@ -169,19 +169,19 @@ const BOX =  class extends UTILS.Base {
 			var onClose = new Function;
 
 			if (this.isGlobalBox()){
-				onClose = (this instanceof APP.BOX && APP.stack.getBoxes().length>1) ? new Function : UTILS.dim.hide;
+				onClose = (this instanceof APP.Box && APP.stack.getBoxes().length>1) ? new Function : UTILS.dim.hide;
 				UTILS.dim.show(null,{onShow:_show});
 			}
-			else if (this.values.$target instanceof BOX){
+			else if (this.values.$target instanceof UTILS.Box){
 				onClose = this.values.$target.unblur.bind(this.values.$target);
 				this.values.$target.blur();
 				_show();
 				this.getTargetDOM().append(this.values.$elm); //we must re-append the box to make sure its behind the blur
 			}
 			else { //we are within another DOM elm
-				var blur = new BLUR({
+				var blur = new UTILS.Blur({
 					target:this.values.$target,
-					color:(this instanceof APP.CONFIRM) ? 'black' : 'white',
+					color:(this instanceof APP.Confirm) ? 'black' : 'white',
 					onShow:_show
 				});
 				onClose = blur.hide.bind(blur);
@@ -202,7 +202,7 @@ const BOX =  class extends UTILS.Base {
 	}
 	//private - only used to determine if the box is insterted into the body or within another DOM elm
 	isGlobalBox(){
-		return (!(this.values.$target instanceof BOX) && this.values.$target.is('body'));
+		return (!(this.values.$target instanceof UTILS.Box) && this.values.$target.is('body'));
 	}
 	isInsideBox(){
 		return this.getParentBox().length;
@@ -306,8 +306,8 @@ const BOX =  class extends UTILS.Base {
 	blur(){ //blurs box content
 		var blur_instance = this.values.$elm.data('utils.blur');
 
-		if (!(blur_instance instanceof BLUR))
-			blur_instance = new BLUR({ target:this.values.$elm });
+		if (!(blur_instance instanceof UTILS.Blur))
+			blur_instance = new UTILS.Blur({ target:this.values.$elm });
 
 		blur_instance.set({ color:this.values.blur.color, opac:this.values.blur.opac||null }).show();
 		this.fns('onBlur');
@@ -456,7 +456,7 @@ const BOX =  class extends UTILS.Base {
 			switch(action){
 				case 'open': //maximizing box
 					if (!this.values.fx.base.length)
-						ERRORS.show('@base must be specified.');
+						UTILS.Errors.show('@base must be specified.');
 					else {
 						//while box is invisible, lets center it to get all the end-coords
 						if (!this.values.coords)
@@ -557,9 +557,9 @@ const BOX =  class extends UTILS.Base {
 
 		this.values.divs.$controls.width(this.values.divs.$outer.outerWidth()-20);
 	}
-	//if the this.values.$target happens to be another BOX, we need to get the parent to append it to
+	//if the this.values.$target happens to be another UTILS.Box, we need to get the parent to append it to
 	getTargetDOM(){
-		return this.values.$target instanceof BOX ? this.values.$target.values.$elm : this.values.$target;
+		return this.values.$target instanceof UTILS.Box ? this.values.$target.values.$elm : this.values.$target;
 	}
 	//gets the zindex of the most upper box on the page
 	getLastZIndex(){

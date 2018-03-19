@@ -1,7 +1,7 @@
 /*
-	== BLUR ==
+	== UTILS.Blur ==
 
-	ex. var blur1 = new BLUR({target:$('#results')});
+	ex. var blur1 = new UTILS.Blur({target:$('#results')});
 		blur1.show();
 
 	== definitions ==
@@ -15,7 +15,7 @@
 	== dependencies ==
 	jquery.js
 */
-const BLUR = class extends UTILS.Base {
+UTILS.Blur = class extends UTILS.Base {
 	constructor(data){
 		super(data);
 		_log(this.getObjectName()+' --> instantiated!',this.getId(),this);
@@ -82,7 +82,7 @@ const BLUR = class extends UTILS.Base {
 	}
 	setTarget(target){
 		if (target){
-			this.values.$target = (target instanceof BOX) ? target.values.$elm : $(target);
+			this.values.$target = (target instanceof UTILS.Box) ? target.values.$elm : $(target);
 
 			//lets add 'this' to target
 			this.values.$target.data(this.getObjectName(),this);

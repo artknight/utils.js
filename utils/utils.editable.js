@@ -1,5 +1,5 @@
 /*
-    == EDITABLE ==
+    == UTILS.Editable ==
 
 	== dependencies ==
 	jquery.js
@@ -8,7 +8,7 @@
 	bootstrap-datepicker.js
 
 	** example **
-	var editable = new EDITABLE({
+	var editable = new UTILS.Editable({
 		target: $('#button'),
 		type: 'select',
 		items: [
@@ -37,7 +37,7 @@
 		@filterValueForEditing - (optional) method to format value before displaying it for editing --> $10.00 should be displayed as 10.00
 		@filterValueForDisplay - (optional) method to format value before updating the original parent value --> 10.00 should be displayed as $10.00
 */
-const EDITABLE = class extends UTILS.Base {
+UTILS.Editable = class extends UTILS.Base {
 	constructor(data={}){
 		super(data);
 
@@ -83,7 +83,7 @@ const EDITABLE = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.4.5',
+			version: '0.4.7',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -98,7 +98,7 @@ const EDITABLE = class extends UTILS.Base {
 			empty_value: '--', //holds the empty value
 			is_lazyload: false, //holds whether the element is lazy-loaded ( true --> the trigger event was extrapolated and there is no need to add another one )
 			toggle_action: 'click', //toggle action to show/hide the popover
-			Spinner: new SPINNER({ type:'small', center:true, color:'black', blur:true }), //holds the spinner
+			Spinner: new UTILS.Spinner({ type:'small', center:true, color:'black', blur:true }), //holds the spinner
 			is_inline_tabbing: false, //holds whether tabbing should be allowed for inline editing
 			items: [], //holds the items
 			is_enabled: false, //holds the enable/disable state of the popover
@@ -596,7 +596,7 @@ const EDITABLE = class extends UTILS.Base {
 			css = this.getCss(),
 			options = this.getOptions();
 
-		$target.data('date',display_value)
+		$target.data('date',display_value);
 
 		$target.datepicker(options)
 			.on('changeDate',function(event){
@@ -607,6 +607,9 @@ const EDITABLE = class extends UTILS.Base {
 			});
 
 		this.values.DatePicker = $target.data('datepicker');
+
+		if (display_value!==this.getEmptyValue())
+			$target.datepicker('setDate',moment(display_value,options.format).toDate());
 
 		return this.values.DatePicker.picker;
 	}
@@ -716,7 +719,7 @@ const EDITABLE = class extends UTILS.Base {
 				spinner.hide();
 
 				if (error instanceof Error)
-					ERRORS.show(error.message);
+					UTILS.Errors.show(error.message);
 
 				this._onBeforeHide();
 				this._hide();
@@ -735,7 +738,7 @@ const EDITABLE = class extends UTILS.Base {
 
 				response.direction = 'top'; //injecting direction of the error msg
 
-				if (!ERRORS.isError(response)){ //success
+				if (!UTILS.Errors.isError(response)){ //success
 					this.setValue(value);
 					this._onBeforeHide();
 					$target.velocity('callout.flash');
@@ -751,7 +754,7 @@ const EDITABLE = class extends UTILS.Base {
 				}
 			}.bind(this);
 
-			this.fns('onBeforeSave');
+			this.fns('onBeforeSave',value);
 
 			spinner.show();
 

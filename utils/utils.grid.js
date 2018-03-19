@@ -1,11 +1,11 @@
 /*
-	== GRID ==
+	== UTILS.Grid ==
 
 	dependencies
 	------------
 	gridstack.js
 
-	ex. Grid = new GRID({ items:$('.grid-field'), target:$('#form_view'), editable:true }).show()
+	ex. Grid = new UTILS.Grid({ items:$('.grid-field'), target:$('#form_view'), editable:true }).show()
 
 	@target - (required) DOM elm where to prepend the grid to
 	@items - (optional) elements from which the grid will be generated ( must contain 'data-grid' attribute )
@@ -19,7 +19,7 @@
 	@presentation - (optional) sets presentation mode - if mode enabled cells will be adjusted based on their true content --> defaults to 'false'
 	@collape - (optional) sets collapse mode (only works when presentation mode is enabled) - if enabled, empty rows will be hidden and cells will be moved up
 */
-const GRID = class extends UTILS.Base {
+UTILS.Grid = class extends UTILS.Base {
 	constructor(data){
 		super(data);
 

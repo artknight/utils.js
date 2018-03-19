@@ -1,0 +1,18 @@
+@import (once) "../global/variables";
+@import (once) "../global/mixins";
+
+//used in iscroll
+.iscroll-spinner {
+	display: block;
+	width: 100%;
+	margin:20px 0;
+
+	.x-spinner {
+		margin:0 auto;
+	}
+}
+.iscroll-link {
+	& + .iscroll-link {
+		margin-left:20px;
+	}
+}
