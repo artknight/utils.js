@@ -7,18 +7,16 @@ UTILS.SCache = class {
 
 		this.log(this.getObjectName() + ' --> instantiated');
 
-		if (typeof data==='object'){
-			('onLoaded' in data) && this.addCallback('onLoaded',data.onLoaded);
-			('onError' in data) && this.addCallback('onError',data.onError);
-			('scripts' in data) && this.addScripts(data.scripts);
-		}
+		('onLoaded' in data) && this.addCallback('onLoaded',data.onLoaded);
+		('onError' in data) && this.addCallback('onError',data.onError);
+		('scripts' in data) && this.addScripts(data.scripts);
 
 		return this;
 	}
 	getDefaults(){
 		return {
 			object: 'utils.scache',
-			version:'0.5.4',
+			version:'0.5.5',
 			id: 0, //holds the project id
 			name: '', //holds the name
 			fns: {},
@@ -115,7 +113,7 @@ UTILS.SCache = class {
 				script.promise_tuple.resolve();
 			}
 			catch(e){
-				this.log(this.getObjectName() + ' --> error or local storage limit reached');
+				this.log(this.getObjectName() + ' --> error or local storage limit reached',e);
 			}
 
 		}.bind(this);
@@ -139,10 +137,9 @@ UTILS.SCache = class {
 	}
 
 	_getFilteredUrl(script_url){
-		//lets remove '^type,^usebase,^nocache'
+		//lets remove '^type,^nocache'
 		return script_url
 			.replace(/(\?|&)\^type=(js|css)/g,'$1')
-			.replace(/(\?|&)\^usebase=(true|false)/g,'$1')
 			.replace(/(\?|&)\^nocache=(true|false)/g,'$1')
 			.replace(/(&&)+/g,'&')
 			.replace(/(\?&)+/g,'?')
@@ -184,13 +181,17 @@ UTILS.SCache = class {
 		else {
 			this.log(this.getObjectName() + ' --> loading script from cache',script.ls_item.url);
 
-			script.$script = this.getScriptElm(script);
-			script.$script.appendChild(document.createTextNode( this.decompress(script.ls_item.content) ));
+			//need to make sure we do not add more than one script
+			if (!document.getElementById(script.id)){
+				script.$script = this.getScriptElm(script);
+				script.$script.appendChild(document.createTextNode( this.decompress(script.ls_item.content) ));
 
-			//adding source map
-			script.$script.appendChild(document.createTextNode(this.getSourceUrlMapName(script)));
+				//adding source map
+				script.$script.appendChild(document.createTextNode(this.getSourceUrlMapName(script)));
 
-			this.addToPage(script);
+				this.addToPage(script);
+			}
+
 			(this.values.show_log) && console.timeEnd(script.base_url); //stopping timer
 			script.promise_tuple.resolve();
 		}

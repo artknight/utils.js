@@ -17,39 +17,42 @@
 	@onSelect - (optional) stack of functions to execute when the spinner is shown (REPEAT EXECUTION) --> defaults to 'null'
 */
 UTILS.Popover = class extends UTILS.Base {
-	constructor(data){
+	constructor(data={}){
 		super(data);
 
 		_log(this.getObjectName()+' --> instantiated!',this.getId());
 
-		if (_.isPlainObject(data)){
-			('title' in data) && this.setTitle(data.title);
-			('direction' in data) && this.setDirection(data.direction);
-			('blur' in data) && this.setBlurState(data.blur);
-			('width' in data) && this.setWidth(data.width);
-			('hide_on_click' in data) && this.setHideOnClickState(data.hide_on_click);
-			('toggle' in data) && this.setToggleAction(data.toggle);
-			('template' in data) && this.setTemplate(data.template);
-			('container' in data) && this.setContainer(data.container);
-			('items' in data) && this.setItems(data.items);
-			('css' in data) && this.setTemplateCss(data.css);
-			('onSelect' in data) && this.addCallback('onSelect', data.onSelect);
-			('onShow' in data) && this.addCallback('onShow', data.onShow);
-			('onHide' in data) && this.addCallback('onHide', data.onHide);
-			('onCancel' in data) && this.addCallback('onCancel',data.onCancel);
-		}
+		('title' in data) && this.setTitle(data.title);
+		('options' in data) && this.setOptions(data.options);
+		('direction' in data) && this.setDirection(data.direction);
+		('blur' in data) && this.setBlurState(data.blur);
+		('width' in data) && this.setWidth(data.width);
+		('hide_on_click' in data) && this.setHideOnClickState(data.hide_on_click);
+		('toggle' in data) && this.setToggleAction(data.toggle);
+		('template' in data) && this.setTemplate(data.template);
+		('container' in data) && this.setContainer(data.container);
+		('items' in data) && this.setItems(data.items);
+		('css' in data) && this.setTemplateCss(data.css);
+		('onSelect' in data) && this.addCallback('onSelect', data.onSelect);
+		('onShow' in data) && this.addCallback('onShow', data.onShow);
+		('onHide' in data) && this.addCallback('onHide', data.onHide);
+		('onCancel' in data) && this.addCallback('onCancel',data.onCancel);
+
+		if (!('container' in data))
+			this.setContainer($('body'));
 
 		return this;
 	}
 	getDefaults(){
 		return {
 			object:'utils.popover',
-			version:'0.1.6',
+			version:'0.1.7',
 			items: [], //holds the items
 			$content: '', //holds the content of the popover
 			title: '', //holds the title
+			options: {}, //holds options for the bootstrap popover
 			direction: 'bottom', //holds the direction of the popover
-			$container: $('body'), //holds DOM where popover will be appended to
+			$container: null, //holds DOM where popover will be appended to
 			is_enabled: false, //holds the enable/disable state of the popover
 			PopoverElm: null, //holds the bootstrap popover instance
 			Blur: null, //holds the UTILS.Blur object
@@ -58,7 +61,7 @@ UTILS.Popover = class extends UTILS.Base {
 			is_shown: false, //holds the display state
 			toggle_action: 'click', //toggle action to show/hide the popover
 			width: null, //holds the width of the bootstrap popover
-			$template: $('<div class="popover popover-custom" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"></div></div>')
+			$template: $('<div class="popover popover-custom" role="tooltip"><div class="arrow"></div><h3 class="popover-header"></h3><div class="popover-body"></div></div>')
 		};
 	}
 	//method to simplify getting the $tip of the bootstrap popover
@@ -83,6 +86,21 @@ UTILS.Popover = class extends UTILS.Base {
 		(css) && this.getTemplate().addClass(css);
 		return this;
 	}
+	getOptions(){
+		return this.values.options;
+	}
+	setOptions(options){
+		_.extend(this.values.options,options);
+		return this;
+	}
+	setTarget(target){
+		if (!target)
+			this.values.$target = null;
+		else
+			super.setTarget(target);
+
+		return this;
+	}
 	enable(){
 		if (!this.values.is_enabled){
 			_log(this.getObjectName()+' --> enabled', this.getId());
@@ -90,33 +108,51 @@ UTILS.Popover = class extends UTILS.Base {
 			var $target = this.getTarget(),
 				toggle_action = this.getToggleAction(),
 				title = this.getTitle(),
-				$templace = this.getTemplate(),
-				width = this.getWidth();
+				$template = this.getTemplate(),
+				width = this.getWidth(),
+				options = this.getOptions();
 
-			if (width)
-				$template.css({ width:width, 'max-width':width });
+			//need to make sure the target is defined, otherwise throw an error
+			if (!$target)
+				UTILS.Errors.show('@target must be specified.');
+			else {
+				if (width)
+					$template.css({ width:width, 'max-width':width });
 
-			var	options = {
+				var	default_options = {
 					html: true,
 					content: this.getContent.bind(this),
 					placement: $(window).width()>768 ? this.getDirection() : 'bottom',
 					container: this.getContainer(),
 					trigger: (toggle_action=='dblclick') ? 'manual' : toggle_action,
-					template: $template[0]
+					template: $template.prop('outerHTML')
 				};
 
-			(title.length) && (options.title = title);
+				if (title.length)
+					default_options.title = title;
 
-			$target.popover(options).on('shown.bs.popover', this._onShow.bind(this)).on('hide.bs.popover', this._onHide.bind(this));
+				//update any extra bootstrap options passed in
+				_.extend(default_options,options);
 
-			//if double click, must add double click event listener
-			(toggle_action=='dblclick') && $target.popover().on('dblclick',function(){ $target.popover('show') });
+				$target.popover(default_options).on('shown.bs.popover', this._onShow.bind(this)).on('hide.bs.popover', this._onHide.bind(this));
 
-			//setting the bootstrap popover instance
-			this.setPopoverElm($target.data('bs.popover'));
-			$target.data('$utils.popover',this); //lets add 'this' to the html element
-			(this.getHideOnClick()) && $(document).on('click', this.hideOnOutsideClick.bind(this));
-			this.values.is_enabled = true;
+				//if double click, must add double click event listener
+				if (toggle_action=='dblclick')
+					$target.popover().on('dblclick',function(){ $target.popover('show') });
+
+				//if target is an anchor, need to prevent default
+				if ($target.is('a'))
+					$target.on(toggle_action,function(event){ event.preventDefault(); });
+
+				//setting the bootstrap popover instance
+				this.setPopoverElm($target.data('bs.popover'));
+				$target.data('$utils.popover',this); //lets add 'this' to the html element
+
+				if (this.getHideOnClick())
+					$(document).on('click', this.hideOnOutsideClick.bind(this));
+
+				this.values.is_enabled = true;
+			}
 		}
 		return this;
 	}
@@ -256,10 +292,13 @@ UTILS.Popover = class extends UTILS.Base {
 		_log(this.getObjectName()+' --> content populated', this.getId());
 		var $content = $('<div class="list-group"></div>');
 		_.each(this.getItems(), function(item){
-			var $item = $('<a class="list-group-item cursor '+('css' in item ? item.css : '')+'">'+item.label+'</a>').data('popover-selected-item', item).on('click', function(event){
-				this.fns('onSelect', ( $(event.target).data('popover-selected-item') || $(event.target).parent().data('popover-selected-item') ));
-				this.hide();
-			}.bind(this));
+			var $item = $('<a class="list-group-item cursor '+('css' in item ? item.css : '')+'">'+item.label+'</a>')
+					.data('popover-selected-item', item)
+					.on('click', function(event){
+						this.fns('onSelect', ( $(event.target).data('popover-selected-item') || $(event.target).parent().data('popover-selected-item') ));
+						this.hide();
+					}.bind(this));
+
 			$content.append($item);
 		}.bind(this));
 		this.setContent($content);

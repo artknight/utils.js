@@ -1,7 +1,7 @@
 .popover {
   max-width: 300px;
 }
-.popover.editable-container .popover-content {
+.popover.editable-container .popover-body {
   padding: 10px !important;
 }
 .popover.popover-custom,
@@ -13,32 +13,36 @@
   text-align: center;
   font-weight: 600;
 }
-.popover.popover-custom .popover-content,
-.popover.popover-editable .popover-content {
+.popover.popover-custom .popover-body,
+.popover.popover-editable .popover-body {
   padding: 0 0 9px 0;
 }
-.popover.popover-custom .popover-content .list-group,
-.popover.popover-editable .popover-content .list-group {
+.popover.popover-custom .popover-body .list-group,
+.popover.popover-editable .popover-body .list-group {
   margin-bottom: 0;
 }
-.popover.popover-custom .popover-content .list-group .list-group-item,
-.popover.popover-editable .popover-content .list-group .list-group-item {
+.popover.popover-custom .popover-body .list-group .list-group-item,
+.popover.popover-editable .popover-body .list-group .list-group-item {
   border: 0;
   cursor: pointer;
   padding: 5px;
 }
-.popover.popover-custom .popover-content .list-group .list-group-item:first-child,
-.popover.popover-editable .popover-content .list-group .list-group-item:first-child {
+.popover.popover-custom .popover-body .list-group .list-group-item:hover,
+.popover.popover-editable .popover-body .list-group .list-group-item:hover {
+  background: #eee;
+}
+.popover.popover-custom .popover-body .list-group .list-group-item:first-child,
+.popover.popover-editable .popover-body .list-group .list-group-item:first-child {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
-.popover.popover-custom .popover-content .list-group .list-group-item:last-child,
-.popover.popover-editable .popover-content .list-group .list-group-item:last-child {
+.popover.popover-custom .popover-body .list-group .list-group-item:last-child,
+.popover.popover-editable .popover-body .list-group .list-group-item:last-child {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
-.popover.popover-custom .popover-content .list-group .list-group-item + .list-group-item,
-.popover.popover-editable .popover-content .list-group .list-group-item + .list-group-item {
+.popover.popover-custom .popover-body .list-group .list-group-item + .list-group-item,
+.popover.popover-editable .popover-body .list-group .list-group-item + .list-group-item {
   border-top: 1px solid #eee;
 }
 .box.edit-box .popover:not(.popover-editable) {

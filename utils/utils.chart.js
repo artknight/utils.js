@@ -178,19 +178,19 @@ UTILS.Chart = class extends UTILS.Base {
 		var packages = this.getMapping().package,
 			packages_not_loaded = [];
 
-		_.each(packages,function(package){
+		_.each(packages,function(_package){
 			//if package has not yet been loaded, we need to load it
-			if (!this.isPackageLoaded(package)){
-				all_chart_packages.push(package);
-				packages_not_loaded.push(package);
+			if (!this.isPackageLoaded(_package)){
+				all_chart_packages.push(_package);
+				packages_not_loaded.push(_package);
 			}
 
 		}.bind(this));
 
 		return packages_not_loaded;
 	}
-	isPackageLoaded(package){
-		return _.isIn(all_chart_packages,package);
+	isPackageLoaded(_package){
+		return _.isIn(all_chart_packages,_package);
 	}
 	getData(){
 		return new Promise(function(resolve,reject){

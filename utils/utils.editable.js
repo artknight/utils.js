@@ -93,7 +93,7 @@ UTILS.Editable = class extends UTILS.Base {
 			$container: $('body'), //holds DOM where popover will be appended to
 			value: null, //holds the new value
 			DatePicker: null, //holds the date picker object 
-			options: {}, //holds options for
+			options: {}, //holds options
 			field_name: '@field', //holds the field name to be passed to the server
 			empty_value: '--', //holds the empty value
 			is_lazyload: false, //holds whether the element is lazy-loaded ( true --> the trigger event was extrapolated and there is no need to add another one )
