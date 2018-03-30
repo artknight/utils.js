@@ -1030,6 +1030,15 @@
 .cursor-helpable {
   cursor: help !important;
 }
+.cursor-grabbable {
+  cursor: move;
+  cursor: grab;
+  cursor: -webkit-grab;
+}
+.cursor-grabbable:active {
+  cursor: grabbing;
+  cursor: -webkit-grabbing;
+}
 .expandable {
   position: relative;
   margin-left: 7px;

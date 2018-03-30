@@ -106,6 +106,18 @@
 .cursor-clickable { cursor:pointer !important; }
 .cursor-movable { cursor:move !important; }
 .cursor-helpable { cursor:help !important; }
+.cursor-grabbable {
+	cursor: move; // fallback if grab cursor is unsupported
+	cursor: grab;
+	cursor: -moz-grab;
+	cursor: -webkit-grab;
+
+	&:active {
+		cursor: grabbing;
+		cursor: -moz-grabbing;
+		cursor: -webkit-grabbing;
+	}
+}
 
 .expandable {
 	position:relative;
