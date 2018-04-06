@@ -16,7 +16,7 @@
 	jquery.js
 */
 UTILS.Blur = class extends UTILS.Base {
-	constructor(data){
+	constructor(data={}){
 		super(data);
 		_log(this.getObjectName()+' --> instantiated!',this.getId(),this);
 

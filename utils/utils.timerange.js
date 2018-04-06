@@ -4,7 +4,7 @@
     == dependencies ==
     moment.js
 
-	ex. var Timerange = new UTILS.Timerange({ target:$('#time-range-field') });
+	ex. var timerange = new UTILS.Timerange({ target:$('#time-range-field') });
 
 	== definitions ==
 	@target - (required) DOM elm where the time picker will be inserted --> defaults to 'body'
@@ -13,26 +13,22 @@
 
 */
 UTILS.Timerange =  class extends UTILS.Base {
-	init(data){
-		this.parent(data);
+	constructor(data={}){
+		super(data);
+
 		_log(this.getObjectName()+' --> instantiated!',this.getId(),this);
 
 		if (!('target' in data))
 			throw new Error('@target must be specified upon initialization!');
 
-		if (_.isPlainObject(data)){
-			('options' in data) && this.setOptions(data.options);
-			('range' in data) && this.setRange(data.range);
-			('date_editable' in data) && this.setDateEditableState(data.date_editable);
-			('date_format' in data) && this.setDateFormat(data.date_format);
-			('allow_past_dates' in data) && this.setAllowPassedDates(data.allow_past_dates);
-			('date' in data) && this.setDate(data.date);
-			('onShow' in data) && this.addCallback('onShow',data.onShow);
-			('onHide' in data) && this.addCallback('onHide',data.onHide);
-			('onStart' in data) && this.addCallback('onStart',data.onStart);
-			('onStop' in data) && this.addCallback('onStop',data.onStop);
-			('onSlide' in data) && this.addCallback('onSlide',data.onSlide);
-		}
+		('options' in data) && this.setOptions(data.options);
+		('range' in data) && this.setRange(data.range);
+		('date' in data) && this.setDate(data.date);
+		('onShow' in data) && this.addCallback('onShow',data.onShow);
+		('onHide' in data) && this.addCallback('onHide',data.onHide);
+		('onStart' in data) && this.addCallback('onStart',data.onStart);
+		('onStop' in data) && this.addCallback('onStop',data.onStop);
+		('onSlide' in data) && this.addCallback('onSlide',data.onSlide);
 
 		this._initSlider();
 
@@ -40,24 +36,59 @@ UTILS.Timerange =  class extends UTILS.Base {
 	}
 	getDefaults(){
 		return {
-			object:'utils.timerange',
-			version:'0.0.7',
+			object: 'utils.timerange',
+			version: '1.0.2',
 			$wrapper: null, //holds the timer wrapper
 			is_shown: false, //holds whether the timerange is shown
 			date: moment(), //holds the date
 			is_date_editable: true, //holds whether the date is editable
+			time_format: 'h:mm A', //holds the time format
+			time_label_format: 'h A', //holds the time format
 			date_format: 'MM/DD/YYYY', //holds the date format
 			allow_past_dates: false,
 			EditableDate: null, //holds the editable date object
+			//start values
 			range: {
-				start:540, //9am
-				end:1020 //5pm
+				start: 540, //9am
+				end: 960 //4pm
 			},
-			settings: { //holds the jquery-ui slider options
-				range: true,
-				min: 0,
-				max: 1440, //mins in 24 hrs
-				step: 15
+			//noUISlider options
+			settings: {
+				range: {
+					min: 0,
+					max: 1440, //mins in 24 hrs
+				},
+				tooltips: [true, true],
+				connect: true,
+				step: 15,
+				format: {
+					to: this._formatDisplayTime.bind(this),
+					from: function (val){
+						return val;
+					}
+				},
+				pips: {
+					mode: 'steps',
+					stepped: true,
+					density: 4,
+					format: {
+						to: function(total_mins) {
+							var range = this._getHoursMinsFromTotalMins(total_mins),
+								time_label_format = this.getTimeLabelFormat()
+
+							return moment(range.hrs+':'+range.mins, 'HH:mm').format(time_label_format);
+						}.bind(this),
+						from: function(val) {
+							return val;
+						}
+					},
+					filter: function(value, type){
+						if (value % 60===0) //every hour
+							return (Math.floor(value/60) % 2===1) ? 2 : 1
+						else
+							return 0;
+					}
+				}
 			}
 		};
 	}
@@ -67,13 +98,15 @@ UTILS.Timerange =  class extends UTILS.Base {
 	}
 	_create(){
 		if (!this.values.$wrapper){
-			this.values.$wrapper = $('<div class="app-timerange hide">'+
-				'<div class="slider-header">'+
-				'<div class="slider-header-date">Date: <span></span></div>'+
-				'<div class="slider-header-timerange">Time: <span class="slider-start"></span> - <span class="slider-end"></span></div>'+
-				'</div>'+
-				'<div class="slider-range"></div>'+
-				'</div>');
+			this.values.$wrapper = $(`
+				<div class="app-timerange hide">
+					<div class="slider-header">
+						<div class="slider-header-date">Date: <span></span></div>
+						<div class="slider-header-timerange">Time: <span class="slider-start"></span> - <span class="slider-end"></span></div>
+					</div>
+					<div class="slider-range"></div>
+				</div>
+			`);
 
 			this.values.$wrapper.data('$timerange',this);
 		}
@@ -150,42 +183,28 @@ UTILS.Timerange =  class extends UTILS.Base {
 		this.values.date_format = format;
 		return this;
 	}
+	getTimeFormat(){
+		return this.values.time_format;
+	}
+	setTimeFormat(format){
+		this.values.time_format = format;
+		return this;
+	}
+	getTimeLabelFormat(){
+		return this.values.time_label_format;
+	}
+	setTimeLabelFormat(format){
+		this.values.time_label_format = format;
+		return this;
+	}
 	getWrapper(){
 		return this.values.$wrapper;
 	}
-	// @lever is the slider nob location --> start | end
 	_formatDisplayTime(total_mins){
-		var hrs = Math.floor(total_mins/60),
-			mins = total_mins - (hrs*60);
+		var range = this._getHoursMinsFromTotalMins(total_mins),
+			time_format = this.getTimeFormat();
 
-		if (hrs.length===1)
-			hrs = '0' + hrs;
-
-		if (mins.length===1)
-			mins = '0' + mins;
-
-		if (mins==0)
-			mins = '00';
-
-		if (hrs>=12){
-			if (hrs==12)
-				mins += ' PM';
-			else if (hrs==24){
-				hrs = 11;
-				mins = '59 PM';
-			}
-			else {
-				hrs = hrs - 12;
-				mins += ' PM';
-			}
-		}
-		else
-			mins += ' AM';
-
-		if (hrs==0)
-			hrs = 12;
-
-		return hrs+':'+mins;
+		return moment(range.hrs+':'+range.mins, 'HH:mm').format(time_format);
 	}
 	_getEditableDate(){
 		return this.values.EditableDate;
@@ -209,17 +228,17 @@ UTILS.Timerange =  class extends UTILS.Base {
 				var editable_options = {
 					target: $slider_date,
 					type: 'date',
-					date_options: {
+					options: {
 						format: date_format,
 						startDate: allow_passed_dates ? 0 : '+0d' //starts today
 					},
 					value: date.format(date_format),
 					onAfterSave: function(Editable){
 						this.setDate(Editable.getValue());
-						this._fns('onStop');
+						this.fns('onStop');
 					}.bind(this)
 				};
-				EditableDate = new APP.Editable(editable_options).enable();
+				EditableDate = new UTILS.Editable(editable_options).enable();
 				this._setEditableDate(EditableDate);
 			}
 		}
@@ -240,55 +259,79 @@ UTILS.Timerange =  class extends UTILS.Base {
 		return this;
 	}
 	setTarget(target){
-		this.parent(target);
+		super.setTarget(target);
 		this.values.$target.append(this._create());
 		return this;
 	}
 	_initSlider(){
 		var $wrapper = this.getWrapper(),
+			$slider = $wrapper.find('.slider-range'),
+			$inputs = $slider.find('.custom-slider-input'),
 			range = this.getTimeRange(),
-			$slider = $wrapper.find('.slider-range');
+			options = this.getOptions();
 
-		//lets update the final options
-		this.setOptions({
-			slide: this._onSlide,
-			start: this._onStart,
-			stop: this._onStop,
-			values:[range.start,range.end],
-			tickInterval: 60,
-			tickLabels: function(interval){
-				var hrs = Math.floor(interval/60),
-					a = 'PM'
-
-				if (hrs>=12){
-					if (hrs===24)
-						hrs = 12;
-					else
-						hrs -= 12;
-				}
-				else
-					a = 'AM';
-
-				if (hrs===0)
-					hrs = 12;
-
-				return hrs+' '+a;
-			}
+		//updating start/end
+		_.extend(options, {
+			start: [range.start,range.end]
 		});
 
-		//lets init the slider
-		$slider.labeledslider(this.getOptions());
+		//lets destroy an existing one if exists
+		try { $slider[0].noUiSlider.destroy(); } catch(e){}
 
+		//lets update the options
+		this.setOptions(options);
+
+		noUiSlider.create($slider[0],options);
+		
+		$slider[0].noUiSlider.on('update', this._onSlide.bind(this));
+		$slider[0].noUiSlider.on('start', this._onStart.bind(this));
+		$slider[0].noUiSlider.on('end', this._onStop.bind(this));
+		
 		return this;
 	}
 	getOptions(){
 		return this.values.settings;
 	}
-	setOptions(options){
-		if (_.isPlainObject(options))
-			_.extend(this.values.settings,options);
+	setOptions(options={}){
+		//certain options need to be put in their designated places
+		if ('min' in options){
+			this.values.settings.range.min = options.min;
+			delete options.min;
+		}
 
-		return this.values.settings;
+		if ('max' in options){
+			this.values.settings.range.max = options.max;
+			delete options.max;
+		}
+
+		if ('date_editable' in options){
+			this.setDateEditableState(options.date_editable);
+			delete options.date_editable;
+		}
+
+		if ('time_format' in options){
+			this.setTimeFormat(options.time_format);
+			delete options.time_format;
+		}
+
+		if ('time_label_format' in options){
+			this.setTimeLabelFormat(options.time_label_format);
+			delete options.time_label_format;
+		}
+
+		if ('date_format' in options){
+			this.setDateFormat(options.date_format);
+			delete options.date_format;
+		}
+
+		if ('allow_past_dates' in options){
+			this.setAllowPassedDates(options.allow_past_dates);
+			delete options.allow_past_dates;
+		}
+
+		_.extend(this.values.settings,options);
+
+		return this;
 	}
 	getTimeRange(){
 		return this.values.range;
@@ -302,19 +345,19 @@ UTILS.Timerange =  class extends UTILS.Base {
 		};
 	}
 	getDateTimeRange(){
-		return _.assign({},this.values.range,{ date:this.getDate() });
+		return _.extend({},this.values.range,{ date:this.getDate() });
 	}
 	getFormattedDateTimeRange(){
 		var formatted_range = this.getFormattedTimeRange(),
 			date = this.getDate(),
 			date_format = this.getDateFormat();
 
-		return _.assign({}, formatted_range, { date:date.format(date_format)});
+		return _.extend({}, formatted_range, { date:date.format(date_format)});
 	}
 	_getHoursMinsFromTotalMins(total_mins){
 		return {
 			hrs: Math.floor(total_mins/60),
-			mins: total_mins % 60
+			mins: Math.floor(total_mins) % 60
 		};
 	}
 	getDateTimeRangeAsMoment(){
@@ -328,7 +371,7 @@ UTILS.Timerange =  class extends UTILS.Base {
 			end: date.clone().hours(range_end.hrs).minutes(range_end.mins).seconds(0)
 		};
 	}
-	//if the minutes are not matching the interval, we need to round them to the nearest interval
+	//if the minutes are not matching the interval, we need to round them up to the nearest interval
 	_normalizeMinutes(mins){
 		var options = this.getOptions();
 
@@ -358,36 +401,39 @@ UTILS.Timerange =  class extends UTILS.Base {
 		var $wrapper = this.getWrapper();
 		this.updateTimeDisplay();
 		$wrapper.removeClass('hide');
-		this._fns('onShow');
+		this.fns('onShow');
 		this.values.is_shown = true;
 
 		return this;
 	}
 	hide(){
 		var $wrapper = this.getWrapper();
-		this._fns('onHide');
+		this.fns('onHide');
 		$wrapper.addClass('hide');
 		this.values.is_shown = false;
 
 		return this;
 	}
-	_onSlide(event,ui){
-		var mins1 = ui.values[0], //total mins out of 24 hrs
-			mins2 = ui.values[1];
+	_onSlide(values,handle,raw_values){
+		var start_mins = Math.floor(raw_values[0]),
+			end_mins = Math.floor(raw_values[1]);
 
 		//lets update the range
-		this.setRange({ start:mins1, end:mins2 });
+		this.setRange({ start:start_mins, end:end_mins });
+
 		//lets update the display
 		this.updateTimeDisplay();
-		this._fns('onSlide');
+
+		this.fns('onSlide');
 	}
 	_onStart(event,ui){
 
-		this._fns('onStart');
+		this.fns('onStart');
 	}
 	_onStop(event,ui){
-
-		this._fns('onStop');
+		var $time_range = this.getWrapper().find('.slider-header-timerange');
+		$time_range.velocity('callout.flash');
+		this.fns('onStop');
 	}
 };
 
