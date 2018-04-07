@@ -22,7 +22,7 @@ UTILS.Timerange =  class extends UTILS.Base {
 			throw new Error('@target must be specified upon initialization!');
 
 		('options' in data) && this.setOptions(data.options);
-		('range' in data) && this.setRange(data.range);
+		('range' in data) && this.setTimeRange(data.range);
 		('date' in data) && this.setDate(data.date);
 		('onShow' in data) && this.addCallback('onShow',data.onShow);
 		('onHide' in data) && this.addCallback('onHide',data.onHide);
@@ -37,9 +37,10 @@ UTILS.Timerange =  class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.timerange',
-			version: '1.0.2',
+			version: '1.0.3',
 			$wrapper: null, //holds the timer wrapper
 			is_shown: false, //holds whether the timerange is shown
+			is_enabled: true, //holds whether the timerange is enabled
 			date: moment(), //holds the date
 			is_date_editable: true, //holds whether the date is editable
 			time_format: 'h:mm A', //holds the time format
@@ -114,32 +115,41 @@ UTILS.Timerange =  class extends UTILS.Base {
 		return this.values.$wrapper;
 	}
 	enable(){
-		var $wrapper = this.getWrapper(),
-			$slider = $wrapper.find('.slider-range'),
-			EditableDate = this._getEditableDate();
+		if (!this.isEnabled()){
+			var $wrapper = this.getWrapper(),
+				$slider = $wrapper.find('.slider-range'),
+				EditableDate = this._getEditableDate();
 
-		//lets enable the slider
-		$slider.labeledslider('enable');
+			//lets enable the slider
+			$slider.removeAttr('disabled');
 
-		//lets enable editable date
-		if (EditableDate)
-			EditableDate.enable();
+			//lets enable editable date
+			if (EditableDate)
+				EditableDate.enable();
 
+			this.values.is_enabled = true;
+		}
 		return this;
 	}
 	disable(){
-		var $wrapper = this.getWrapper(),
-			$slider = $wrapper.find('.slider-range'),
-			EditableDate = this._getEditableDate();
+		if (this.isEnabled()){
+			var $wrapper = this.getWrapper(),
+				$slider = $wrapper.find('.slider-range'),
+				EditableDate = this._getEditableDate();
 
-		//lets disable the slider
-		$slider.labeledslider('disable');
+			//lets disable the slider
+			$slider.attr('disabled','disabled');
 
-		//lets disable editable date
-		if (EditableDate)
-			EditableDate.disable();
+			//lets disable editable date
+			if (EditableDate)
+				EditableDate.disable();
 
+			this.values.is_enabled = false;
+		}
 		return this;
+	}
+	isEnabled(){
+		return this.values.is_enabled;
 	}
 	isShown(){
 		return this.values.is_shown;
@@ -384,7 +394,7 @@ UTILS.Timerange =  class extends UTILS.Base {
 
 		return mins;
 	}
-	setRange(range){
+	setTimeRange(range){
 		if (_.isPlainObject(range)){
 			if ('start' in range)
 				range.start = this._normalizeMinutes(range.start);
@@ -399,6 +409,7 @@ UTILS.Timerange =  class extends UTILS.Base {
 	}
 	show(){
 		var $wrapper = this.getWrapper();
+		this.updateDateDisplay();
 		this.updateTimeDisplay();
 		$wrapper.removeClass('hide');
 		this.fns('onShow');
@@ -419,7 +430,7 @@ UTILS.Timerange =  class extends UTILS.Base {
 			end_mins = Math.floor(raw_values[1]);
 
 		//lets update the range
-		this.setRange({ start:start_mins, end:end_mins });
+		this.setTimeRange({ start:start_mins, end:end_mins });
 
 		//lets update the display
 		this.updateTimeDisplay();
