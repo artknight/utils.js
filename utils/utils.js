@@ -646,6 +646,13 @@ $.extend($.fn,{
 			$node = (index>=0) ? $all.eq(index) : $([]);
 		}
 		return $node;
+	},
+	putCursorAtEnd: function(custom_focus_event='focus'){
+		return this.each(function(){
+			$(this)
+				.on(custom_focus_event,function(event){ setTimeout(function(){ this.selectionStart = this.selectionEnd = 10000; }.bind(this), 0); })
+				.focus();
+		});
 	}
 });
 

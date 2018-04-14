@@ -103,8 +103,8 @@ UTILS.Box =  class extends UTILS.Base {
 	}
 	getDefaults(){
 		return {
-			object:'utils.box',
-			version:'3.2.6',
+			object: 'utils.box',
+			version: '3.2.6',
 			history: {}, //holds the historic box settings (in case of maximize, etc...)
 			is_shown: false, //holds whether this box is shown
 			//holds the divs of the box

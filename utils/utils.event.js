@@ -4,49 +4,44 @@
 	ex. var ev = new UTILS.Event({ start:'03/01/2017', rule:'FREQ=YEARLY;INTERVAL=3;BYMONTH=6;COUNT=5;BYMONTHDAY=9' });
 */
 
-UTILS.Event =  class {
-	constructor(data){
+UTILS.Event =  class extends UTILS.Base {
+	constructor(data={}){
+		super(data);
 		_log(this.getObjectName()+' --> instantiated!',this.getId(),this);
+		
+		('popup' in data) && this.setPopupState(data.popup);
+		('rule' in data) && this.setRule(data.rule);
+		('ajax' in data) && this.setAjaxData(data.ajax);
+		('start' in data) && this.setStartDate(data.start);
+		('end' in data) && this.setEndDate(data.end);
+		('onShow' in data) && this.addCallback('onShow', data.onShow);
+		('onHide' in data) && this.addCallback('onHide', data.onHide);
+		('onSave' in data) && this.addCallback('onSave', data.onSave);
+		('onCancel' in data) && this.addCallback('onCancel', data.onCancel);
 
-		this.values = {
+		return this;
+	}
+	getDefaults(){
+		return {
 			object:'utils.event',
 			version:'0.0.3',
-			id: 0,
-			$target: null, //holds the target elm
-			rule: !('rule' in data) ? this.getDefaultRule() : {},
+			rule: this.getDefaultRule(),
 			start_date: moment(),
 			end_date: null,
 			date_format: 'MM/DD/YYYY',
 			is_shown: false,
 			is_popup: true,
-			fns: {}, //holds the callback stack
 			ajax: {
-				type:'GET',
+				type: 'GET',
 				url: '/v1/event/{id}',
-				params:{}
+				params: {}
 			},
 			days_of_week: ['Su|Sunday','Mo|Monday','Tu|Tuesday','We|Wednesday','Th|Thursday','Fr|Friday','Sa|Saturday'],
-			months:['Jan|January','Feb|February','Mar|March','Apr|April','May|May','Jun|June','Jul|July','Aug|August','Sep|September','Oct|October','Nov|November','Dec|December'],
+			months: ['Jan|January','Feb|February','Mar|March','Apr|April','May|May','Jun|June','Jul|July','Aug|August','Sep|September','Oct|October','Nov|November','Dec|December'],
 			weeks_in_month: ['1|First (1st)','2|Second (2nd)','3|Third (3rd)','4|Fourth (4th)','LAST|Last'],
 			frequency: ['Daily|Day(s)','Weekly|Week(s)','Monthly|Month(s)','Yearly|Year(s)'],
 			Box: null //holds the UTILS.Box
 		};
-
-		if (_.isPlainObject(data)){
-			('id' in data) && this.setId(data.id);
-			('target' in data) && this.setTarget(data.target);
-			('popup' in data) && this.setPopupState(data.popup);
-			('rule' in data) && this.setRule(data.rule);
-			('ajax' in data) && this.setAjaxData(data.ajax);
-			('start' in data) && this.setStartDate(data.start);
-			('end' in data) && this.setEndDate(data.end);
-			('onShow' in data) && this.addCallback('onShow', data.onShow);
-			('onHide' in data) && this.addCallback('onHide', data.onHide);
-			('onSave' in data) && this.addCallback('onSave', data.onSave);
-			('onCancel' in data) && this.addCallback('onCancel', data.onCancel);
-		}
-
-		return this;
 	}
 	getDefaultRule(){
 		return {
@@ -68,7 +63,7 @@ UTILS.Event =  class {
 					interval: null,
 					count: null
 				};
-				break;
+			break;
 			case 'WEEKLY':
 				rule_format = {
 					freq: 'WEEKLY',
@@ -77,7 +72,7 @@ UTILS.Event =  class {
 					count: null,
 					start_of_week: null
 				};
-				break;
+			break;
 			case 'MONTHLY':
 				rule_format = {
 					freq: 'MONTHLY',
@@ -88,7 +83,7 @@ UTILS.Event =  class {
 					set_pos: null,
 					count: null
 				};
-				break;
+			break;
 			case 'YEARLY':
 				rule_format = {
 					freq: 'YEARLY',
@@ -99,7 +94,7 @@ UTILS.Event =  class {
 					set_pos: null,
 					count: null
 				};
-				break;
+			break;
 		}
 
 		//dates to be ignored
@@ -115,51 +110,12 @@ UTILS.Event =  class {
 
 		return this;
 	}
-	getTarget(){
-		return this.values.$target;
-	}
 	setTarget(target){
-		this.values.$target = $(target);
+		super.setTarget(target);
 
 		//lets add a scheduler class
 		this.values.$target.addClass('app-scheduler-event');
 
-		return this;
-	}
-	_fns(type,options){
-		if (type && this.values.fns[type].length){
-			for (var i=0,fn; fn=this.values.fns[type][i]; i++){
-				fn.call(null,this,options||{});
-			}
-		}
-	}
-	addCallback(type,callback){
-		if (_.isFunction(callback)){
-			_log('callback added!',callback);
-			if (!_.includes(_.keys(this.values.fns),type))
-				this.values.fns[type] = [];
-
-			(!_.includes(this.values.fns[type],callback)) && this.values.fns[type].push(callback);
-		}
-		return this;
-	}
-	getId(){
-		return this.values.id;
-	}
-	setId(id){
-		this.values.id = id;
-		return this;
-	}
-	getAjaxData(){
-		return this.values.ajax;
-	}
-	setAjaxData(ajax){
-		if (_.isPlainObject(ajax)){
-			('url' in ajax) && (this.values.ajax.url = ajax.url);
-			('method' in ajax)  && (this.values.ajax.method = ajax.method);
-			('type' in ajax)  && (this.values.ajax.type = ajax.type);
-			('params' in ajax)  && (this.values.ajax.params = ajax.params);
-		}
 		return this;
 	}
 	getStartDate(){
@@ -233,12 +189,14 @@ UTILS.Event =  class {
 				this.getTarget().empty();
 		}.bind(this);
 
-		var $controls = $('<div class="controls-wrapper cfx">'+
-			'<div class="box-controls-controls cfx">'+
-			'<button type="button" class="btn btn-primary control-button box-controls-save"><i class="fa fa-check"></i> Save</button>'+
-			'</div>'+
-			'<div class="box-controls-result"></div>'+
-			'</div>');
+		var $controls = $(`
+				<div class="controls-wrapper cfx">
+					<div class="box-controls-controls cfx">
+						<button type="button" class="btn btn-primary control-button box-controls-save"><i class="mdi mdi-check"></i> Save</button>
+					</div>
+					<div class="box-controls-result"></div>
+				</div>
+			`);
 
 		$controls.find('.box-controls-save').on('click',this._onSave.bind(this));
 
@@ -348,12 +306,12 @@ UTILS.Event =  class {
 		//lets update the rule
 		this.setRule(_rule);
 
-		this._fns('onSave');
+		this.fns('onSave');
 	}
 	_onCancel(){
 		console.log('app.event --> cancelled!');
 
-		this._fns('onCancel');
+		this.fns('onCancel');
 	}
 	//renders the box on the screen
 	render(){
@@ -388,7 +346,7 @@ UTILS.Event =  class {
 		return this.getRule().freq;
 	}
 	//converts the rule to a string
-	stringify(){
+	stringifyRule(){
 		var rule = this.getRule(),
 			rule_str = [];
 
@@ -671,13 +629,12 @@ UTILS.Event =  class {
 		return $template;
 	}
 	show(){
-		this._fns('onShow');
+		this.fns('onShow');
 		this.render();
 
 		return this;
 	}
 	hide(){
-
 		var _clean = function(){
 			if (this.isPopup()){
 				this.getBox().clean();
@@ -686,7 +643,7 @@ UTILS.Event =  class {
 			else
 				this.getTarget().empty();
 
-			this._fns('onHide');
+			this.fns('onHide');
 		}.bind(this);
 
 		_clean();
@@ -697,5 +654,5 @@ UTILS.Event =  class {
 
 // Export node module.
 if ( typeof module !== 'undefined' && module.hasOwnProperty('exports') ){
-	module.exports = APP.Event;
+	module.exports = UTILS.Event;
 }

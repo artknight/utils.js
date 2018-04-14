@@ -4,6 +4,9 @@ APP.Box = class extends UTILS.Box {
 		if (!('object' in data))
 			data.object = 'utils.box[app.box]';
 
+		if (!('version' in data))
+			data.version = '0.0.3';
+
 		super(data);
 
 		//lets check for mappers (by now the 'set' method has executed)
@@ -43,14 +46,16 @@ APP.Box = class extends UTILS.Box {
 	== APP.Confirm ==
 	extends the APP.Box object
  */
-APP.Confirm = class extends APP.Box{
+APP.Confirm = class extends APP.Box {
 	constructor(data){
 		var defaults = {
-			w:400, title:'',
-			html:'<p>Do you want to proceed?</p>',
-			dd:false,
-			classname:'box-confirm',
-			center:true
+			version: '0.0.4',
+			w: 400,
+			title: '',
+			html: '<p>Do you want to proceed?</p>',
+			dd: false,
+			classname: 'box-confirm',
+			center: true
 		};
 
 		if (!('object' in data))
@@ -61,6 +66,10 @@ APP.Confirm = class extends APP.Box{
 		//lets check for onConfirm (by now the 'set' method has executed)
 		if ('onConfirm' in data){
 			this.addCallback('onConfirm',data.onConfirm);
+
+			if ('onBeforeConfirm' in data)
+				this.addCallback('onBeforeConfirm',data.onBeforeConfirm);
+
 			//create buttons
 			this.values.divs.$inner_controls = $('<div class="regular text-right">');
 			this.values.divs.$confirm = $('<button type="button" class="btn btn-danger">proceed</button>');
@@ -68,7 +77,13 @@ APP.Confirm = class extends APP.Box{
 			this.values.divs.$inner_controls.append(this.values.divs.$cancel,this.values.divs.$confirm);
 			this.values.divs.$mainbody.append(this.values.divs.$inner_controls);
 			//add onclick events
-			this.values.divs.$confirm.on('click.confirm.utils.box',function(event){ event.preventDefault(); event.stopPropagation(); this.clean('confirm').fns('onConfirm'); }.bind(this));
+			this.values.divs.$confirm.on('click.confirm.utils.box',function(event){
+				event.preventDefault();
+				event.stopPropagation();
+
+				this.fns('onBeforeConfirm');
+				this.clean('confirm').fns('onConfirm');
+			}.bind(this));
 
 			if ('onCancel' in data){
 				this.addCallback('onCancel',data.onCancel);
@@ -115,7 +130,16 @@ APP.Alert = class extends UTILS.Box {
 		if (!('object' in data))
 			data.object = 'utils.box[app.alert]';
 
-		var defaults = { w:600, title:'', html:'', dd:false, light:true, buttons:{ close:true, maximize:false } };
+		var defaults = {
+			version: '0.0.3',
+			w: 600,
+			title: '',
+			html: '',
+			dd: false,
+			light: true,
+			buttons: { close:true, maximize:false }
+		};
+
 		var custom = {
 			error: { w:600, classname:'box-red', html:$('<span><i class="mdi mdi-alert mdi-24px"></i></span>'), fx:{effect:'expand-in'} },
 			success: { w:400, classname:'box-green', html:$('<span><i class="mdi mdi-check mdi-24px"></i></span>'), fx:{effect:'slide-up'} },

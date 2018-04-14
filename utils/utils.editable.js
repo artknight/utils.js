@@ -83,7 +83,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.4.7',
+			version: '0.4.8',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -553,7 +553,7 @@ UTILS.Editable = class extends UTILS.Base {
 			$input = $('<input type="text" class="form-control popup-editable-field" value="'+this._filterValueForEditing(display_value)+'">');
 
 		//adding onFocus event listener to make sure when focused the cursor is at the end of text
-		$input.on('focus.utils.editable',function(event){ setTimeout(function(){ this.selectionStart = this.selectionEnd = 10000; }.bind(this), 0); });
+		$input.putCursorAtEnd('focus.utils.editable');
 
 		this.setInputField($input);
 		$wrapper.find('.form-group').append($input);
