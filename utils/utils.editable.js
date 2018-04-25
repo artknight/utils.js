@@ -83,7 +83,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.4.8',
+			version: '0.4.9',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -599,11 +599,12 @@ UTILS.Editable = class extends UTILS.Base {
 		$target.data('date',display_value);
 
 		$target.datepicker(options)
-			.on('changeDate',function(event){
+			.on('changeDate',(event) => {
 				this._onSave(moment(event.date).format(options.format));
-			}.bind(this))
-			.on('show',function(event){
+			})
+			.on('show',(event) => {
 				$target.data('datepicker').picker.addClass(css); //adding custom class
+				this._show();
 			});
 
 		this.values.DatePicker = $target.data('datepicker');
