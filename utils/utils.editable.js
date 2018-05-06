@@ -41,16 +41,31 @@ UTILS.Editable = class extends UTILS.Base {
 	constructor(data={}){
 		super(data);
 
-		//if date, lets set some default settings
-		if ('type' in data && /^date/i.test(data.type)){
-			this.values.options = {
-				container: this.getContainer(),
-				orientation: 'bottom',
-				autoclose: false,
-				format: 'MM/DD/YYYY',
-				startDate: moment().add(1,'day').toDate(),
-				todayHighlight: true
-			};
+		if ('type' in data ){
+			//if date, lets set some default settings
+			if (/^date/i.test(data.type)){
+				this.values.options = {
+					container: this.getContainer(),
+					orientation: 'bottom',
+					autoclose: false,
+					format: 'MM/DD/YYYY',
+					startDate: moment().add(1, 'day').toDate(),
+					todayHighlight: true
+				};
+			}
+			else if (/^textarea\-wysiwyg/i.test(data.type)){
+				this.values.options = {
+					toolbar: [
+						['style', ['bold', 'italic', 'underline', 'strikethrough','color','clear']],
+						['para', ['ul', 'ol']],
+						['insert', ['picture', 'link', 'table', 'hr']],
+						//['misc', ['undo', 'redo']],
+						//['view', ['fullscreen', 'codeview']],
+						['code', ['gxcode']],
+						['misc2', ['print']]
+					]
+				};
+			}
 		}
 
 		this._onSave = _.debounce(this.__onSave__.bind(this),500);
@@ -83,7 +98,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.4.9',
+			version: '0.5.0',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -198,10 +213,12 @@ UTILS.Editable = class extends UTILS.Base {
 			is_type_checkbox = this.isTypeCheckbox(),
 			is_type_radio = this.isTypeRadio(),
 			is_selectize = this.isSelectize(),
+			is_wysiwyg = this.isWysiwyg(),
 			is_type_textarea = this.isTypeTextarea(),
 			$input = this.getInputField(),
 			$next_editable = $target.nextNodeByClass('editable-target'),
 			value = this.getValue(),
+			options = this.getOptions(),
 			is_processing = false;
 
 		var _triggerNextEditable = function(){
@@ -268,6 +285,55 @@ UTILS.Editable = class extends UTILS.Base {
 					selectOnTab: this.isInlineTabbing()
 				});
 			}
+			else if (is_wysiwyg){
+				var self = this; //workaround to make sure the controls reference the utils.editable
+
+				$input.summernote(_.extend({},options,{
+					callbacks: {
+						onInit: function(divs){
+							//lets add the save/close controls
+							var summernote = $(this).data('summernote'),
+								$editor = divs.editor,
+								$controls = $(`
+									<div class="textarea-wysiwyg-controls">
+									 	<a href="#" class="badge badge-primary control-item control-save"><i class="mdi mdi-check"></i></a>
+									 	<a href="#" class="badge badge-primary control-item control-cancel"><i class="mdi mdi-close"></i></a>
+									</div>
+								`);
+
+							//lets add .no-follow-scroll to disable summernote native 'followScroll' method
+							$editor.addClass('no-follow-scroll');
+
+							//lets add events
+							$controls.find('.control-save').on('click',(event) => {
+								event.preventDefault();
+
+								var value = summernote.code();
+
+								if (value.length && !is_processing){
+									self._onSave(value);
+									is_processing = true;
+								}
+							});
+
+							$controls.find('.control-cancel').on('click',(event) => {
+								event.preventDefault();
+								self._onBeforeHide()._hide();
+								is_processing = false;
+							});
+
+							$editor.append($controls);
+						},
+						onFocus: function() {
+							is_processing = false;
+						}
+					}
+				}));
+
+				//lets add on event listener to the body
+				//we cannot use the summernote native onBlur b/c it gets fired on any control click
+				
+			}
 			else {
 				if (!is_type_radio)
 					$input.on('focus.utils.editable', function(event){ event.preventDefault(); is_processing = false; });
@@ -312,6 +378,8 @@ UTILS.Editable = class extends UTILS.Base {
 			//need to focus on the field so that the onblur kicks in
 			if (is_selectize)
 				$input[0].selectize.focus();
+			else if (is_wysiwyg)
+				$input.summernote('focus');
 			else if (is_type_radio)
 				$input.filter(':checked').focus();
 			else
@@ -425,6 +493,10 @@ UTILS.Editable = class extends UTILS.Base {
 				base: type.split('-')[0],
 				option: type.split('-')[1]
 			};
+
+			if (this.values.type.option && /^wysiwyg/i.test(this.values.type.option)){
+				this.getTarget().addClass('editable-wysiwyg');
+			}
 		}
 		return this;
 	}
@@ -445,6 +517,9 @@ UTILS.Editable = class extends UTILS.Base {
 	}
 	isSelectize(){
 		return /^selectize/i.test(this.getType().option);
+	}
+	isWysiwyg(){
+		return /^wysiwyg/i.test(this.getType().option);
 	}
 	getValue(){
 		return this.values.value;
@@ -676,6 +751,8 @@ UTILS.Editable = class extends UTILS.Base {
 			if ($input){
 				if (this.isSelectize())
 					$input[0].selectize.destroy();
+				else if (this.isWysiwyg())
+					$input.summernote('destroy');
 				else
 					$input.off('keydown.utils.editable change.utils.editable blur.utils.editable focus.utils.editable');
 

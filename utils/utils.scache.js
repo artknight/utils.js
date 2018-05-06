@@ -16,13 +16,14 @@ UTILS.SCache = class {
 	getDefaults(){
 		return {
 			object: 'utils.scache',
-			version:'0.5.5',
+			version:'0.5.6',
 			id: 0, //holds the project id
 			name: '', //holds the name
 			fns: {},
 			LAB: $LAB,
 			loaded_scripts: [], //holds the scripts that have already been loaded
-			show_log: (typeof APP.showLog==='function') ? APP.showLog() : null //holds whether the env is dev
+			show_log: (typeof APP.showLog==='function') ? APP.showLog() : null, //holds whether the env is dev
+			show_timer: (typeof APP.showTimer==='function') ? APP.showTimer() : false
 		};
 	}
 	getObjectName(){
@@ -109,13 +110,12 @@ UTILS.SCache = class {
 					id: script.id
 				}));
 
-				(this.values.show_log) && console.timeEnd(script.base_url); //stopping timer
+				(this.values.show_timer) && console.timeEnd(script.timer_id); //stopping timer
 				script.promise_tuple.resolve();
 			}
 			catch(e){
 				this.log(this.getObjectName() + ' --> error or local storage limit reached',e);
 			}
-
 		}.bind(this);
 
 		var script_url = this._getFilteredUrl(script.script_url);
@@ -151,7 +151,7 @@ UTILS.SCache = class {
 	}
 
 	isJS(script_url){
-		return /\.js|^wait/i.test(script_url);
+		return /\.js/i.test(script_url);
 	}
 
 	addToPage(script){
@@ -192,7 +192,7 @@ UTILS.SCache = class {
 				this.addToPage(script);
 			}
 
-			(this.values.show_log) && console.timeEnd(script.base_url); //stopping timer
+			(this.values.show_timer) && console.timeEnd(script.timer_id); //stopping timer
 			script.promise_tuple.resolve();
 		}
 
@@ -208,10 +208,7 @@ UTILS.SCache = class {
 		//script.$script.setAttribute('src', script.script_url);
 		//this.addToPage(script);
 
-		if (/^wait/.test(script.base_url))
-			this.values.LAB = this.values.LAB.wait(script.promise_tuple.resolve);
-		else
-			this.values.LAB = this.values.LAB.script(script_url).wait(this.addToCache.bind(this,script));
+		this.values.LAB = this.values.LAB.script(script_url).wait(this.addToCache.bind(this,script));
 
 		return this;
 	}
@@ -273,8 +270,7 @@ UTILS.SCache = class {
 		return /^dev/i.test(APP.values.env) ? script.base_url.split('/').slice(-1)[0] : (((1+Math.random())*0x10000)|0).toString(16).substring(1);
 	}
 	loadScript(script){
-		if (!/^wait/i.test(script.base_url))
-			this.values.loaded_scripts.push(script);
+		this.values.loaded_scripts.push(script);
 
 		if (!script.ls_item){
 			script.id = this.createScriptId(script); //creates a random id
@@ -289,13 +285,15 @@ UTILS.SCache = class {
 		return this;
 	}
 	addScripts(script_urls=[]){
-		var promises = [];
+		var object_name = this.getObjectName(),
+			promises = [];
 
 		//lets process the scripts
 		for (var i=0,script_url; script_url=script_urls[i]; i++){
 			var base_url = this.getBaseUrl(script_url),
 				script = {
 					id: null,
+					timer_id: object_name+' --> '+base_url+' ('+(((1+Math.random())*0x10000)|0).toString(16)+')',
 					script_url: script_url,
 					base_url: base_url,
 					ls_item: localStorage.getItem(base_url),
@@ -311,7 +309,7 @@ UTILS.SCache = class {
 			if (!this.values.loaded_scripts.find(s => s.base_url.includes(script.base_url))){
 				promises.push(new Promise(function(resolve,reject){
 					script.promise_tuple = { resolve,reject };
-					(this.values.show_log) && console.time(script.base_url); //start timer
+					(this.values.show_timer) && console.time(script.timer_id); //start timer
 					this.loadScript(script);
 				}.bind(this)));
 			}
