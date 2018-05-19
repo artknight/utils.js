@@ -27,6 +27,7 @@
 					border:0;
 					cursor:pointer;
 					padding:5px;
+					position: relative;
 
 					&:hover {
 						background:#eee;
@@ -39,6 +40,15 @@
 					&:last-child {
 						border-bottom-left-radius:0;
 						border-bottom-right-radius:0;
+					}
+
+					span {
+						display: inline-block;
+					}
+
+					.list-group-item-icon {
+						display: inline-block;
+						margin-right: 10px;
 					}
 
 					& + .list-group-item {

@@ -31,9 +31,11 @@ UTILS.Popover = class extends UTILS.Base {
 		('toggle' in data) && this.setToggleAction(data.toggle);
 		('template' in data) && this.setTemplate(data.template);
 		('container' in data) && this.setContainer(data.container);
+		('content' in data) && this.setContent(data.content);
 		('items' in data) && this.setItems(data.items);
 		('css' in data) && this.setTemplateCss(data.css);
 		('onSelect' in data) && this.addCallback('onSelect', data.onSelect);
+		('onBeforeShow' in data) && this.addCallback('onBeforeShow', data.onBeforeShow);
 		('onShow' in data) && this.addCallback('onShow', data.onShow);
 		('onHide' in data) && this.addCallback('onHide', data.onHide);
 		('onCancel' in data) && this.addCallback('onCancel',data.onCancel);
@@ -46,7 +48,7 @@ UTILS.Popover = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object:'utils.popover',
-			version:'0.1.7',
+			version:'0.1.8',
 			items: [], //holds the items
 			$content: '', //holds the content of the popover
 			title: '', //holds the title
@@ -253,7 +255,12 @@ UTILS.Popover = class extends UTILS.Base {
 		return this.values.title;
 	}
 	setTitle(title){
+		var $target = this.getTarget();
 		this.values.title = title;
+
+		if ($target.length)
+			$target.attr('data-original-title', title);
+
 		return this;
 	}
 	getItems(){
@@ -268,17 +275,13 @@ UTILS.Popover = class extends UTILS.Base {
 		return this.values.$content;
 	}
 	setContent(content){
-		var $target = this.getTarget(),
-			PopoverElm = this.getPopoverElm();
-
 		this.values.$content = $(content);
 		this.onContentChanged();
 		return this;
 	}
 	onContentChanged(){
 		if (this.values.is_shown){
-			var $target = this.getTarget(),
-				PopoverElm = this.getPopoverElm();
+			var PopoverElm = this.getPopoverElm();
 
 			//$target.data('content',this.getContent());
 			PopoverElm.setContent();
@@ -291,16 +294,24 @@ UTILS.Popover = class extends UTILS.Base {
 	populate(){
 		_log(this.getObjectName()+' --> content populated', this.getId());
 		var $content = $('<div class="list-group"></div>');
+
 		_.each(this.getItems(), function(item){
-			var $item = $('<a class="list-group-item cursor '+('css' in item ? item.css : '')+'">'+item.label+'</a>')
+			var $item = $('<a class="list-group-item cursor '+('css' in item ? item.css : '')+'"><span>'+item.label+'</span></a>')
 					.data('popover-selected-item', item)
 					.on('click', function(event){
-						this.fns('onSelect', ( $(event.target).data('popover-selected-item') || $(event.target).parent().data('popover-selected-item') ));
+						this.fns('onSelect', ( $(event.currentTarget).data('popover-selected-item') || $(event.target).parent().data('popover-selected-item') ));
 						this.hide();
 					}.bind(this));
 
+			if ('icon' in item)
+				$item.prepend('<i class="list-group-item-icon '+item.icon+'"></i>');
+
+			if ('color' in item)
+				$item.css('color',item.color);
+
 			$content.append($item);
 		}.bind(this));
+
 		this.setContent($content);
 		return this;
 	}

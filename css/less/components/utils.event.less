@@ -1,0 +1,24 @@
+@import (once) "../globals/variables";
+@import (once) "../globals/mixins";
+
+.app-scheduler-event { 
+
+
+	.app-event-row {
+		margin-bottom:10px;
+
+		.event-helper-text {
+			display:inline-block;
+			margin-top:7px;
+			color:#333;
+		}
+		
+		.event-interval-helper {
+			text-transform:lowercase;
+
+			&:first-letter {
+				text-transform:uppercase;
+			}
+		}
+	}
+}

@@ -11,26 +11,32 @@ UTILS.Event =  class extends UTILS.Base {
 		
 		('popup' in data) && this.setPopupState(data.popup);
 		('rule' in data) && this.setRule(data.rule);
-		('ajax' in data) && this.setAjaxData(data.ajax);
 		('start' in data) && this.setStartDate(data.start);
 		('end' in data) && this.setEndDate(data.end);
+		('mode' in data) && this.setMode(data.mode);
 		('onShow' in data) && this.addCallback('onShow', data.onShow);
 		('onHide' in data) && this.addCallback('onHide', data.onHide);
 		('onSave' in data) && this.addCallback('onSave', data.onSave);
 		('onCancel' in data) && this.addCallback('onCancel', data.onCancel);
+		('onRender' in data) && this.addCallback('onRender', data.onRender);
+		('onChange' in data) && this.addCallback('onChange', data.onChange);
+
+		if (!('rule' in data))
+			this.setRule(this.getDefaultRule());
 
 		return this;
 	}
 	getDefaults(){
 		return {
 			object:'utils.event',
-			version:'0.0.3',
+			version:'0.0.5',
 			rule: this.getDefaultRule(),
 			start_date: moment(),
 			end_date: null,
 			date_format: 'MM/DD/YYYY',
 			is_shown: false,
 			is_popup: true,
+			mode: 'full',
 			ajax: {
 				type: 'GET',
 				url: '/v1/event/{id}',
@@ -47,7 +53,7 @@ UTILS.Event =  class extends UTILS.Base {
 		return {
 			freq: 'WEEKLY',
 			interval: 1,
-			days_of_week: ['WED'],
+			days_of_week: ['WE'],
 			count: 1
 		};
 	}
@@ -118,6 +124,16 @@ UTILS.Event =  class extends UTILS.Base {
 
 		return this;
 	}
+	getMode(){
+		return this.values.mode;
+	}
+	isCompactMode(){
+		return /^compact$/i.test(this.getMode());
+	}
+	setMode(mode){
+		this.values.mode = mode;
+		return this;
+	}
 	getStartDate(){
 		return this.values.start_date;
 	}
@@ -126,8 +142,12 @@ UTILS.Event =  class extends UTILS.Base {
 
 		if (_.isNumber(start))
 			start_date = moment.unix(start/1000);
-		else if (_.isString(start))
-			start_date = moment(start,this.getDateFormat());
+		else if (_.isString(start)){
+			if (/T.+Z$/.test(start))
+				start_date = moment.utc(start);
+			else
+				start_date = moment(start,this.getDateFormat());
+		}
 		else if (moment(start).isValid())
 			start_date = moment(start);
 
@@ -143,8 +163,12 @@ UTILS.Event =  class extends UTILS.Base {
 
 		if (_.isNumber(end))
 			end_date = moment.unix(end/1000);
-		else if (_.isString(end))
-			end_date = moment(end,this.getDateFormat());
+		else if (_.isString(end)){
+			if (/T.+Z$/.test(end))
+				end_date = moment.utc(end);
+			else
+				end_date = moment(end,this.getDateFormat());
+		}
 		else if (moment(end).isValid())
 			end_date = moment(end);
 
@@ -175,7 +199,8 @@ UTILS.Event =  class extends UTILS.Base {
 			classname: 'app-scheduler-event',
 			offset: { left:0, top:0 },
 			fx: { effect:'slide-down' },
-			onCancel: this._onCancel.bind(this)
+			onCancel: this._onCancel.bind(this),
+			onShow: (Box) => { this.isPopup() && Box.onCenter(); }
 		});
 
 		return this.values.Box;
@@ -208,8 +233,7 @@ UTILS.Event =  class extends UTILS.Base {
 
 		return $controls;
 	}
-	_onSave(event){
-		event.preventDefault();
+	_onSave(){
 		console.log('app.event --> saved!');
 
 		var rule = this.getRule(),
@@ -230,49 +254,48 @@ UTILS.Event =  class extends UTILS.Base {
 
 				if (days_of_week.length)
 					_rule.days_of_week = days_of_week;
-
-				break;
+			break;
 			case 'MONTHLY': case 'YEARLY':
-			var repeat_by = $wrapper.find('[name=event-repeat-by]:checked').val();
+				var repeat_by = $wrapper.find('[name=event-repeat-by]:checked').val();
 
-			if (/dom/.test(repeat_by)){
-				var day_of_month = $wrapper.find('.event-repeat-dom-day').val();
+				if (/dom/.test(repeat_by)){
+					var day_of_month = $wrapper.find('.event-repeat-dom-day').val();
 
-				if (day_of_month.length)
-					_rule.day_of_month = parseInt(day_of_month);
+					if (day_of_month.length)
+						_rule.day_of_month = parseInt(day_of_month);
 
-				if (/YEARLY/i.test(rule.freq)){
-					var month = $wrapper.find('.event-repeat-dom-month').val();
+					if (/YEARLY/i.test(rule.freq)){
+						var month = $wrapper.find('.event-repeat-dom-month').val();
 
-					if (month.length)
-						_rule.month = parseInt(month);
+						if (month.length)
+							_rule.month = parseInt(month);
+					}
 				}
-			}
-			else if (/other/.test(repeat_by)){
-				var week_of_month = $wrapper.find('.event-repeat-other-wom').val(),
-					day_of_week = $wrapper.find('.event-repeat-other-dow').val();
+				else if (/other/.test(repeat_by)){
+					var week_of_month = $wrapper.find('.event-repeat-other-wom').val(),
+						day_of_week = $wrapper.find('.event-repeat-other-dow').val();
 
 
-				if (/last/i.test(week_of_month)){
-					_rule.set_pos = -1; //lets assume -1 means last day of month
-					_rule.days_of_week = [day_of_week.toUpperCase()];
+					if (/last/i.test(week_of_month)){
+						_rule.set_pos = -1; //lets assume -1 means last day of month
+						_rule.days_of_week = [day_of_week.toUpperCase()];
+					}
+					else {
+						var wom_index = _.findIndex(this.values.weeks_in_month, function(wom){
+							return wom.match(new RegExp(week_of_month, 'i'));
+						});
+
+						_rule.set_pos = wom_index+1;
+						_rule.days_of_week = [day_of_week.toUpperCase()];
+					}
+
+					if (/YEARLY/i.test(rule.freq)){
+						var month = $wrapper.find('.event-repeat-other-month').val();
+
+						if (month.length)
+							_rule.month = parseInt(month);
+					}
 				}
-				else {
-					var wom_index = _.findIndex(this.values.weeks_in_month, function(wom){
-						return wom.match(new RegExp(week_of_month, 'i'));
-					});
-
-					_rule.set_pos = wom_index+1;
-					_rule.days_of_week = [day_of_week.toUpperCase()];
-				}
-
-				if (/YEARLY/i.test(rule.freq)){
-					var month = $wrapper.find('.event-repeat-other-month').val();
-
-					if (month.length)
-						_rule.month = parseInt(month);
-				}
-			}
 			break;
 		}
 
@@ -287,20 +310,22 @@ UTILS.Event =  class extends UTILS.Base {
 		switch(true){
 			case /never/.test(end):
 				_rule.count = null;
-				break;
+				this.setEndDate(null);
+			break;
 			case /after/.test(end): //occurence
 				var count = $wrapper.find('.event-repeat-occurence').val();
 
 				if (count.length)
 					_rule.count = parseInt(count);
-				break;
+
+				this.setEndDate(null);
+			break;
 			case /on/.test(end): //by certain date
 				var end_date = $wrapper.find('.event-end-date').val();
 
 				if (end_date.length)
 					this.setEndDate(end_date);
-
-				break;
+			break;
 		}
 
 		//lets update the rule
@@ -315,19 +340,27 @@ UTILS.Event =  class extends UTILS.Base {
 	}
 	//renders the box on the screen
 	render(){
-		var $template = this.getTemplate(),
-			$controls = this.getBoxControls();
+		var is_compact_mode = this.isCompactMode(),
+			$template = this.getTemplate(),
+			$controls = !is_compact_mode ? this.getBoxControls() : null;
+
+		//remove existing onChange event and add a new one
+		$template.find('input,select,textarea')
+			.off('change.app.event')
+			.on('change.app.event',this._onChange.bind(this));
 
 		if (!this.isPopup())
 			this.getTarget().html([$template,$controls]);
 		else {
-			var box = this.getBox()
+			var box = this.getBox();
 
-			box.set({ html: $template, controls: $controls });
+			box.set({ html:$template, controls:$controls });
 
 			if (!box.isShown())
 				box.show();
 		}
+
+		this.fns('onRender');
 
 		return this;
 	}
@@ -348,47 +381,55 @@ UTILS.Event =  class extends UTILS.Base {
 	//converts the rule to a string
 	stringifyRule(){
 		var rule = this.getRule(),
-			rule_str = [];
+			rule_str = [],
+			start_date = this.getStartDate(),
+			end_date = this.getEndDate();
 
 		_.each(rule,function(val,key){
 			switch(key){
 				case 'days_of_week':
 					if (val.length)
 						rule_str.push('BYDAY='+val.join());
-					break;
+				break;
 				case 'exdate':
 					if (val.length)
 						rule_str.push('EXDATE='+val.join());
-					break;
+				break;
 				case 'freq':
 					rule_str.push('FREQ='+val.toUpperCase());
-					break;
+				break;
 				case 'interval':
 					if (val!==null)
 						rule_str.push('INTERVAL='+val);
-					break;
+				break;
 				case 'count':
 					if (val!==null)
 						rule_str.push('COUNT='+val);
-					break;
+				break;
 				case 'day_of_month':
 					if (val!==null)
 						rule_str.push('BYMONTHDAY='+val);
-					break;
+				break;
 				case 'month':
 					if (val!==null)
 						rule_str.push('BYMONTH='+val);
-					break;
+				break;
 				case 'set_pos':
 					if (val!==null)
 						rule_str.push('BYSETPOS='+val);
-					break;
+				break;
 				case 'start_of_week':
 					if (val!==null)
 						rule_str.push('WKST='+val.toUpperCase());
-					break;
+				break;
 			}
 		});
+
+		if (start_date)
+			rule_str.push('DTSTART='+start_date.toISOString());
+
+		if (end_date)
+			rule_str.push('UNTIL='+end_date.toISOString());
 
 		return rule_str.join(';');
 	}
@@ -410,39 +451,42 @@ UTILS.Event =  class extends UTILS.Base {
 				switch(segment[0].toUpperCase()){
 					case 'FREQ':
 						_rule.freq = segment[1].toUpperCase();
-						break;
+					break;
 					case 'INTERVAL':
 						_rule.interval = parseInt(segment[1]);
-						break;
+					break;
 					case 'COUNT':
 						_rule.count = parseInt(segment[1]);
-						break;
+					break;
+					case 'DTSTART':
+						this.setStartDate(moment.utc(segment[1])); //must be utc string
+					break;
 					case 'UNTIL':
-						_rule.until = moment.unix(segment[1]); //must be epoch timestamp
-						break;
+						this.setEndDate(moment.utc(segment[1])); //must be utc string
+					break;
 					case 'BYDAY':
 						_rule.days_of_week = _.filter(segment[1].split(','),function(day){ return day.length; });
-						break;
+					break;
 					case 'BYMONTHDAY':
 						_rule.day_of_month = parseInt(segment[1]);
-						break;
+					break;
 					case 'BYMONTH':
 						_rule.month = parseInt(segment[1]);
-						break;
+					break;
 					case 'BYSETPOS':
 						_rule.set_pos = parseInt(segment[1]);
-						break;
+					break;
 					case 'WKST':
 						_rule.start_of_week = segment[1];
-						break;
+					break;
 					case 'EXDATE':
 						_rule.exdate = _.map(segment[1].split(','),function(date){
 							var m = moment.unix(date/1000);
 							return m.isValid() ? m : date;
 						});
-						break;
+					break;
 				}
-			});
+			}.bind(this));
 		}
 
 		return _rule;
@@ -456,13 +500,18 @@ UTILS.Event =  class extends UTILS.Base {
 	_isNotNull(elm){
 		return elm!==null;
 	}
+	_onChange(){
+		this.fns('onChange');
+	}
 	getTemplate(){
 		var rule = this.getRule(),
+			date_format = this.getDateFormat(),
 			start_date = this.getStartDate(),
-			end_date = this.getEndDate() || start_date,
-			$template = $('<form class="form-horizontal"></form>'),
+			end_date = this.getEndDate(),
+			$template = $('<form></form>'),
 			datepicker_default_options = { autoclose: true, todayHighlight:true, format:'mm/dd/yyyy'},
-			dp_options = _.extend(datepicker_default_options, { orientation: 'bottom' });
+			dp_options = _.extend(datepicker_default_options, { orientation: 'bottom' }),
+			instance_id = this.getId(); //used to make checkboxes/radios unique in case there are multiple instances of utils.event on the page
 
 		//since this.values.frequency has a peculiar format we need a special method to get the value out
 		var _getReadableFrequency = function(freq){
@@ -472,9 +521,9 @@ UTILS.Event =  class extends UTILS.Base {
 		}.bind(this);
 
 		//frequency
-		var $frequency = $('<div class="form-group app-event-row">'+
-			'<label for="event-frequency" class="col-sm-2 control-label">Repeat</label>'+
-			'<div class="col-sm-10"><select class="form-control event-frequency">'+_.map(this.values.frequency,function(frequency,i){ var freq = frequency.split('|')[0]; return '<option value="'+freq.toUpperCase()+'">'+freq+'</option>'; }).join('')+'</select></div>'+
+		var $frequency = $('<div class="form-group app-event-row row">'+
+				'<label for="event-frequency" class="col-sm-3 control-label">Repeat</label>'+
+				'<div class="col-sm-9"><select class="form-control event-frequency">'+_.map(this.values.frequency,function(frequency,i){ var freq = frequency.split('|')[0]; return '<option value="'+freq.toUpperCase()+'">'+freq+'</option>'; }).join('')+'</select></div>'+
 			'</div>');
 		$template.append($frequency);
 		$frequency.find('.event-frequency')
@@ -482,10 +531,10 @@ UTILS.Event =  class extends UTILS.Base {
 			.val(rule.freq);
 
 		//interval
-		var $interval = $('<div class="form-group app-event-row">'+
-			'<label for="event-interval" class="col-sm-2 control-label">Every</label>'+
-			'<div class="col-sm-3"><input type="text" class="form-control event-interval" placeholder="Interval"></div>'+
-			'<div class="col-sm-7"><span class="event-helper-text event-interval-helper">'+_getReadableFrequency(rule.freq)+'</span></div>'+
+		var $interval = $('<div class="form-group app-event-row row">'+
+				'<label for="event-interval" class="col-sm-3 control-label">Every</label>'+
+				'<div class="col-sm-3"><input type="text" class="form-control event-interval" placeholder="Interval"></div>'+
+				'<div class="col-sm-6"><span class="event-helper-text event-interval-helper">'+_getReadableFrequency(rule.freq)+'</span></div>'+
 			'</div>');
 		$template.append($interval);
 
@@ -495,30 +544,30 @@ UTILS.Event =  class extends UTILS.Base {
 		//repeat
 		switch(rule.freq){
 			case 'WEEKLY':
-				var $repeat = $('<div class="form-group app-event-row">'+
-					'<label for="event-dow" class="col-sm-2 control-label">Repeat on</label>'+
-					'<div class="col-sm-10">'+_.map(this.values.days_of_week,function(dow){ var day = dow.split('|')[0]; return '<label class="app-event-checkbox"><input type="checkbox" class="event-dow event-day-'+day.toUpperCase()+'" name="event-dow" value="'+day.toUpperCase()+'"> '+day+'</label>'; }).join('')+'</div>'+
+				var $repeat = $('<div class="form-group app-event-row row">'+
+						'<label for="event-dow" class="col-sm-3 control-label">Repeat on</label>'+
+						'<div class="col-sm-9">'+_.map(this.values.days_of_week,function(dow){ var day = dow.split('|')[0]; return '<div class="custom-control custom-checkbox inline-block margin-r10"><input type="checkbox" class="custom-control-input event-dow event-day-'+day.toUpperCase()+'" name="event-dow" id="event-day-'+day.toUpperCase()+'-'+instance_id+'" value="'+day.toUpperCase()+'"><label class="custom-control-label app-event-checkbox" for="event-day-'+day.toUpperCase()+'-'+instance_id+'">'+day+'</label></div>'; }).join('')+'</div>'+
 					'</div>');
 				$template.append($repeat);
 
 				_.each(rule.days_of_week,function(day){
 					$repeat.find('.event-day-'+day).prop('checked',true);
 				});
-				break;
+			break;
 			case 'MONTHLY':
-				var $repeat = $('<div class="form-group app-event-row">'+
-					'<label for="event-repeat" class="col-sm-2 control-label">Repeat by</label>'+
-					'<div class="col-sm-10">'+
-					'<div class="row app-event-row">'+
-					'<div class="col-sm-2"><label><input type="radio" class="event-repeat-by-dom" name="event-repeat-by" checked="checked" value="dom"> Day</label></div>'+
-					'<div class="col-sm-10"><input type="text" class="form-control event-repeat-dom-day" placeholder="Day of month"></div>'+
-					'</div>'+
-					'<div class="row app-event-row">'+
-					'<div class="col-sm-2"><label><input type="radio" class="event-repeat-by-other" name="event-repeat-by" value="other"> The</label></div>'+
-					'<div class="col-sm-5"><select class="form-control event-repeat-other-wom">'+_.map(this.values.weeks_in_month,function(wom){ return '<option value="'+wom.split('|')[0]+'">'+wom.split('|')[1]+'</option>'; }).join('')+'</select></div>'+
-					'<div class="col-sm-5"><select class="form-control event-repeat-other-dow">'+_.map(this.values.days_of_week,function(dow){ return '<option value="'+dow.split('|')[0].toUpperCase()+'">'+dow.split('|')[1]+'</option>'; }).join('')+'</select></div>'+
-					'</div>'+
-					'</div>'+
+				var $repeat = $('<div class="form-group app-event-row row">'+
+						'<label for="event-repeat" class="col-sm-3 control-label">Repeat by</label>'+
+						'<div class="col-sm-9">'+
+							'<div class="row app-event-row row">'+
+								'<div class="col-sm-2 custom-control custom-radio"><input type="radio" class="custom-control-input event-repeat-by-dom" name="event-repeat-by" id="event-repeat-by-dom-'+instance_id+'" checked="checked" value="dom"><label class="custom-control-label" for="event-repeat-by-dom-'+instance_id+'">Day</label></div>'+
+								'<div class="col-sm-10"><input type="text" class="form-control event-repeat-dom-day" placeholder="Day of month"></div>'+
+							'</div>'+
+							'<div class="row app-event-row row">'+
+								'<div class="col-sm-2 custom-control custom-radio"><input type="radio" class="custom-control-input event-repeat-by-other" name="event-repeat-by" id="event-repeat-by-other-'+instance_id+'" value="other"><label class="custom-control-label" for="event-repeat-by-other-'+instance_id+'">The</label></div>'+
+								'<div class="col-sm-5"><select class="form-control event-repeat-other-wom">'+_.map(this.values.weeks_in_month,function(wom){ return '<option value="'+wom.split('|')[0]+'">'+wom.split('|')[1]+'</option>'; }).join('')+'</select></div>'+
+								'<div class="col-sm-5"><select class="form-control event-repeat-other-dow">'+_.map(this.values.days_of_week,function(dow){ return '<option value="'+dow.split('|')[0].toUpperCase()+'">'+dow.split('|')[1]+'</option>'; }).join('')+'</select></div>'+
+							'</div>'+
+						'</div>'+
 					'</div>');
 				$template.append($repeat);
 
@@ -532,24 +581,24 @@ UTILS.Event =  class extends UTILS.Base {
 
 				if ('days_of_week' in rule && rule.days_of_week.length)
 					$repeat.find('.event-repeat-other-dow').val(rule.days_of_week[0]);
-				break;
+			break;
 			case 'YEARLY':
-				var $repeat = $('<div class="form-group app-event-row">'+
-					'<label for="event-repeat" class="col-sm-2 control-label">Repeat by</label>'+
-					'<div class="col-sm-10">'+
-					'<div class="row app-event-row">'+
-					'<div class="col-sm-2"><label><input type="radio" class="event-repeat-by-dom" name="event-repeat-by" checked="checked" value="dom"> The</label></div>'+
-					'<div class="col-sm-3"><select class="form-control event-repeat-dom-month">'+_.map(this.values.months,function(month,i){ return '<option value="'+(i+1)+'">'+month.split('|')[1]+'</option>'; }).join('')+'</select></div>'+
-					'<div class="col-sm-3"><input type="text" class="form-control event-repeat-dom-day" placeholder="Day of month"></div>'+
-					'<div class="col-sm-4"></div>'+
-					'</div>'+
-					'<div class="row app-event-row">'+
-					'<div class="col-sm-2"><label><input type="radio" class="event-repeat-by-other" name="event-repeat-by" value="other"> The</label></div>'+
-					'<div class="col-sm-3"><select class="form-control event-repeat-other-wom">'+_.map(this.values.weeks_in_month,function(week){ return '<option value="'+week.split('|')[0]+'">'+week.split('|')[1]+'</option>'; }).join('')+'</select></div>'+
-					'<div class="col-sm-3"><select class="form-control event-repeat-other-dow">'+_.map(this.values.days_of_week,function(dow){ return '<option value="'+dow.split('|')[0].toUpperCase()+'">'+dow.split('|')[1]+'</option>'; }).join('')+'</select></div>'+
-					'<div class="col-sm-1"><span class="event-helper-text">Of</span></div>'+
-					'<div class="col-sm-3"><select class="form-control event-repeat-other-month">'+_.map(this.values.months,function(month,i){ return '<option value="'+(i+1)+'">'+month.split('|')[1]+'</option>'; }).join('')+'</select></div>'+
-					'</div>'+
+				var $repeat = $('<div class="form-group app-event-row row">'+
+					'<label for="event-repeat" class="col-sm-3 control-label">Repeat by</label>'+
+					'<div class="col-sm-9">'+
+						'<div class="row app-event-row row">'+
+							'<div class="col-sm-2 custom-control custom-radio"><input type="radio" class="custom-control-input event-repeat-by-dom" name="event-repeat-by" id="event-repeat-by-dom-'+instance_id+'" checked="checked" value="dom"><label class="custom-control-label" for="event-repeat-by-dom-'+instance_id+'">The</label></div>'+
+							'<div class="col-sm-3"><select class="form-control event-repeat-dom-month">'+_.map(this.values.months,function(month,i){ return '<option value="'+(i+1)+'">'+month.split('|')[1]+'</option>'; }).join('')+'</select></div>'+
+							'<div class="col-sm-3"><input type="text" class="form-control event-repeat-dom-day" placeholder="Day of month"></div>'+
+							'<div class="col-sm-4"></div>'+
+						'</div>'+
+						'<div class="row app-event-row row">'+
+							'<div class="col-sm-2 custom-control custom-radio"><input type="radio" class="custom-control-input event-repeat-by-other" name="event-repeat-by" id="event-repeat-by-other-'+instance_id+'" value="other"><label class="custom-control-label" for="event-repeat-by-other-'+instance_id+'">The</label></div>'+
+							'<div class="col-sm-3"><select class="form-control event-repeat-other-wom">'+_.map(this.values.weeks_in_month,function(week){ return '<option value="'+week.split('|')[0]+'">'+week.split('|')[1]+'</option>'; }).join('')+'</select></div>'+
+							'<div class="col-sm-3"><select class="form-control event-repeat-other-dow">'+_.map(this.values.days_of_week,function(dow){ return '<option value="'+dow.split('|')[0].toUpperCase()+'">'+dow.split('|')[1]+'</option>'; }).join('')+'</select></div>'+
+							'<div class="col-sm-1"><span class="event-helper-text">Of</span></div>'+
+							'<div class="col-sm-3"><select class="form-control event-repeat-other-month">'+_.map(this.values.months,function(month,i){ return '<option value="'+(i+1)+'">'+month.split('|')[1]+'</option>'; }).join('')+'</select></div>'+
+						'</div>'+
 					'</div>');
 				$template.append($repeat);
 
@@ -570,49 +619,50 @@ UTILS.Event =  class extends UTILS.Base {
 
 				if ('days_of_week' in rule && rule.days_of_week.length)
 					$repeat.find('.event-repeat-other-dow').val(rule.days_of_week[0]);
-
-				break;
+			break;
 		}
 
 		//start
-		var $start = $('<div class="form-group app-event-row">'+
-			'<label for="event-start-date" class="col-sm-2 control-label">Starts on</label>'+
-			'<div class="col-sm-4">' +
-			'<div class="input-group event-start-date-picker date">'+
-			'<input type="text" class="form-control event-start-date" placeholder="Interval">'+
-			'<div class="input-group-addon"><i class="fa fa-calendar-o"></i></div>'+
-			'</div>'+
-			'</div>'+
-			'<div class="col-sm-6"></div>'+
+		var $start = $('<div class="form-group app-event-row row">'+
+				'<label for="event-start-date" class="col-sm-3 control-label">Starts on</label>'+
+				'<div class="col-sm-4">' +
+					'<div class="input-group input-group-seamless event-start-date-picker date">'+
+						'<input type="text" class="form-control event-start-date" placeholder="Interval">'+
+						'<div class="input-group-append input-group-addon"><div class="input-group-text"><i class="mdi mdi-calendar-blank"></i></div></div>'+
+					'</div>'+
+				'</div>'+
+				'<div class="col-sm-5"></div>'+
 			'</div>');
 		$template.append($start);
 
-		$start.find('.event-start-date').val(start_date.format(this.getDateFormat()));
-		$start.find('.date').datepicker(dp_options);
+		$start.find('.event-start-date').val(start_date.format(date_format));
+		$start.find('.date').datepicker(dp_options).on('show',function(event){
+			this.fns('onRender');
+		}.bind(this));
 
 		//end
-		var $end = $('<div class="form-group app-event-row">'+
-			'<label for="event-end" class="col-sm-2 control-label">Ends</label>'+
-			'<div class="col-sm-10">'+
-			'<div class="row app-event-row">'+
-			'<div class="col-sm-12"><label><input type="radio" class="event-end-never" name="event-end" checked="checked" value="never"> Never</label></div>'+
-			'</div>'+
-			'<div class="row app-event-row">'+
-			'<div class="col-sm-2"><label><input type="radio" class="event-end-after" name="event-end" value="after"> After</label></div>'+
-			'<div class="col-sm-3"><input type="text" class="form-control event-repeat-occurence" placeholder="Occurence"></div>'+
-			'<div class="col-sm-7"><span class="event-helper-text">Occurence(s)</span></div>'+
-			'</div>'+
-			'<div class="row app-event-row">'+
-			'<div class="col-sm-2"><label><input type="radio" name="event-end" value="on"> On</label></div>'+
-			'<div class="col-sm-5">' +
-			'<div class="input-group event-end-date-picker date">'+
-			'<input type="text" class="form-control event-end-date" placeholder="Interval">'+
-			'<div class="input-group-addon"><i class="fa fa-calendar-o"></i></div>'+
-			'</div>'+
-			'</div>'+
-			'<div class="col-sm-5"></div>'+
-			'</div>'+
-			'</div>'+
+		var $end = $('<div class="form-group app-event-row row">'+
+				'<label for="event-end" class="col-sm-3 control-label">Ends</label>'+
+				'<div class="col-sm-9">'+
+					'<div class="row app-event-row row">'+
+						'<div class="col-sm-12 custom-control custom-radio"><input type="radio" class="custom-control-input event-end-never" name="event-end" id="event-end-never-'+instance_id+'" checked="checked" value="never"><label class="custom-control-label" for="event-end-never-'+instance_id+'">Never</label></div>'+
+					'</div>'+
+					'<div class="row app-event-row row">'+
+						'<div class="col-sm-2 custom-control custom-radio"><input type="radio" class="custom-control-input event-end-after" name="event-end" id="event-end-after-'+instance_id+'" value="after"><label class="custom-control-label" for="event-end-after-'+instance_id+'">After</label></div>'+
+						'<div class="col-sm-4"><input type="text" class="form-control event-repeat-occurence" placeholder="Occurence"></div>'+
+						'<div class="col-sm-6"><span class="event-helper-text">Occurence(s)</span></div>'+
+					'</div>'+
+					'<div class="row app-event-row row">'+
+						'<div class="col-sm-2 custom-control custom-radio"><input type="radio" class="custom-control-input event-end-on" name="event-end" id="event-end-on-'+instance_id+'" value="on"><label class="custom-control-label" for="event-end-on-'+instance_id+'">On</label></div>'+
+						'<div class="col-sm-5">' +
+							'<div class="input-group input-group-seamless event-end-date-picker date">'+
+								'<input type="text" class="form-control event-end-date" placeholder="End Date">'+
+								'<div class="input-group-append input-group-addon"><div class="input-group-text"><i class="mdi mdi-calendar-blank"></i></div></div>'+
+							'</div>'+
+						'</div>'+
+						'<div class="col-sm-5"></div>'+
+					'</div>'+
+				'</div>'+
 			'</div>');
 		$template.append($end);
 
@@ -621,10 +671,17 @@ UTILS.Event =  class extends UTILS.Base {
 			$end.find('.event-end-after').prop('checked',true);
 		}
 
-		//end-date is set to start b/c we always use @count
-		$end.find('.event-end-date').val(end_date.format(this.getDateFormat()));
+		//lets check for end_date
+		if (moment(end_date).isValid()){
+			$end.find('.event-end-date').val(end_date.format(date_format));
+			$end.find('.event-end-on').prop('checked',true);
+		}
+		else
+			$end.find('.event-end-date').val(start_date.format(date_format));
 
-		$end.find('.date').datepicker(dp_options);
+		$end.find('.date').datepicker(dp_options).on('show',function(event){
+			this.fns('onRender');
+		}.bind(this));
 
 		return $template;
 	}

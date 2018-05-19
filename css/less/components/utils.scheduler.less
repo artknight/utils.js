@@ -1,48 +1,8 @@
-@import (once) "../global/variables";
-@import (once) "../global/mixins";
+@import (once) "../globals/variables";
+@import (once) "../globals/mixins";
 
 //scheduler
 .app-scheduler {
 
 
-}
-
-//event
-.app-scheduler-event {
-
-
-	.app-event-row {
-		margin-bottom:10px;
-
-		label:not(.control-label){
-			font-weight:normal;
-			margin-top:7px;
-		}
-
-		.event-helper-text {
-			display:inline-block;
-			margin-top:7px;
-			color:#333;
-		}
-
-		.app-event-checkbox {
-			display:inline-block;
-			font-weight:normal;
-
-			& + .app-event-checkbox {
-				margin-left:10px;
-			}
-
-			input {
-				font-size:1.2em;
-			}
-		}
-		.event-interval-helper {
-			text-transform:lowercase;
-
-			&:first-letter {
-				text-transform:uppercase;
-			}
-		}
-	}
 }

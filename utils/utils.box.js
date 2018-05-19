@@ -104,7 +104,7 @@ UTILS.Box =  class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.box',
-			version: '3.2.6',
+			version: '3.2.7',
 			history: {}, //holds the historic box settings (in case of maximize, etc...)
 			is_shown: false, //holds whether this box is shown
 			//holds the divs of the box
@@ -199,6 +199,9 @@ UTILS.Box =  class extends UTILS.Base {
 		this.fns('onHide'); //run onHide
 		this.values.is_shown = false;
 		return this;
+	}
+	isShown(){
+		return this.values.is_shown;
 	}
 	//private - only used to determine if the box is insterted into the body or within another DOM elm
 	isGlobalBox(){

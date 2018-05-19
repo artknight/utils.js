@@ -26,6 +26,7 @@
   border: 0;
   cursor: pointer;
   padding: 5px;
+  position: relative;
 }
 .popover.popover-custom .popover-body .list-group .list-group-item:hover,
 .popover.popover-editable .popover-body .list-group .list-group-item:hover {
@@ -40,6 +41,15 @@
 .popover.popover-editable .popover-body .list-group .list-group-item:last-child {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
+}
+.popover.popover-custom .popover-body .list-group .list-group-item span,
+.popover.popover-editable .popover-body .list-group .list-group-item span {
+  display: inline-block;
+}
+.popover.popover-custom .popover-body .list-group .list-group-item .list-group-item-icon,
+.popover.popover-editable .popover-body .list-group .list-group-item .list-group-item-icon {
+  display: inline-block;
+  margin-right: 10px;
 }
 .popover.popover-custom .popover-body .list-group .list-group-item + .list-group-item,
 .popover.popover-editable .popover-body .list-group .list-group-item + .list-group-item {

@@ -1,0 +1,14 @@
+.app-scheduler-event .app-event-row {
+  margin-bottom: 10px;
+}
+.app-scheduler-event .app-event-row .event-helper-text {
+  display: inline-block;
+  margin-top: 7px;
+  color: #333;
+}
+.app-scheduler-event .app-event-row .event-interval-helper {
+  text-transform: lowercase;
+}
+.app-scheduler-event .app-event-row .event-interval-helper:first-letter {
+  text-transform: uppercase;
+}
