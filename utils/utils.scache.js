@@ -125,10 +125,10 @@ UTILS.SCache = class {
 			script_url = 'http://cors-anywhere.herokuapp.com/'+script_url;
 
 		if (!/\^nocache=/i.test(script.script_url)){
-			fetch(script_url)
-				.then((response) => response.text())
+			axios.get(script_url)
+				.then(response => response.data)
 				.then(_onSuccess)
-				.catch();
+				.catch(); 
 		}
 		else
 			script.promise_tuple.resolve();

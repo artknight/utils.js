@@ -298,17 +298,7 @@ UTILS.isDefined = function(obj){
 };
 
 UTILS.getURLParams = function(){
-	var params = {},
-		match,
-		pl = /\+/g,  // Regex for replacing addition symbol with a space
-		search = /([^&=]+)=?([^&]*)/g,
-		decode = function(s){ return decodeURIComponent(s.replace(pl, ' ')); },
-		query = window.location.search.substring(1);
-
-	while (match = search.exec(query)){
-		params[decode(match[1])] = decode(match[2]);
-	}
-	return params;
+	return Qs.parse(window.location.search, { ignoreQueryPrefix:true });
 };
 
 UTILS.addParamToURL = function(url='',params=[]){
@@ -372,28 +362,23 @@ UTILS.log = function(){
 };
 
 UTILS.fetch = function(url='',opts={}){
-	var url = url,
-		options = {
-			method: 'GET',
-			headers: new Headers({ 'X-Requested-With':'XMLHttpRequest' }),
-			credentials: 'same-origin'
-		};
+	const options = {
+		url: url,
+		headers: {'X-Requested-With':'XMLHttpRequest'},
+		method: ('method' in opts) ? opts.method.toUpperCase() : 'GET'
+	};
 
-	if ('method' in opts && /^POST$/.test(opts.method)){
-		options.method = 'POST';
+	options[/^GET/i.test(options.method)?'params':'data'] = ('data' in opts) ? opts.data : {};
 
-		options.headers.append('Content-Type',('content_type' in opts ? opts.content_type : 'application/x-www-form-urlencoded;charset=UTF-8'));
-
-		options.body = new URLSearchParams(opts.data||{});
+	if ('method' in opts){
+		if (/^POST$/i.test(opts.method)){
+			options.method = 'POST';
+			options.headers['content-type'] = ('content_type' in opts ? opts.content_type : 'application/x-www-form-urlencoded;charset=UTF-8');
+			options.data = Qs.stringify(options.data,{ encodeValuesOnly:true });
+		}
 	}
-	else if (/^GET/.test(options.method) && 'data' in opts){
-		//lets convert to url params
-		url = UTILS.addParamToURL(url,_.map(opts.data,function(value,key){
-			return key+'='+UTILS.format.urlEncode(value);
-		}));
-	}
-
-	return fetch(url,options).then((response) => response.text());
+	
+	return axios(options).then(response => response.data);
 };
 
 /* EXTENDING LODASH.JS */
