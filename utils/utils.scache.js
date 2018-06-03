@@ -125,7 +125,7 @@ UTILS.SCache = class {
 			script_url = 'http://cors-anywhere.herokuapp.com/'+script_url;
 
 		if (!/\^nocache=/i.test(script.script_url)){
-			axios.get(script_url)
+			axios.get(script_url, { headers:{'X-Requested-With':'XMLHttpRequest'} })
 				.then(response => response.data)
 				.then(_onSuccess)
 				.catch(); 

@@ -98,7 +98,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.5.0',
+			version: '0.5.1',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -289,6 +289,7 @@ UTILS.Editable = class extends UTILS.Base {
 				var self = this; //workaround to make sure the controls reference the utils.editable
 
 				$input.summernote(_.extend({},options,{
+					followingToolbar: false,//lets disable summernote native 'followScroll' method
 					callbacks: {
 						onInit: function(divs){
 							//lets add the save/close controls
@@ -300,9 +301,6 @@ UTILS.Editable = class extends UTILS.Base {
 									 	<a href="#" class="badge badge-primary control-item control-cancel"><i class="mdi mdi-close"></i></a>
 									</div>
 								`);
-
-							//lets add .no-follow-scroll to disable summernote native 'followScroll' method
-							$editor.addClass('no-follow-scroll');
 
 							//lets add events
 							$controls.find('.control-save').on('click',(event) => {
