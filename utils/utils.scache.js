@@ -267,7 +267,7 @@ UTILS.SCache = class {
 		this.fns('onError');
 	}
 	createScriptId(script){
-		return /^dev/i.test(APP.values.env) ? script.base_url.split('/').slice(-1)[0] : (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+		return script.base_url.split('/').slice(-1)[0];
 	}
 	loadScript(script){
 		this.values.loaded_scripts.push(script);
