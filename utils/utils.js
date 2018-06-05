@@ -706,8 +706,8 @@ $.extend($.expr[':'],{
 });
 
 //array object
-(!Array.prototype.first) && (Array.prototype.first = function(){ return this[0]; });
-(!Array.prototype.last) && (Array.prototype.last = function(){ return this.slice(-1)[0]; });
+(!Array.prototype.first) && (Array.prototype.first = function(num_of_elms){ return (typeof num_of_elms==='number') ? _.dropRight(this,this.length-num_of_elms) : _.first(this); });
+(!Array.prototype.last) && (Array.prototype.last = function(num_of_elms){ return (typeof num_of_elms==='number') ? _.drop(this,this.length-num_of_elms) : _.last(this); });
 (!Array.prototype.min) && (Array.prototype.min = function(){ return _.min(this); });
 (!Array.prototype.max) && (Array.prototype.max = function(){ return _.max(this); });
 (!Array.prototype.index) && (Array.prototype.index = function(elm){ return _.indexOf(this,elm); });
