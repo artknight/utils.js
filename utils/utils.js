@@ -152,6 +152,12 @@ UTILS.format = {
 	},
 	idify: function(item_id){
 		return item_id ? ~~parseFloat(item_id) : 0;
+	},
+	compress: function(content){
+		return lzbase62.compress(content);
+	},
+	decompress: function(content){
+		return lzbase62.decompress(content);
 	}
 }; //format
 
@@ -308,6 +314,51 @@ UTILS.addParamToURL = function(url='',params=[]){
 	return url;
 };
 
+UTILS.getIframe = function(iframe){
+	var $iframe = $(iframe);
+
+	return {
+		window: ($iframe.length) ? ($iframe[0].contentWindow ? $iframe[0].contentWindow : $iframe[0].contentDocument.defaultView) : null,
+		document: ($iframe.length) ? ($iframe[0].contentDocument || $iframe[0].contentWindow.document) : null
+	};
+};
+
+UTILS.createPromise = function(){
+	var _resolve,
+		_reject,
+		promise = new Promise(function(resolve,reject){
+			_resolve = resolve;
+			_reject = reject;
+		});
+
+	promise.resolve = _resolve;
+	promise.reject = _reject;
+
+	return promise;
+};
+
+UTILS.printDiv = function(elm){
+	var $elm = $(elm),
+		html = $elm.html(),
+		$iframe = $('<iframe name="print-wrapper" style="position:absolute; top:-10000000px;"></iframe>').appendTo('body'),
+		iframe_win_obj = UTILS.getIframe($iframe).window;
+
+	iframe_win_obj.document.open();
+	iframe_win_obj.document.write('<html><head><title>print content</title>');
+	iframe_win_obj.document.write('</head><body>');
+	iframe_win_obj.document.write(html);
+	iframe_win_obj.document.write('</body></html>');
+	iframe_win_obj.document.close();
+
+	setTimeout(function () {
+		window.frames["print-wrapper"].focus();
+		window.frames["print-wrapper"].print();
+		$iframe.remove();
+	}, 500);
+
+	return false;
+};
+
 UTILS.cookie = {
 	create: function(name,value,days){
 		if (days){
@@ -431,6 +482,21 @@ _.mixin({
 	},
 	compare: function(arr1,arr2){
 		return !_.difference(arr1,arr2).length;
+	},
+	reGroup: function(arr,delim){
+		var groups = {};
+
+		return _.reduce(arr,function (result, item){
+			var key = (delim) ? item.split(delim)[0] : item[0], //split on delim or first char
+				group = groups[key];
+
+			if (!group)
+				result.push(group = groups[key] = []);
+
+			group.push(item);
+
+			return result;
+		},[]);
 	}
 });
 
@@ -717,6 +783,7 @@ $.extend($.expr[':'],{
 (!Array.prototype.intersect) && (Array.prototype.intersect = function(arr){ return _.intersection(this,arr); });
 (!Array.prototype.compare) && (Array.prototype.compare = function(arr){ return _.compare(this,arr); });
 (!Array.prototype.prepend) && (Array.prototype.prepend = function(elm){ return this.unshift(elm); });
+(!Array.prototype.reGroup) && (Array.prototype.reGroup = function(delim){ return _.reGroup(this,delim); });
 
 //functions
 (!Function.prototype.delay) && (Function.prototype.delay = function(interval,args){ return _.delay(this,interval,args); });
@@ -740,3 +807,16 @@ $.extend($.expr[':'],{
 
 window.toBoolean = UTILS.format.toBoolean;
 window._log = UTILS.log;
+
+//export node module.
+if (typeof module!=='undefined' && module.hasOwnProperty('exports')){
+	module.exports = {
+		Array: Array,
+		String: String,
+		Function: Function,
+		parseInt: parseInt,
+		UTILS: UTILS,
+		toBoolean: UTILS.format.toBoolean,
+		_log: UTILS.log
+	};
+}
