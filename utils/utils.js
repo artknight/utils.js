@@ -801,6 +801,8 @@ $.extend($.expr[':'],{
 (!String.prototype.capitalize) && (String.prototype.capitalize = function(scope){ return UTILS.format.capitalize(this,scope); });
 (!String.prototype.idify) && (String.prototype.idify = Number.prototype.idify = function(){ return UTILS.format.idify(this); });
 (!String.prototype.shorten) && (String.prototype.shorten = function(limit,ending){ return UTILS.format.shorten(this,limit,ending); });
+(!String.prototype.compress) && (String.prototype.compress = function(){ return UTILS.format.compress(this); });
+(!String.prototype.decompress) && (String.prototype.decompress = function(){ return UTILS.format.decompress(this); });
 
 //fix parseInt
 (function(){ var old_parseInt = parseInt; parseInt = function(number,radix){ return old_parseInt(number,radix || 10); }; }());

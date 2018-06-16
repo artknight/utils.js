@@ -16,7 +16,7 @@ UTILS.SCache = class {
 	getDefaults(){
 		return {
 			object: 'utils.scache',
-			version:'0.5.6',
+			version:'0.5.7',
 			id: 0, //holds the project id
 			name: '', //holds the name
 			fns: {},
@@ -67,11 +67,13 @@ UTILS.SCache = class {
 		return this;
 	}
 	hideOverlay(){
-		if (this.values.overlay){
+		var overlay = document.getElementById('body-overlay'),
+			overlay_msg = document.getElementById('body-overlay-msg');
+
+		if (overlay || overlay_msg){
 			try {
-				this.values.overlay.parentNode.removeChild(this.values.overlay);
-				this.values.overlay_msg.parentNode.removeChild(this.values.overlay_msg);
-				this.values.overlay = this.values.overlay_msg = null;
+				overlay.parentNode.removeChild(overlay);
+				overlay_msg.parentNode.removeChild(overlay_msg);
 			}
 			catch(e){}
 		}
@@ -79,21 +81,35 @@ UTILS.SCache = class {
 		return this;
 	}
 	showOverlay(){
-		if (!this.values.overlay){
-			var overlay = document.createElement('div');
-			overlay.setAttribute('style','z-index:1000000; border:none; margin:0px; padding:0px; width:100%; height:100%; top:0px; left:0px; background-color:#ccc; cursor:wait; position:fixed;');
-			this.values.overlay = overlay;
+		var overlay = document.getElementById('body-overlay'),
+			overlay_msg = document.getElementById('body-overlay-msg');
 
-			var overlay_msg = document.createElement('div');
-			overlay_msg.setAttribute('style','z-index:1000001; padding:10px; position:fixed; top:50%; left:50%; -webkit-transform:translate(-50%,-50%); transform:translate(-50%,-50%); text-align:center; color:rgb(150, 150, 150); border:2px solid rgb(167, 167, 167); border-radius:5px; background-color:#fff; cursor:wait;');
-			overlay_msg.appendChild(document.createTextNode('Loading resources, please wait...'));
-			this.values.overlay_msg = overlay_msg;
+		//lets check if those already exist
+		if (!overlay && !overlay_msg){
+			overlay = document.createElement('div');
+			overlay_msg = document.createElement('div');
+
+			var spinner = document.createElement('div'),
+				msg = document.createElement('div');
+
+			overlay.id = 'body-overlay';
+			overlay.setAttribute('class','body-overlay');
+
+			overlay_msg.id = 'body-overlay-msg';
+			overlay_msg.setAttribute('class','body-overlay-msg');
+
+			spinner.setAttribute('class','sp sp-circle');
+
+			msg.innerHTML = 'Loading resources, please wait...';
+
+			overlay_msg.appendChild(spinner);
+			overlay_msg.appendChild(msg);
 
 			var body = document.getElementsByTagName('body')[0];
 
 			if (body){
-				body.appendChild(this.values.overlay);
-				body.appendChild(this.values.overlay_msg);
+				body.appendChild(overlay);
+				body.appendChild(overlay_msg);
 			}
 		}
 
@@ -109,9 +125,6 @@ UTILS.SCache = class {
 					url: script.script_url,
 					id: script.id
 				}));
-
-				(this.values.show_timer) && console.timeEnd(script.timer_id); //stopping timer
-				script.promise_tuple.resolve();
 			}
 			catch(e){
 				this.log(this.getObjectName() + ' --> error or local storage limit reached',e);
@@ -122,7 +135,7 @@ UTILS.SCache = class {
 
 		//if external URL we need to get the content regardless of CORS
 		if (/^http/i.test(script_url))
-			script_url = 'http://cors-anywhere.herokuapp.com/'+script_url;
+			script_url = 'https://cors-anywhere.herokuapp.com/'+script_url;
 
 		if (!/\^nocache=/i.test(script.script_url)){
 			axios.get(script_url, { headers:{'X-Requested-With':'XMLHttpRequest'} })
@@ -130,8 +143,9 @@ UTILS.SCache = class {
 				.then(_onSuccess)
 				.catch(); 
 		}
-		else
-			script.promise_tuple.resolve();
+
+		(this.values.show_timer) && console.timeEnd(script.timer_id); //stopping timer
+		script.promise_tuple.resolve();
 		
 		return this;
 	}
