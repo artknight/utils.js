@@ -7,21 +7,24 @@ UTILS.SCache = class {
 
 		this.log(this.getObjectName() + ' --> instantiated');
 
-		('onLoaded' in data) && this.addCallback('onLoaded',data.onLoaded);
-		('onError' in data) && this.addCallback('onError',data.onError);
+		('overlay' in data) && this.setOverlayOptions(data.overlay);
 		('scripts' in data) && this.addScripts(data.scripts);
 
-		return this;
+		return this.createOnAllScriptsLoadedPromise();
 	}
 	getDefaults(){
 		return {
 			object: 'utils.scache',
-			version:'0.5.7',
+			version:'0.5.8',
 			id: 0, //holds the project id
 			name: '', //holds the name
 			fns: {},
 			LAB: $LAB,
 			loaded_scripts: [], //holds the scripts that have already been loaded
+			overlay: {
+				hide: true //hides the overlay when all scripts finish loading
+			},
+			all_scripts_loaded_promise: null, //holds the promise to resolve when all scripts are loaded
 			show_log: (typeof APP.showLog==='function') ? APP.showLog() : null, //holds whether the env is dev
 			show_timer: (typeof APP.showTimer==='function') ? APP.showTimer() : false
 		};
@@ -44,38 +47,46 @@ UTILS.SCache = class {
 		}
 		return scope1;
 	}
-	fns(type,options){
-		if (type && type in this.values.fns){
-			this.values.fns[type].forEach(function(callback){
-				try {
-					callback(this,options||{});
-				}
-				catch(e){ this.log(e); }
-			}.bind(this));
-		}
+	createOnAllScriptsLoadedPromise(){
+		var _resolve,
+			_reject,
+			promise = new Promise(function(resolve,reject){
+				_resolve = resolve;
+				_reject = reject;
+			});
+
+		promise.resolve = _resolve;
+		promise.reject = _reject;
+		promise.scache = this;
+
+		this.values.all_scripts_loaded_promise = promise;
+
+		return promise;
 	}
-	addCallback(type,callback){
-		if (typeof callback==='function'){
-			this.log(this.getObjectName()+' --> callback added!',callback);
-
-			if (!Object.keys(this.values.fns).includes(type))
-				this.values.fns[type] = [];
-
-			if (!this.values.fns[type].includes(callback))
-				this.values.fns[type].push(callback);
-		}
+	getOnAllScriptsLoadedPromise(){
+		return this.values.all_scripts_loaded_promise;
+	}
+	getOverlayOptions(){
+		return this.values.overlay;
+	}
+	setOverlayOptions(options){
+		this.values.overlay = this._extend(this.values.overlay, options);
 		return this;
 	}
-	hideOverlay(){
-		var overlay = document.getElementById('body-overlay'),
-			overlay_msg = document.getElementById('body-overlay-msg');
+	hideOverlay(force_hide){
+		var options = this.getOverlayOptions();
 
-		if (overlay || overlay_msg){
-			try {
-				overlay.parentNode.removeChild(overlay);
-				overlay_msg.parentNode.removeChild(overlay_msg);
+		if (options.hide || force_hide){
+			var overlay = document.getElementById('body-overlay'),
+				overlay_msg = document.getElementById('body-overlay-msg');
+
+			if (overlay || overlay_msg){
+				try {
+					overlay.parentNode.removeChild(overlay);
+					overlay_msg.parentNode.removeChild(overlay_msg);
+				}
+				catch(e){}
 			}
-			catch(e){}
 		}
 
 		return this;
@@ -222,7 +233,7 @@ UTILS.SCache = class {
 		//script.$script.setAttribute('src', script.script_url);
 		//this.addToPage(script);
 
-		this.values.LAB = this.values.LAB.script(script_url).wait(this.addToCache.bind(this,script));
+		this.values.LAB = this.values.LAB.script({ src:script_url, id:script.id }).wait(this.addToCache.bind(this,script));
 
 		return this;
 	}
@@ -272,13 +283,14 @@ UTILS.SCache = class {
 		return source_map;
 	}
 	_onAllScriptsLoaded(){
+		this.log(this.getObjectName() + ' --> all scripts loaded');
 		this.hideOverlay();
-		this.fns('onLoaded');
+		this.getOnAllScriptsLoadedPromise().resolve();
 	}
 	_onScriptsLoadError(response){
 		this.log(this.getObjectName() + ' --> scripts failed to load',response);
 		this.hideOverlay();
-		this.fns('onError');
+		this.getOnAllScriptsLoadedPromise().reject(response);
 	}
 	createScriptId(script){
 		return script.base_url.split('/').slice(-1)[0];
