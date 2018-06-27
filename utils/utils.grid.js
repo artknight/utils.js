@@ -41,7 +41,7 @@ UTILS.Grid = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object:'utils.grid',
-			version:'1.0.9',
+			version:'1.1.0',
 			Grid: null, //holds the original Grid object
 			$items: [], //holds the items to be loaded into the grid cells
 			$target: $('body'), //DOM where grid will be added --> defaults to 'body'
@@ -90,8 +90,22 @@ UTILS.Grid = class extends UTILS.Base {
 	}
 	setGridWidth(width){
 		this.values.grid_width = width;
-		this._adjustGridCellsToWidth();
+
+		var $grid = this.getGrid(),
+			gridElm = this.getGridElm(),
+			classes = $grid.attr('class').match(/(?:^|)grid-stack-(\w+)(?!\w)/g) || []; //match all classes starting with 'grid-cell...'
+
+		if (classes.length)
+			$grid.removeClass(_.joinArray(classes,' '));
+
+		$grid.addClass('grid-stack-'+width).attr('data-gs-width',width);
+
+		//lets set the grid width on the grid elm
+		if (gridElm)
+			gridElm.setGridWidth(width);
+
 		_log(this.getObjectName()+' --> width changed to ' + width, this.getId());
+
 		return this;
 	}
 	getGridHeight(){
@@ -170,36 +184,10 @@ UTILS.Grid = class extends UTILS.Base {
 		this.values.Grid = Grid;
 		return this;
 	}
-	_adjustGridCellsToWidth(){
-		_.each(this._getCells(), function($cell){
-			this._setCellClass($cell);
-		}.bind(this));
-		this.updatePlaceholderClass();
-		return this;
-	}
-	_updatePlaceholderClass(){
-		var $placeholder = this.getGrid().find('.grid-stack-placeholder');
-		this._setCellClass($placeholder);
-		return this;
-	}
-	_getCellClass(){
-		var grid_width = this.getGridWidth();
-		return 'grid-cell' + (grid_width ? '-' + grid_width : '');
-	}
-	_setCellClass($cell){
-		if ($cell.length){
-			var grid_width = this.getGridWidth(),
-				classes = $cell.attr('class').match(/(?:^|)grid-cell-(\w+)(?!\w)/g) || []; //match all classes starting with 'grid-cell...'
-			(classes.length) && $cell.removeClass(_.joinArray(classes, ' '));
-			$cell.addClass('grid-cell-' + grid_width);
-		}
-		return this;
-	}
 	_createCell($item){
 		var $cell = null,
-			cell_class = this._getCellClass(),
 			data = $item.data('grid'),
-			$cell = $('<div class="grid-stack-item '+cell_class+'" data-gs-x="'+data.x+'" data-gs-y="'+data.y+'" data-gs-width="'+data.width+'" data-gs-height="'+data.height+'"></div>')
+			$cell = $('<div class="grid-stack-item" data-gs-x="'+data.x+'" data-gs-y="'+data.y+'" data-gs-width="'+data.width+'" data-gs-height="'+data.height+'"></div>')
 				.append($('<div class="grid-stack-item-content"></div>').append($item));
 
 		//lets see if there are any min width/height restrains
@@ -251,7 +239,6 @@ UTILS.Grid = class extends UTILS.Base {
 			cellHeight: this._getGridCellHeight(),
 			verticalMargin: 10,
 			alwaysShowResizeHandle: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-			//float: true,
 			draggable: {
 				scroll: true
 			},
@@ -259,8 +246,7 @@ UTILS.Grid = class extends UTILS.Base {
 				handles: 'e, se, s, sw, w'
 			}
 		}).on('change', this.onGridChange.bind(this));
-
-		this._updatePlaceholderClass();
+		
 		this._setGridElm($grid.data('gridstack'));
 		this.fns('onCreate');
 		return this;
