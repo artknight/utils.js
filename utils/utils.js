@@ -1,6 +1,8 @@
 if (!UTILS) var UTILS = {};
 
 UTILS.values = {
+	object:'utils',
+	version:'1.0.1',
 	numbers: '1234567890',
 	letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
 	special: ' .,-!@#$%&()?/":;\'',
@@ -158,6 +160,18 @@ UTILS.format = {
 	},
 	decompress: function(content){
 		return lzbase62.decompress(content);
+	},
+	toRegex: function(str){
+		var regex = null;
+
+		if (/^\/(.)+\/([gim]+)?$/.test(str)){
+			var flags = str.replace(/.*\/([gimy]*)$/, '$1'),
+				pattern = str.replace(new RegExp('^/(.*?)/'+flags+'$'),'$1');
+
+			regex = new RegExp(pattern, flags);
+		}
+
+		return regex;
 	}
 }; //format
 
@@ -184,6 +198,10 @@ UTILS.inputMask = {
 
 		return mask;
 	}
+};
+
+UTILS.isValidRegex = function(str){
+	return /^\/(.)+\/([gim]+)?$/.test(str);
 };
 
 UTILS.getCharKey = function(event){
@@ -771,6 +789,9 @@ $.extend($.expr[':'],{
 	}
 });
 
+//css-grid support
+$.cssNumber.gridRowStart = $.cssNumber.gridRowEnd = $.cssNumber.gridColumnStart = $.cssNumber.gridColumnEnd = true;
+
 //array object
 (!Array.prototype.first) && (Array.prototype.first = function(num_of_elms){ return (typeof num_of_elms==='number') ? _.dropRight(this,this.length-num_of_elms) : _.first(this); });
 (!Array.prototype.last) && (Array.prototype.last = function(num_of_elms){ return (typeof num_of_elms==='number') ? _.drop(this,this.length-num_of_elms) : _.last(this); });
@@ -803,6 +824,8 @@ $.extend($.expr[':'],{
 (!String.prototype.shorten) && (String.prototype.shorten = function(limit,ending){ return UTILS.format.shorten(this,limit,ending); });
 (!String.prototype.compress) && (String.prototype.compress = function(){ return UTILS.format.compress(this); });
 (!String.prototype.decompress) && (String.prototype.decompress = function(){ return UTILS.format.decompress(this); });
+(!String.prototype.toRegex) && (String.prototype.toRegex = function(){ return UTILS.format.toRegex(this); });
+(!String.prototype.isValidRegex) && (String.prototype.isValidRegex = function(){ return UTILS.isValidRegex(this); });
 
 //fix parseInt
 (function(){ var old_parseInt = parseInt; parseInt = function(number,radix){ return old_parseInt(number,radix || 10); }; }());

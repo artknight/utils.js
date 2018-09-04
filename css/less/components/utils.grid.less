@@ -1,0 +1,13 @@
+@import (once) "../globals/variables";
+@import (once) "../globals/mixins";
+
+.grid-stack {
+	display: grid;
+	grid-template-columns: repeat(12,1fr);
+	grid-template-rows: auto;
+	grid-gap: 1.5em;
+}
+
+.grid-field {
+	position: relative;
+}

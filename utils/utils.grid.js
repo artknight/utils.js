@@ -41,7 +41,7 @@ UTILS.Grid = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object:'utils.grid',
-			version:'1.1.0',
+			version:'1.2.0',
 			Grid: null, //holds the original Grid object
 			$items: [], //holds the items to be loaded into the grid cells
 			$target: $('body'), //DOM where grid will be added --> defaults to 'body'
@@ -430,111 +430,39 @@ UTILS.Grid = class extends UTILS.Base {
 		_log(this.getObjectName()+' --> CA --> rendering cells for presentation',this.getId());
 		var $grid = this.getGrid(),
 			items = this.getItems(),
-			cell_height = this._getGridCellHeight(),
 			is_collapsable = this.isCollapsable();
 
 		//lets unload Gridstack
 		this._unloadGridstack();
 
-		//adding media query to styles
-		$('head').append('<style> @media (min-width: 768px) { .grid-row { height:'+cell_height+'px; } } </style>');
+		//lets set the grid column width
+		var max_width = Math.max.apply(null, _.map(items,function(item){ return item.x+item.width; }));
 
-		//normalize items to be used in the algorithm
-		var normalized_items = _.map(items,function(item){
+		if (max_width!==12)
+			$grid[0].style.gridTemplateColumns = `repeat(${max_width},1fr)`;
+
+		//lets render the fields
+		_.each(items,function(item){
 			var $item = $(item),
-				item_data = $item.data('grid');
+				item_data = $item.data('grid'),
+				item_grid_data = {
+					col_s: parseInt(item_data.x)+1,
+					col_e: parseInt(item_data.x)+parseInt(item_data.width)+1,
+					row_s: parseInt(item_data.y)+1,
+					row_e: parseInt(item_data.y)+parseInt(item_data.height)+1
+				};
 
-			return { x:parseInt(item_data.x)+1, y:parseInt(item_data.y)+1, width:parseInt(item_data.width), height:parseInt(item_data.height), $item:$item };
+			//lets set the styles
+			$item[0].style.gridColumn = item_grid_data.col_s +'/'+ item_grid_data.col_e;
+			$item[0].style.gridRow = item_grid_data.row_s +'/'+ item_grid_data.row_e;
+
+			$item.data('item-data',item);
+
+			//lets hide all hidden items
+			if ($item.hasClass('grid-field-hidden'))
+				$item.hide();
 		});
-
-		//sorting items
-		normalized_items = _.sortBy(normalized_items, function(item){ return item.x; });
-
-		var createWrapper = function(item,offset) {
-			var $wrapper = $('<div class="grid-item-wrapper"></div>');
-
-			//lets add the data attr
-			$wrapper.data('item-data',item);
-			$wrapper.attr('data-x',item.x).attr('data-y',item.y).attr('data-width',item.width).attr('data-height',item.height);
-
-			//adding col-span
-			$wrapper.addClass('col-sm-'+item.width);
-
-			//calculating offset
-			if (offset>0)
-				$wrapper.addClass('offset-sm-'+offset);
-
-			//setting min height
-			if (!is_collapsable)
-				$wrapper.css('height',item.height*cell_height);
-
-			$wrapper.append(item.$item);
-			return $wrapper;
-		};
-
-		var createRow = function() {
-			var $row = $('<div class="row col-sm-12 grid-row"></div>');
-			(!is_collapsable) && $row.css('min-height',cell_height);
-			return $row;
-		};
-
-		var render = function(){
-			var rows = [],
-				grouped_items = _.groupBy(normalized_items, function(item){ return item.y; }),
-				max_row = _.maxBy(normalized_items, function(item){ return item.y; }).y;
-
-			_.times(max_row, function(n){
-				rows.push({ y:n, $row:createRow() });
-			});
-
-			_.each(grouped_items, function(items,row){
-				var $row = rows[row-1].$row;
-
-				_.each(items, function(item,index,items_in_row){
-					var immediate_left_item = items_in_row[index-1];
-					var offset = 0;
-
-					if (immediate_left_item)
-						offset = item.x - (immediate_left_item.x+immediate_left_item.width);
-					else
-						offset = item.x-1;
-
-					var $wrapper = createWrapper(item,offset);
-					$row.append($wrapper);
-
-					//lets hide all hidden items
-					if (item.$item.hasClass('grid-field-hidden'))
-						$wrapper.hide();
-				});
-			});
-
-			_.each(rows, function(row){
-				$grid.append(row.$row);
-			});
-
-			//lets adjust row height if content is too tall
-			/*_log('this.getObjectName()+' --> CA --> adjusting row height');
-			_.each($('.grid-row'), function(row){
-				var $row = $(row);
-				if ($row.prop('scrollHeight')>$row.height())
-					$row.height('auto');
-			});*/
-		};
-
-		render();
-
-		if (is_collapsable){
-			//removing empty rows
-			_log(this.getObjectName()+' --> CA --> removing empty rows');
-
-			var empty_rows = _.filter($('.grid-row'),function(row){
-				var $row = $(row);
-				return $row.is(':empty');
-			});
-
-			$(empty_rows).remove();
-		}
-
+		
 		this.fns('onRenderedGridForPresentation');
 		return this;
 	}

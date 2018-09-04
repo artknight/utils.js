@@ -98,7 +98,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.5.1',
+			version: '0.5.2',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -785,7 +785,7 @@ UTILS.Editable = class extends UTILS.Base {
 			$editable = $cell;
 
 		//spinner
-		spinner.set({ target:$editable });
+		spinner.setTarget($editable);
 
 		//lets check if the value has changed
 		if (this.getDisplayValue()!=this._filterValueForDisplay(value)){
