@@ -7,6 +7,8 @@ UTILS.values = {
 	letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
 	special: ' .,-!@#$%&()?/":;\'',
 	url: '?/-_.#,%&()+=!@*$:;',
+	transition_event_start: 'webkitTransitionStart otransitionstart oTransitionStart msTransitionStart transitionstart',
+	transition_event_end: 'webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend',
 
 	regex: {
 		text: /^([a-zA-Z]+)$/,

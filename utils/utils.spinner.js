@@ -23,19 +23,11 @@ UTILS.Spinner =  class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object:'utils.spinner',
-			version:'2.1.1',
+			version:'2.1.2',
 			opts: {},
 			divs: {}, //holds all the divs of the main elm
 			is_shown: false, //holds whether the spinner is shown
 			types: ['tiny','small','medium','large','x2','x3'],
-			colors: { //holds color combinations
-				'standalone': { bg:'#000', border:'1px solid #fff', spinner:'#fff', msg:'#fff', opac:0.75 },
-				'white': { bg:'transparent', border:'none', spinner:'#fff', msg:'#fff', opac:1 },
-				'gray': { bg:'transparent', border:'none', spinner:'#999', msg:'#444', opac:1 },
-				'red': { bg:'transparent', border:'none', spinner:'#d30000', msg:'#d30000', opac:1 },
-				'black': { bg:'transparent', border:'none', spinner:'#000', msg:'#3a3a3a', opac:1 }, //default
-				'green': { bg:'transparent', border:'none', spinner:'#390', msg:'#390', opac:1 }
-			},
 			type: 'small',
 			center: false, //holds if the spinner is centered
 			blur: false, //holds if the content covered by the spinner is blurred
@@ -63,7 +55,8 @@ UTILS.Spinner =  class extends UTILS.Base {
 	}
 	show(){
 		this.fns('onBeforeShow');
-		var blur_instance = null;
+		let blur_instance = null,
+			color = this.getColor();
 		
 		//this must happen here instead of the "set" function to avoid having "this.values.$target" being null and therefore being set to $('body');
 		if (this.values.blur && this.values.$target.length){
@@ -83,6 +76,9 @@ UTILS.Spinner =  class extends UTILS.Base {
 
 			blur_instance.set({ resize:this.values.$target.is('body') }).show();
 		}
+
+		//lets set the color
+		this.values.$elm.addClass(color);
 
 		if (!this.values.center && this.values.$target.hasClass('box'))
 			this.values.$target.find('.box-mainbody').append(this.values.$elm);
@@ -149,29 +145,11 @@ UTILS.Spinner =  class extends UTILS.Base {
 
 		return this;
 	}
-	setCSS(setting,color){
-		switch(setting){
-			case 'bg': this.values.$elm.css({background:color}); break;
-			case 'border': this.values.$elm.css({ border:color }); break;
-			case 'spinner': this.values.divs.$icon.css({ color:color }); break;
-			case 'msg': this.values.divs.$msg.css({ color:color }); break;
-			case 'opac': this.values.$elm.css({ opacity:color }); break;
-		}
-		
-		return this;
-	}
-	getStandardColor(){
-		return this.values.colors[this.values.color];
+	getColor(){
+		return this.values.color;
 	}
 	setColor(color){
-		this.values.color = _.isPlainObject(color) ? 'custom' : color;
-
-		var settings = /^custom$/.test(this.values.color) ? color : this.getStandardColor();
-
-		_.each(settings,function(setting,key){
-			this.setCSS(key,setting);
-		}.bind(this));
-		
+		this.values.color = color;
 		return this;
 	}
 	getType(){

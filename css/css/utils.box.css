@@ -10,109 +10,8 @@
           box-shadow: 0px 3px 6px 0px rgba(50, 50, 50, 0.75);
   border-top: 5px solid #44a2c6;
 }
-.box .box-outer {
-  position: relative;
-  z-index: 503;
-  padding: 0;
-  margin: 10px;
-  background: #fff;
-}
-.box .box-outer .box-inner {
-  padding: 10px;
-  margin: 0;
-}
-.box .box-outer .box-inner .box-hd {
-  position: absolute;
-  top: -10px;
-  left: 0;
-  height: 40px;
-  width: 100%;
-  padding: 0;
-  margin: 0;
-  font-size: 18px;
-  text-align: left;
-  text-transform: uppercase;
-  font-weight: normal;
-  line-height: 40px;
-  color: #eee;
-  font-style: italic;
-}
-.box .box-outer .box-inner .box-hd span {
-  padding-left: 10px;
-}
-.box .box-outer .box-inner .box-hd span a:not(.box-boxcls) {
-  text-decoration: none;
-}
-.box .box-outer .box-inner .box-hd span a:not(.box-boxcls):hover {
-  text-decoration: underline;
-}
-.box .box-outer .box-inner .box-hd span + span {
-  padding-left: 0;
-}
-.box .box-outer .box-inner .box-mainbody {
-  width: 100%;
-  margin: 20px 0 0 0;
-  padding: 0;
-  overflow: auto;
-  overscroll-bahavior: contain;
-}
-.box .box-outer .box-inner .box-mainbody .form-group {
-  margin-left: 0;
-  margin-right: 0;
-}
-.box .box-outer .box-top-buttons {
-  position: absolute;
-  top: -10px;
-  right: -10px;
-  margin: 0;
-}
-.box .box-outer .box-top-buttons a {
-  display: inline-block;
-  margin: 0;
-  padding: 1px 3px;
-}
-.box .box-outer .box-top-buttons a i.mdi {
-  color: #cdcdcd;
-}
-.box .box-outer .box-top-buttons a i.mdi:hover {
-  color: #999;
-}
-.box .box-outer .box-top-buttons a.box-top-buttons-maximize .mdi-24px:before {
-  font-size: 22px;
-}
-.box .box-outer .box-top-buttons a:last-child {
-  margin-right: 2px;
-}
 .box.maximized .box-top-buttons .box-top-buttons-maximize {
   background: #eee;
-}
-.box .box-controls {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  margin: 0;
-  padding: 10px 0;
-  z-index: 1004;
-  width: 100% !important;
-}
-.box .box-controls.expressed {
-  background: #eaeaea;
-}
-.box .box-controls .box-controls-controls {
-  display: inline-block;
-  margin-left: 12px;
-}
-.box .box-controls .box-controls-result {
-  display: inline-block;
-  margin-left: 10px;
-  font-weight: normal;
-  color: #555;
-  min-width: 1px;
-}
-.box .box-controls .box-controls-close {
-  float: right;
-  margin-right: 12px;
-  margin-top: 2px;
 }
 .box.input-box .box-mainbody {
   position: relative;
@@ -163,6 +62,107 @@
 .box.box-gray ul.box-top-buttons {
   top: -20px;
   right: -20px;
+}
+.box-outer {
+  position: relative;
+  z-index: 503;
+  padding: 0;
+  margin: 10px;
+  background: #fff;
+}
+.box-inner {
+  padding: 10px;
+  margin: 0;
+}
+.box-hd {
+  position: absolute;
+  top: -10px;
+  left: 0;
+  height: 40px;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  font-size: 18px;
+  text-align: left;
+  text-transform: uppercase;
+  font-weight: normal;
+  line-height: 40px;
+  color: #eee;
+  font-style: italic;
+}
+.box-hd span {
+  padding-left: 10px;
+}
+.box-hd span a:not(.box-boxcls) {
+  text-decoration: none;
+}
+.box-hd span a:not(.box-boxcls):hover {
+  text-decoration: underline;
+}
+.box-hd span + span {
+  padding-left: 0;
+}
+.box-mainbody {
+  width: 100%;
+  margin: 20px 0 0 0;
+  padding: 0;
+  overflow: auto;
+  overscroll-bahavior: contain;
+}
+.box-mainbody .form-group {
+  margin-left: 0;
+  margin-right: 0;
+}
+.box-top-buttons {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  margin: 0;
+}
+.box-top-buttons a {
+  display: inline-block;
+  margin: 0;
+  padding: 1px 3px;
+}
+.box-top-buttons a i.mdi {
+  color: #cdcdcd;
+}
+.box-top-buttons a i.mdi:hover {
+  color: #999;
+}
+.box-top-buttons a.box-top-buttons-maximize .mdi-24px:before {
+  font-size: 22px;
+}
+.box-top-buttons a:last-child {
+  margin-right: 2px;
+}
+.box-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  margin: 0;
+  padding: 10px 0;
+  z-index: 1004;
+  width: 100% !important;
+}
+.box-controls.expressed {
+  background: #eaeaea;
+}
+.box-controls .box-controls-controls {
+  display: inline-block;
+  margin-left: 12px;
+}
+.box-controls .box-controls-result {
+  display: inline-block;
+  margin-left: 10px;
+  font-weight: normal;
+  color: #555;
+  min-width: 1px;
+}
+.box-controls .box-controls-close {
+  float: right;
+  margin-right: 12px;
+  margin-top: 2px;
 }
 .mdi-close:before {
   margin-top: 5px;
