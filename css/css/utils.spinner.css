@@ -57,6 +57,7 @@
 }
 .spinner.standalone {
   background: #000;
+  opacity: 0.75;
 }
 .spinner-icon {
   position: relative;
