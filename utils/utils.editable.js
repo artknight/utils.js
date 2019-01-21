@@ -879,7 +879,7 @@ UTILS.Editable = class extends UTILS.Base {
 			_log(this.getObjectName()+' --> same value, no action taken', this.getId());
 			this._onBeforeHide();
 			this._hide();
-			this._fns('onNoChange');
+			this.fns('onNoChange');
 			_.isFunction(callback) && callback.call(null);
 		}
 		return this;
