@@ -90,6 +90,7 @@ UTILS.Editable = class extends UTILS.Base {
 		('onSaveError' in data) && this.addCallback('onSaveError',data.onSaveError);
 		('onActionTriggered' in data) && this.addCallback('onActionTriggered',data.onActionTriggered);
 		('onAfterActionTriggered' in data) && this.addCallback('onAfterActionTriggered', data.onAfterActionTriggered);
+		('onNoChange' in data) && this.addCallback('onNoChange',data.onNoChange);
 		('onInputCreate' in data) && this.addCallback('onInputCreate', data.onInputCreate);
 		('value' in data) && this.setValue(data.value);
 		('empty' in data) && this.setEmptyValue(data.empty); //lets put it at the end to avoid race conditions
@@ -99,7 +100,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.5.3',
+			version: '0.5.4',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -878,6 +879,7 @@ UTILS.Editable = class extends UTILS.Base {
 			_log(this.getObjectName()+' --> same value, no action taken', this.getId());
 			this._onBeforeHide();
 			this._hide();
+			this._fns('onNoChange');
 			_.isFunction(callback) && callback.call(null);
 		}
 		return this;
