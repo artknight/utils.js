@@ -154,10 +154,10 @@ UTILS.format = {
 	urlDecode: function(str){
 		return decodeURIComponent(str.toString());
 	},
-	encodeForHTML: function(str){
+	htmlEncode: function(str){
 		return he.encode(str.toString());
 	},
-	decodeForHTML: function(str){
+	htmlDecode: function(str){
 		return he.decode(str.toString());
 	},
 	idify: function(item_id){
