@@ -154,6 +154,12 @@ UTILS.format = {
 	urlDecode: function(str){
 		return decodeURIComponent(str.toString());
 	},
+	htmlEncode: function(str){
+		return he.encode(str.toString());
+	},
+	htmlDecode: function(str){
+		return he.decode(str.toString());
+	},
 	idify: function(item_id){
 		return item_id ? ~~parseFloat(item_id) : 0;
 	},
@@ -817,6 +823,8 @@ $.cssNumber.gridRowStart = $.cssNumber.gridRowEnd = $.cssNumber.gridColumnStart 
 //strings
 (!String.prototype.urlEncode) && (String.prototype.urlEncode = function(){ return UTILS.format.urlEncode(this); });
 (!String.prototype.urlDecode) && (String.prototype.urlDecode = function(){ return UTILS.format.urlDecode(this); });
+(!String.prototype.htmlEncode) && (String.prototype.htmlEncode = function(){ return UTILS.format.htmlEncode(this); });
+(!String.prototype.htmlDecode) && (String.prototype.htmlDecode = function(){ return UTILS.format.htmlDecode(this); });
 (!String.prototype.sha1Encode) && (String.prototype.sha1Encode = function(){ return UTILS.Encryption.sha1(this); });
 (!String.prototype.base64Encode) && (String.prototype.base64Encode = function(){ return UTILS.Encryption.base64.encode(this); });
 (!String.prototype.base64Decode) && (String.prototype.base64Decode = function(){ return UTILS.Encryption.base64.decode(this); });

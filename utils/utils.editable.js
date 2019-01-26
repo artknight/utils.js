@@ -101,7 +101,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.5.5',
+			version: '0.5.6',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -123,7 +123,8 @@ UTILS.Editable = class extends UTILS.Base {
 			is_shown: false, //holds the display state
 			display_filtermethod: null,
 			edit_filtermethod: null,
-			is_contenteditable: false //holds whether we want the content to be edited within the target element
+			is_contenteditable: false, //holds whether we want the content to be edited within the target element
+			_is_cell_created: null
 		}
 	}
 	getCss(){
@@ -218,210 +219,212 @@ UTILS.Editable = class extends UTILS.Base {
 		return _value;
 	}
 	_onActionTriggered(){
-		var $target = this.getTarget(),
-			$cell = this.getCell(),
-			is_type_date = this.isTypeDate(),
-			is_type_checkbox = this.isTypeCheckbox(),
-			is_type_radio = this.isTypeRadio(),
-			is_selectize = this.isSelectize(),
-			is_wysiwyg = this.isWysiwyg(),
-			is_type_input = this.isTypeInput(),
-			is_type_textarea = this.isTypeTextarea(),
-			is_contenteditable = this.isContentEditable() && (is_type_input || is_type_textarea), //only applies to inputs and textareas
-			$input = this.getInputField(),
-			$next_editable = $target.nextNodeByClass('editable-target'),
-			value = this.getValue(),
-			options = this.getOptions(),
-			is_processing = false,
-			keys = { ENTER:13, ESCAPE:27, TAB:9 },
-			active_keys = [keys.ESCAPE];
+		this.values._is_cell_created.then(() => {
+			var $target = this.getTarget(),
+				$cell = this.getCell(),
+				is_type_date = this.isTypeDate(),
+				is_type_checkbox = this.isTypeCheckbox(),
+				is_type_radio = this.isTypeRadio(),
+				is_selectize = this.isSelectize(),
+				is_wysiwyg = this.isWysiwyg(),
+				is_type_input = this.isTypeInput(),
+				is_type_textarea = this.isTypeTextarea(),
+				is_contenteditable = this.isContentEditable() && (is_type_input || is_type_textarea), //only applies to inputs and textareas
+				$input = this.getInputField(),
+				$next_editable = $target.nextNodeByClass('editable-target'),
+				value = this.getValue(),
+				options = this.getOptions(),
+				is_processing = false,
+				keys = { ENTER:13, ESCAPE:27, TAB:9 },
+				active_keys = [keys.ESCAPE];
 
-		//we need ENTER key to be used within textarea
-		if (!is_type_textarea)
-			active_keys.push(keys.ENTER);
+			//we need ENTER key to be used within textarea
+			if (!is_type_textarea)
+				active_keys.push(keys.ENTER);
 
-		var _triggerNextEditable = () => {
-			$next_editable.trigger(this.getToggleAction());
-		};
+			var _triggerNextEditable = () => {
+				$next_editable.trigger(this.getToggleAction());
+			};
 
-		this.fns('onActionTriggered');
-		
-		if (!is_type_date && !is_type_checkbox){
-			//content editables
-			if (is_contenteditable){
-				$input = $target;
+			this.fns('onActionTriggered');
 
-				//lets set the prev value & contenteditable attr
-				$input
-					.data('prev-value',$target.text())
-					.prop('contenteditable',true);
-			}
+			if (!is_type_date && !is_type_checkbox){
+				//content editables
+				if (is_contenteditable){
+					$input = $target;
 
-			$input.on('keydown.utils.editable', event => {
-				let $field = $(event.currentTarget),
-					value = $field[is_contenteditable ? 'text' : 'val']();
-				
-				if (active_keys.isIn(UTILS.getCharKey(event))){ //enter & escape
-					event.preventDefault();
-					this._onSave(value);
-					is_processing = true;
+					//lets set the prev value & contenteditable attr
+					$input
+						.data('prev-value',$target.text())
+						.prop('contenteditable',true);
 				}
-				else if ([keys.TAB].isIn(UTILS.getCharKey(event)) && this.isInlineTabbing()){ //tab
-					event.preventDefault();
-					is_processing = true;
-					
-					if ($next_editable.length)
-						this._onSave(value).then(_triggerNextEditable);
-					else
+
+				$input.on('keydown.utils.editable', event => {
+					let $field = $(event.currentTarget),
+						value = $field[is_contenteditable ? 'text' : 'val']();
+
+					if (active_keys.isIn(UTILS.getCharKey(event))){ //enter & escape
+						event.preventDefault();
 						this._onSave(value);
-				}
-			});
+						is_processing = true;
+					}
+					else if ([keys.TAB].isIn(UTILS.getCharKey(event)) && this.isInlineTabbing()){ //tab
+						event.preventDefault();
+						is_processing = true;
 
-			//for radios we need to set it differently
-			if (is_type_radio)
-				$input.val([value]);
-			else if (!is_contenteditable) //no need to set it for content editables
-				$input.val(value);
-
-			//lets check for selectize
-			if (is_selectize){
-				$input.selectize({
-					onFocus: () => {
-						is_processing = false;
-					},
-					onChange: () => {
-						let value = $input[0].selectize.getValue();
-
-						if (value.length){
+						if ($next_editable.length)
+							this._onSave(value).then(_triggerNextEditable);
+						else
 							this._onSave(value);
-							is_processing = true;
-						}
-					},
-					onBlur: () => {
-						var value = $input[0].selectize.getValue();
-
-						if (value.length && !is_processing){
-							this._onSave(value);
-							is_processing = true;
-						}
-					},
-					selectOnTab: this.isInlineTabbing()
+					}
 				});
-			}
-			else if (is_wysiwyg){
-				var self = this; //workaround to make sure the controls reference the utils.editable
 
-				$input.summernote(_.extend({},options,{
-					followingToolbar: false,//lets disable summernote native 'followScroll' method
-					callbacks: {
-						onInit: function(divs){
-							//lets add the save/close controls
-							var summernote = $(this).data('summernote'),
-								$editor = divs.editor,
-								$controls = $(`
+				//for radios we need to set it differently
+				if (is_type_radio)
+					$input.val([value]);
+				else if (!is_contenteditable) //no need to set it for content editables
+					$input.val(value);
+
+				//lets check for selectize
+				if (is_selectize){
+					$input.selectize({
+						onFocus: () => {
+							is_processing = false;
+						},
+						onChange: () => {
+							let value = $input[0].selectize.getValue();
+
+							if (value.length){
+								this._onSave(value);
+								is_processing = true;
+							}
+						},
+						onBlur: () => {
+							var value = $input[0].selectize.getValue();
+
+							if (value.length && !is_processing){
+								this._onSave(value);
+								is_processing = true;
+							}
+						},
+						selectOnTab: this.isInlineTabbing()
+					});
+				}
+				else if (is_wysiwyg){
+					var self = this; //workaround to make sure the controls reference the utils.editable
+
+					$input.summernote(_.extend({},options,{
+						followingToolbar: false,//lets disable summernote native 'followScroll' method
+						callbacks: {
+							onInit: function(divs){
+								//lets add the save/close controls
+								var summernote = $(this).data('summernote'),
+									$editor = divs.editor,
+									$controls = $(`
 									<div class="textarea-wysiwyg-controls">
 									 	<a href="#" class="badge badge-primary control-item control-save"><i class="mdi mdi-check"></i></a>
 									 	<a href="#" class="badge badge-primary control-item control-cancel"><i class="mdi mdi-close"></i></a>
 									</div>
 								`);
 
-							//lets add events
-							$controls.find('.control-save').on('click',event => {
-								event.preventDefault();
+								//lets add events
+								$controls.find('.control-save').on('click',event => {
+									event.preventDefault();
 
-								var value = summernote.code();
+									var value = summernote.code();
 
-								if (value.length && !is_processing){
-									self._onSave(value);
-									is_processing = true;
-								}
-							});
+									if (value.length && !is_processing){
+										self._onSave(value);
+										is_processing = true;
+									}
+								});
 
-							$controls.find('.control-cancel').on('click',event => {
-								event.preventDefault();
-								self._onBeforeHide()._hide();
+								$controls.find('.control-cancel').on('click',event => {
+									event.preventDefault();
+									self._onBeforeHide()._hide();
+									is_processing = false;
+								});
+
+								$editor.append($controls);
+							},
+							onFocus: () => {
 								is_processing = false;
-							});
-
-							$editor.append($controls);
-						},
-						onFocus: () => {
-							is_processing = false;
+							}
 						}
-					}
-				}));
-			}
-			else {
-				if (!is_type_radio)
-					$input.on('focus.utils.editable', event => { event.preventDefault(); is_processing = false; });
-
-				if (!this.isInlineTabbing() && !is_contenteditable){
-					$input.on('change.utils.editable', event => {
-						event.preventDefault();
-						event.stopPropagation();
-
-						if (!is_processing){
-							this._onSave($(event.currentTarget).val());
-							is_processing = true;
-						}
-					});
-				}
-
-				//for radios the blur events override the change events and cause weirdness, so we need to check for that differently
-				if (is_type_radio){
-				    $(document).on('click.utils.editable',event => {
-				    	if (!/(^|\s)(editable-target|custom-control-label|popup-editable-field)(\s|$)/.test($(event.target).attr("class"))){
-							this._onBeforeHide();
-							this._hide();
-						}
-					});
+					}));
 				}
 				else {
-					$input.on('blur.utils.editable', event => {
-						event.preventDefault();
+					if (!is_type_radio)
+						$input.on('focus.utils.editable', event => { event.preventDefault(); is_processing = false; });
 
-						if (!is_processing){
-							let $field = $(event.currentTarget),
-								value = $field[is_contenteditable ? 'text' : 'val']();
-								
-							this._onSave(value);
-							is_processing = true;
-						}
+					if (!this.isInlineTabbing() && !is_contenteditable){
+						$input.on('change.utils.editable', event => {
+							event.preventDefault();
+							event.stopPropagation();
+
+							if (!is_processing){
+								this._onSave($(event.currentTarget).val());
+								is_processing = true;
+							}
+						});
+					}
+
+					//for radios the blur events override the change events and cause weirdness, so we need to check for that differently
+					if (is_type_radio){
+						$(document).on('click.utils.editable',event => {
+							if (!/(^|\s)(editable-target|custom-control-label|popup-editable-field)(\s|$)/.test($(event.target).attr("class"))){
+								this._onBeforeHide();
+								this._hide();
+							}
+						});
+					}
+					else {
+						$input.on('blur.utils.editable', event => {
+							event.preventDefault();
+
+							if (!is_processing){
+								let $field = $(event.currentTarget),
+									value = $field[is_contenteditable ? 'text' : 'val']();
+
+								this._onSave(value);
+								is_processing = true;
+							}
+						});
+					}
+				}
+
+				if (!is_contenteditable){
+					$target.addClass('is-edited').after($cell);
+
+					//lets make sure the parent has the relative class
+					let $target_parent = $target.parent();
+					(!$target_parent.attr('class').match(/pos-fixed|pos-absolute|pos-relative/g)) && $target_parent.addClass('pos-relative'); //add class if not found
+
+					//lets position the editable field correctly
+					let pos = $target.position();
+					$cell.css({
+						position: 'absolute',
+						top: pos.top + $target.height(),
+						left: pos.left,
+						minWidth: 250
 					});
 				}
+
+				this._show();
+
+				//need to focus on the field so that the onblur kicks in
+				if (is_selectize)
+					$input[0].selectize.focus();
+				else if (is_wysiwyg)
+					$input.summernote('focus');
+				else if (is_type_radio)
+					$input.filter(':checked').focus();
+				else
+					$input.focus();
 			}
 
-			if (!is_contenteditable){
-				$target.addClass('is-edited').after($cell);
-
-				//lets make sure the parent has the relative class
-				let $target_parent = $target.parent();
-				(!$target_parent.attr('class').match(/pos-fixed|pos-absolute|pos-relative/g)) && $target_parent.addClass('pos-relative'); //add class if not found
-
-				//lets position the editable field correctly
-				let pos = $target.position();
-				$cell.css({
-					position: 'absolute',
-					top: pos.top + $target.height(),
-					left: pos.left,
-					minWidth: 250
-				});
-			}
-
-			this._show();
-
-			//need to focus on the field so that the onblur kicks in
-			if (is_selectize)
-				$input[0].selectize.focus();
-			else if (is_wysiwyg)
-				$input.summernote('focus');
-			else if (is_type_radio)
-				$input.filter(':checked').focus();
-			else
-				$input.focus();
-		}
-
-		this.fns('onAfterActionTriggered');
+			this.fns('onAfterActionTriggered');
+		});
 	}
 	enable(){
 		_log('editable --> enabled', this.getId());
@@ -444,13 +447,14 @@ UTILS.Editable = class extends UTILS.Base {
 				var toggle_action = this.getToggleAction(),
 					is_lazyload = this.isLazyLoad();
 
-				this._createCell().then(() => {
-					if (!is_lazyload && !is_type_checkbox)
-						$target.on(toggle_action, event => {
-							event.preventDefault();
-							this._onActionTriggered();
-						});
-				});
+				this.values._is_cell_created = this._createCell()
+					.then(() => {
+						if (!is_lazyload && !is_type_checkbox)
+							$target.on(toggle_action, event => {
+								event.preventDefault();
+								this._onActionTriggered();
+							});
+					});
 			}
 
 			this.values.is_enabled = true;

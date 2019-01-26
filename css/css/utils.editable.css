@@ -134,6 +134,7 @@ form.editable-form .form-control {
   color: #c00 !important;
   outline: 0;
   border: none;
+  pointer-events: none;
 }
 html:not([dir="rtl"]) .noUi-horizontal .noUi-handle {
   right: -10px;
