@@ -68,7 +68,7 @@ UTILS.Editable = class extends UTILS.Base {
 			}
 		}
 
-		this._onSave = _.debounce(this.__onSave__.bind(this),500);
+		 this._onSave = _.debounce(this.__onSave__.bind(this),500);
 
 		('params' in data) && this.setParams(data.params);
 		('field' in data) && this.setFieldName(data.field);
@@ -79,6 +79,7 @@ UTILS.Editable = class extends UTILS.Base {
 		('filterMethodForDisplayValue' in data) && this.setFilterMethodForDisplayValue(data.filterMethodForDisplayValue);
 		('tabbing' in data) && this.setInlineTabbing(data.tabbing);
 		('lazyload' in data) && this.setLazyLoadState(data.lazyload);
+		('contenteditable' in data) && this.setContentEditableState(data.contenteditable);
 		('toggle' in data) && this.setToggleAction(data.toggle);
 		('items' in data) && this.setItems(data.items);
 		('container' in data) && this.setContainer(data.container);
@@ -100,7 +101,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.5.4',
+			version: '0.5.5',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -121,7 +122,8 @@ UTILS.Editable = class extends UTILS.Base {
 			is_enabled: false, //holds the enable/disable state of the popover
 			is_shown: false, //holds the display state
 			display_filtermethod: null,
-			edit_filtermethod: null
+			edit_filtermethod: null,
+			is_contenteditable: false //holds whether we want the content to be edited within the target element
 		}
 	}
 	getCss(){
@@ -150,6 +152,13 @@ UTILS.Editable = class extends UTILS.Base {
 	}
 	setLazyLoadState(state){
 		this.values.is_lazyload = !!(state);
+		return this;
+	}
+	isContentEditable(){
+		return this.values.is_contenteditable;
+	}
+	setContentEditableState(state){
+		this.values.is_contenteditable = !!(state);
 		return this;
 	}
 	getEmptyValue(value){
@@ -216,33 +225,45 @@ UTILS.Editable = class extends UTILS.Base {
 			is_type_radio = this.isTypeRadio(),
 			is_selectize = this.isSelectize(),
 			is_wysiwyg = this.isWysiwyg(),
+			is_type_input = this.isTypeInput(),
 			is_type_textarea = this.isTypeTextarea(),
+			is_contenteditable = this.isContentEditable() && (is_type_input || is_type_textarea), //only applies to inputs and textareas
 			$input = this.getInputField(),
 			$next_editable = $target.nextNodeByClass('editable-target'),
 			value = this.getValue(),
 			options = this.getOptions(),
-			is_processing = false;
+			is_processing = false,
+			keys = { ENTER:13, ESCAPE:27, TAB:9 },
+			active_keys = [keys.ESCAPE];
 
-		var _triggerNextEditable = function(){
+		//we need ENTER key to be used within textarea
+		if (!is_type_textarea)
+			active_keys.push(keys.ENTER);
+
+		var _triggerNextEditable = () => {
 			$next_editable.trigger(this.getToggleAction());
-		}.bind(this);
+		};
 
 		this.fns('onActionTriggered');
-
+		
 		if (!is_type_date && !is_type_checkbox){
-			//lets set event listeners
-			$input.on('keydown.utils.editable', function(event){
-				var $field = $(event.target),
-					keys = { ENTER:13, ESCAPE:27, TAB:9 },
-					active_keys = [keys.ESCAPE];
+			//content editables
+			if (is_contenteditable){
+				$input = $target;
 
-				//we need ENTER key to be used within textarea
-				if (!is_type_textarea)
-					active_keys.push(keys.ENTER);
+				//lets set the prev value & contenteditable attr
+				$input
+					.data('prev-value',$target.text())
+					.prop('contenteditable',true);
+			}
 
+			$input.on('keydown.utils.editable', event => {
+				let $field = $(event.currentTarget),
+					value = $field[is_contenteditable ? 'text' : 'val']();
+				
 				if (active_keys.isIn(UTILS.getCharKey(event))){ //enter & escape
 					event.preventDefault();
-					this._onSave($field.val());
+					this._onSave(value);
 					is_processing = true;
 				}
 				else if ([keys.TAB].isIn(UTILS.getCharKey(event)) && this.isInlineTabbing()){ //tab
@@ -250,40 +271,40 @@ UTILS.Editable = class extends UTILS.Base {
 					is_processing = true;
 					
 					if ($next_editable.length)
-						this._onSave($field.val(), _triggerNextEditable);
+						this._onSave(value).then(_triggerNextEditable);
 					else
-						this._onSave($field.val());
+						this._onSave(value);
 				}
-			}.bind(this));
+			});
 
 			//for radios we need to set it differently
 			if (is_type_radio)
 				$input.val([value]);
-			else
+			else if (!is_contenteditable) //no need to set it for content editables
 				$input.val(value);
 
 			//lets check for selectize
 			if (is_selectize){
 				$input.selectize({
-					onFocus: function(){
+					onFocus: () => {
 						is_processing = false;
 					},
-					onChange: function(){
-						var value = $input[0].selectize.getValue();
+					onChange: () => {
+						let value = $input[0].selectize.getValue();
 
 						if (value.length){
 							this._onSave(value);
 							is_processing = true;
 						}
-					}.bind(this),
-					onBlur: function(){
+					},
+					onBlur: () => {
 						var value = $input[0].selectize.getValue();
 
 						if (value.length && !is_processing){
 							this._onSave(value);
 							is_processing = true;
 						}
-					}.bind(this),
+					},
 					selectOnTab: this.isInlineTabbing()
 				});
 			}
@@ -305,7 +326,7 @@ UTILS.Editable = class extends UTILS.Base {
 								`);
 
 							//lets add events
-							$controls.find('.control-save').on('click',(event) => {
+							$controls.find('.control-save').on('click',event => {
 								event.preventDefault();
 
 								var value = summernote.code();
@@ -316,7 +337,7 @@ UTILS.Editable = class extends UTILS.Base {
 								}
 							});
 
-							$controls.find('.control-cancel').on('click',(event) => {
+							$controls.find('.control-cancel').on('click',event => {
 								event.preventDefault();
 								self._onBeforeHide()._hide();
 								is_processing = false;
@@ -324,54 +345,68 @@ UTILS.Editable = class extends UTILS.Base {
 
 							$editor.append($controls);
 						},
-						onFocus: function() {
+						onFocus: () => {
 							is_processing = false;
 						}
 					}
 				}));
-
-				//lets add on event listener to the body
-				//we cannot use the summernote native onBlur b/c it gets fired on any control click
-				
 			}
 			else {
 				if (!is_type_radio)
-					$input.on('focus.utils.editable', function(event){ event.preventDefault(); is_processing = false; });
+					$input.on('focus.utils.editable', event => { event.preventDefault(); is_processing = false; });
 
-				if (!this.isInlineTabbing()){
-					$input.on('change.utils.editable', function(event){
+				if (!this.isInlineTabbing() && !is_contenteditable){
+					$input.on('change.utils.editable', event => {
 						event.preventDefault();
 						event.stopPropagation();
 
 						if (!is_processing){
-							this._onSave($(event.target).val());
+							this._onSave($(event.currentTarget).val());
 							is_processing = true;
 						}
-					}.bind(this));
+					});
 				}
 
 				//for radios the blur events override the change events and cause weirdness, so we need to check for that differently
 				if (is_type_radio){
-				    $(document).on('click.utils.editable',function(event){
+				    $(document).on('click.utils.editable',event => {
 				    	if (!/(^|\s)(editable-target|custom-control-label|popup-editable-field)(\s|$)/.test($(event.target).attr("class"))){
 							this._onBeforeHide();
 							this._hide();
 						}
-					}.bind(this));
+					});
 				}
 				else {
-					$input.on('blur.utils.editable', function(event){
+					$input.on('blur.utils.editable', event => {
 						event.preventDefault();
 
 						if (!is_processing){
-							this._onSave($(event.target).val());
+							let $field = $(event.currentTarget),
+								value = $field[is_contenteditable ? 'text' : 'val']();
+								
+							this._onSave(value);
 							is_processing = true;
 						}
-					}.bind(this));
+					});
 				}
 			}
 
-			$target.hide().after($cell);
+			if (!is_contenteditable){
+				$target.addClass('is-edited').after($cell);
+
+				//lets make sure the parent has the relative class
+				let $target_parent = $target.parent();
+				(!$target_parent.attr('class').match(/pos-fixed|pos-absolute|pos-relative/g)) && $target_parent.addClass('pos-relative'); //add class if not found
+
+				//lets position the editable field correctly
+				let pos = $target.position();
+				$cell.css({
+					position: 'absolute',
+					top: pos.top + $target.height(),
+					left: pos.left,
+					minWidth: 250
+				});
+			}
 
 			this._show();
 
@@ -409,10 +444,13 @@ UTILS.Editable = class extends UTILS.Base {
 				var toggle_action = this.getToggleAction(),
 					is_lazyload = this.isLazyLoad();
 
-				this._createCell();
-
-				if (!is_lazyload && !is_type_checkbox)
-					$target.on(toggle_action, function (event){ event.preventDefault(); this._onActionTriggered(); }.bind(this));
+				this._createCell().then(() => {
+					if (!is_lazyload && !is_type_checkbox)
+						$target.on(toggle_action, event => {
+							event.preventDefault();
+							this._onActionTriggered();
+						});
+				});
 			}
 
 			this.values.is_enabled = true;
@@ -554,9 +592,10 @@ UTILS.Editable = class extends UTILS.Base {
 	}
 	getDisplayValue(){
 		var $target = this.getTarget(),
-			is_type_checkbox = this.isTypeCheckbox();
+			is_type_checkbox = this.isTypeCheckbox(),
+			is_contenteditable = this.isContentEditable();
 
-		return is_type_checkbox ? this.getValue() : $target.text();
+		return is_type_checkbox ? this.getValue() : (is_contenteditable ? $target.data('prev-value') : $target.text());
 	}
 	getParams(){
 		return this.values.params;
@@ -588,26 +627,36 @@ UTILS.Editable = class extends UTILS.Base {
 		return this;
 	}
 	_createCell(){
-		var type = this.getType(),
-			methods = {
-				'input':'_createInput',
-				'textarea':'_createTextarea',
-				'select':'_createDropdown',
-				'date':'_createDate',
-				'checkbox':'_createCheckbox',
-				'radio':'_createRadio' 
-			};
+		return new Promise((resolve,reject) => {
+			var type = this.getType(),
+				methods = {
+					'input':'_createInput',
+					'textarea':'_createTextarea',
+					'select':'_createDropdown',
+					'date':'_createDate',
+					'checkbox':'_createCheckbox',
+					'radio':'_createRadio'
+				};
 
-		//lets create the cell
-		if (type.base in methods){
-			this.values.$cell = this[methods[type.base]]();
-			this.fns('onInputCreate');
-			_log(this.getObjectName()+' --> '+JSON.stringify(type)+' cell created', this.values.$cell);
-		}
-		else
-			throw new Error('incorrect @type specified!');
-
-		return this;
+			//lets create the cell
+			if (type.base in methods){
+				this[methods[type.base]]()
+					.then($cell => {
+						this.values.$cell = $cell;
+						this.fns('onInputCreate');
+						_log(this.getObjectName()+' --> '+JSON.stringify(type)+' cell created', this.values.$cell);
+						resolve();
+					})
+					.catch(error => {
+						throw new Error(error);
+						reject();
+					});
+			}
+			else {
+				throw new Error('incorrect @type specified!');
+				reject();
+			}
+		});
 	}
 	_show(){
 		if (!this.values.is_shown){
@@ -624,125 +673,137 @@ UTILS.Editable = class extends UTILS.Base {
 		return this;
 	}
 	_createInput(){
-		var display_value = this.getDisplayValue(),
-			css = this.getCss(),
-			$wrapper = $('<form class="form-inline editable-form"><div class="form-group '+css+'"><label class="sr-only">Enter Text</label></div></form>'),
-			$input = $('<input type="text" class="form-control popup-editable-field" value="'+this._filterValueForEditing(display_value)+'">');
+		return new Promise((resolve,reject) => {
+			var display_value = this.getDisplayValue(),
+				css = this.getCss(),
+				$wrapper = $('<form class="form-inline editable-form" data-form-type="input"><div class="form-group ' + css + '"><label class="sr-only">Enter Text</label></div></form>'),
+				$input = $('<input type="text" class="form-control popup-editable-field" value="' + this._filterValueForEditing(display_value) + '">');
 
-		//adding onFocus event listener to make sure when focused the cursor is at the end of text
-		$input.putCursorAtEnd('focus.utils.editable');
+			//adding onFocus event listener to make sure when focused the cursor is at the end of text
+			$input.putCursorAtEnd('focus.utils.editable');
 
-		this.setInputField($input);
-		$wrapper.find('.form-group').append($input);
+			this.setInputField($input);
+			$wrapper.find('.form-group').append($input);
 
-		return $wrapper;
+			resolve($wrapper);
+		});
 	}
 	_createTextarea(){
-		var display_value = this.getDisplayValue(),
-			css = this.getCss(),
-			$wrapper = $('<form class="form-inline editable-form"><div class="form-group '+css+'"><label class="sr-only">Enter Text</label></div></form>'),
-			$textarea = $('<textarea class="form-control popup-editable-field" rows="3">'+this._filterValueForEditing(display_value)+'</textarea>');
+		return new Promise((resolve,reject) => {
+			var display_value = this.getDisplayValue(),
+				css = this.getCss(),
+				$wrapper = $('<form class="form-inline editable-form" data-form-type="textarea"><div class="form-group '+css+'"><label class="sr-only">Enter Text</label></div></form>'),
+				$textarea = $('<textarea class="form-control popup-editable-field" rows="3">'+this._filterValueForEditing(display_value)+'</textarea>');
 
-		this.setInputField($textarea);
-		$wrapper.find('.form-group').append($textarea);
+			this.setInputField($textarea);
+			$wrapper.find('.form-group').append($textarea);
 
-		return $wrapper;
+			resolve($wrapper);
+		});
 	}
 	_createDropdown(){
-		var value = this.getValue(),
-			css = this.getCss(),
-			$wrapper = $('<form class="form-inline editable-form"><div class="form-group '+css+'"><label class="sr-only">Select One</label></div></form>'),
-			$dropdown = $('<select class="form-control popup-editable-field custom-select"></select>');
+		return new Promise((resolve,reject) => {
+			var value = this.getValue(),
+				css = this.getCss(),
+				$wrapper = $('<form class="form-inline editable-form" data-form-type="dropdown"><div class="form-group ' + css + '"><label class="sr-only">Select One</label></div></form>'),
+				$dropdown = $('<select class="form-control popup-editable-field custom-select"></select>');
 
-		this.setInputField($dropdown);
-		$wrapper.find('.form-group').append($dropdown);
+			this.setInputField($dropdown);
+			$wrapper.find('.form-group').append($dropdown);
 
-		//lets populate
-		$dropdown.append(_.map(this.getItems(), function(item){
-			return $('<option value="'+item.value+'">'+item.label+'</option>');
-		}.bind(this)));
+			//lets populate
+			$dropdown.append(_.map(this.getItems(), function (item){
+				return $('<option value="' + item.value + '">' + item.label + '</option>');
+			}.bind(this)));
 
-		if (value && value.length)
-			$dropdown.val(value);
+			if (value && value.length)
+				$dropdown.val(value);
 
-		return $wrapper;
+			resolve($wrapper);
+		});
 	}
 	_createDate(){
-		var $target = this.getTarget(),
-			display_value = this.getDisplayValue(),
-			css = this.getCss(),
-			options = this.getOptions();
+		return new Promise((resolve,reject) => {
+			var $target = this.getTarget(),
+				display_value = this.getDisplayValue(),
+				css = this.getCss(),
+				options = this.getOptions();
 
-		$target.data('date',display_value);
+			$target.data('date',display_value);
 
-		$target.datepicker(options)
-			.on('changeDate',(event) => {
-				this._onSave(moment(event.date).format(options.format));
-			})
-			.on('show',(event) => {
-				$target.data('datepicker').picker.addClass(css); //adding custom class
-				this._show();
-			});
+			$target.datepicker(options)
+				.on('changeDate',(event) => {
+					this._onSave(moment(event.date).format(options.format));
+				})
+				.on('show',(event) => {
+					$target.data('datepicker').picker.addClass(css); //adding custom class
+					this._show();
+				});
 
-		this.values.DatePicker = $target.data('datepicker');
+			this.values.DatePicker = $target.data('datepicker');
 
-		if (display_value!==this.getEmptyValue())
-			$target.datepicker('setDate',moment(display_value,options.format).toDate());
+			if (display_value!==this.getEmptyValue())
+				$target.datepicker('setDate',moment(display_value,options.format).toDate());
 
-		return this.values.DatePicker.picker;
+			resolve(this.values.DatePicker.picker);
+		});
 	}
 	_createCheckbox(){
-		var $target = this.getTarget(),
-			id = UTILS.uuid(),
-			control_class = /switch/i.test(this.getType().option) ? 'custom-toggle my-2' : 'custom-checkbox mb-3',
-			display_value = this.getDisplayValue(),
-			css = this.getCss(),
-			options = this.getOptions(),
-			$wrapper = $('<form class="form-inline editable-form"><div class="form-group '+css+'"><div class="custom-control '+control_class+'"><label class="custom-control-label" for="'+id+'">'+('desc' in options ? options.desc : '')+'</label></div></div></form>'),
-			$input = $('<input type="checkbox" id="'+id+'" class="custom-control-input popup-editable-field" value="'+display_value+'">');
+		return new Promise((resolve,reject) => {
+			var $target = this.getTarget(),
+				id = UTILS.uuid(),
+				control_class = /switch/i.test(this.getType().option) ? 'custom-toggle my-2' : 'custom-checkbox mb-3',
+				display_value = this.getDisplayValue(),
+				css = this.getCss(),
+				options = this.getOptions(),
+				$wrapper = $('<form class="form-inline editable-form" data-form-type="checkbox"><div class="form-group '+css+'"><div class="custom-control '+control_class+'"><label class="custom-control-label" for="'+id+'">'+('desc' in options ? options.desc : '')+'</label></div></div></form>'),
+				$input = $('<input type="checkbox" id="'+id+'" class="custom-control-input popup-editable-field" value="'+display_value+'">');
 
-		$input.prop('checked',/^(true|yes|ok)$/i.test(display_value));
+			$input.prop('checked',/^(true|yes|ok)$/i.test(display_value));
 
-		this.setInputField($input);
+			this.setInputField($input);
 
-		$wrapper.find('.custom-control').prepend($input);
+			$wrapper.find('.custom-control').prepend($input);
 
-		$input.on('change.utils.editable',function(event){
-			event.preventDefault();
-			this._onSave($input.prop('checked'));
-		}.bind(this));
+			$input.on('change.utils.editable',function(event){
+				event.preventDefault();
+				this._onSave($input.prop('checked'));
+			}.bind(this));
 
-		$target.html($wrapper);
+			$target.html($wrapper);
 
-		return $wrapper;
+			resolve($wrapper);
+		});
 	}
 	_createRadio(){
-		var value = this.getValue(),
-			name = UTILS.uuid(),
-			css = this.getCss(),
-			$wrapper = $('<form class="form-inline editable-form radio-type'+css+'"></form>');
+		return new Promise((resolve,reject) => {
+			var value = this.getValue(),
+				name = UTILS.uuid(),
+				css = this.getCss(),
+				$wrapper = $('<form class="form-inline editable-form radio-type'+css+'" data-form-type="radio"></form>');
 
-		//lets populate
-		$wrapper.append(_.map(this.getItems(), function(item){
-			var id = UTILS.uuid(),
-				$input = `<div class="form-group row">
-							<div class="custom-control custom-radio mb-1">
-								<input type="radio" id="${id}" name="${name}" class="custom-control-input popup-editable-field" value="${item.value}">
-								<label class="custom-control-label" for="${id}">${item.label}</label>
-							</div>
-						</div>`;
+			//lets populate
+			$wrapper.append(_.map(this.getItems(), function(item){
+				var id = UTILS.uuid(),
+					$input = `<div class="form-group row">
+								<div class="custom-control custom-radio mb-1">
+									<input type="radio" id="${id}" name="${name}" class="custom-control-input popup-editable-field" value="${item.value}">
+									<label class="custom-control-label" for="${id}">${item.label}</label>
+								</div>
+							</div>`;
 
-			return $input;
-		}.bind(this)));
+				return $input;
+			}.bind(this)));
 
-		var $inputs = $wrapper.find('.custom-control-input[type="radio"]');
+			var $inputs = $wrapper.find('.custom-control-input[type="radio"]');
 
-		this.setInputField($inputs);
+			this.setInputField($inputs);
 
-		if (value && value.length)
-			$inputs.filter('[value="'+value+'"]').prop('checked',true);
+			if (value && value.length)
+				$inputs.filter('[value="'+value+'"]').prop('checked',true);
 
-		return $wrapper;
+			resolve($wrapper);
+		});
 	}
 	_onBeforeHide(){
 		var $input = this.getInputField(),
@@ -765,123 +826,121 @@ UTILS.Editable = class extends UTILS.Base {
 			this.getCell().remove();
 		}
 		
-		this.getTarget().show();
+		this.getTarget().removeClass('is-edited').prop('contenteditable',false);
 		this.getSpinner().hide();
 		return this;
 	}
 	//save values
-	__onSave__(value,callback){
-		var is_type_date = this.isTypeDate(),
-			is_type_checkbox = this.isTypeCheckbox(),
-			$target = this.getTarget(),
-			$cell = this.getCell(),
-			$editable = null,
-			spinner = this.getSpinner(),
-			ajax_settings = this.getAjaxData(),
-			params = this.getParams(),
-			field_name = this.getFieldName();
+	__onSave__(value){
+		return new Promise((resolve,reject) => {
+			var is_type_date = this.isTypeDate(),
+				is_type_checkbox = this.isTypeCheckbox(),
+				$target = this.getTarget(),
+				$cell = this.getCell(),
+				$editable = null,
+				spinner = this.getSpinner(),
+				ajax_settings = this.getAjaxData(),
+				params = this.getParams(),
+				field_name = this.getFieldName();
 
-		if (is_type_date)
-			$editable = this.values.DatePicker.picker;
-		else if (is_type_checkbox)
-			$editable = $target.find('.custom-control');
-		else
-			$editable = $cell;
+			if (is_type_date)
+				$editable = this.values.DatePicker.picker;
+			else if (is_type_checkbox)
+				$editable = $target.find('.custom-control');
+			else
+				$editable = $cell;
 
-		//spinner
-		spinner.setTarget($editable);
+			//spinner
+			spinner.setTarget($editable);
 
-		//lets check if the value has changed
-		if (this.getDisplayValue()!=this._filterValueForDisplay(value)){
-			_log(this.getObjectName()+' --> value changed, saving...', this.getId());
+			//lets check if the value has changed
+			if (this.getDisplayValue()!=this._filterValueForDisplay(value)){
+				_log(this.getObjectName() + ' --> value changed, saving...', this.getId());
 
-			var _onError = function(error){
-				spinner.hide();
+				var _onError = function (error){
+					spinner.hide();
 
-				if (error instanceof Error)
-					UTILS.Errors.show(error.message);
+					if (error instanceof Error)
+						UTILS.Errors.show(error.message);
 
-				this._onBeforeHide();
-				this._hide();
-
-				if (is_type_date)
-					this.values.DatePicker.hide();
-
-				this.fns('onSaveError',error);
-			}.bind(this);
-
-			var _onSuccess = function(response){
-				spinner.hide();
-
-				if (_.isString(response))
-					response = JSON.parse(response);
-
-				response.direction = 'top'; //injecting direction of the error msg
-
-				if (!UTILS.Errors.isError(response)){ //success
-					this.setValue(value);
 					this._onBeforeHide();
-					$target.velocity('callout.flash');
 					this._hide();
 
 					if (is_type_date)
 						this.values.DatePicker.hide();
 
-					if (_.isFunction(callback))
-						callback.call(null);
+					this.fns('onSaveError', error);
 
-					this.fns('onAfterSave',response);
+					reject();
+				}.bind(this);
+
+				var _onSuccess = function (response){
+					spinner.hide();
+
+					if (_.isString(response))
+						response = JSON.parse(response);
+
+					response.direction = 'top'; //injecting direction of the error msg
+
+					if (!UTILS.Errors.isError(response)){ //success
+						this.setValue(value);
+						this._onBeforeHide();
+						$target.velocity('callout.flash');
+						this._hide();
+
+						if (is_type_date)
+							this.values.DatePicker.hide();
+
+						this.fns('onAfterSave', response);
+
+						resolve();
+					}
+				}.bind(this);
+
+				this.fns('onBeforeSave', value);
+				spinner.show();
+
+				var _getFormatedParams = () => {
+					var data = {};
+					if (params)
+						data = _.assign({}, (_.isFunction(params) ? params.call(null, value, this) : {...params, [field_name]: value}));
+					else
+						data[field_name] = is_type_checkbox ? !!(value) : value
+					return data;
+				};
+
+				//if checkbox lets move the spinner right over the control
+				if (is_type_checkbox)
+					spinner.getSpinner().css({left: 15});
+
+				if ('url' in ajax_settings && ajax_settings.url.length){
+					var url = ajax_settings.url,
+						options = {
+							method: 'POST',
+							data: _getFormatedParams()
+						};
+
+					if ('method' in ajax_settings)
+						options.data.method = ajax_settings.method;
+
+					if ('content_type' in ajax_settings){
+						options.content_type = ajax_settings.content_type;
+						if (/\/json$/.test(ajax_settings.content_type))
+							options.data = JSON.stringify(options.data);
+					}
+
+					$.fetch(url, options).then(_onSuccess).catch(_onError);
 				}
-			}.bind(this);
-
-			this.fns('onBeforeSave',value);
-
-			spinner.show();
-
-			var _getFormatedParams = () => {
-				var data = {};
-
-				if (params)
-					data = _.assign({},( _.isFunction(params) ? params.call(null,value,this) : {...params,[field_name]:value} ));
 				else
-					data[field_name] = is_type_checkbox ? !!(value) : value
-
-				return data;
-			};
-
-			//if checkbox lets move the spinner right over the control
-			if (is_type_checkbox)
-				spinner.getSpinner().css({ left:15 });
-
-			if ('url' in ajax_settings && ajax_settings.url.length){
-				var url = ajax_settings.url,
-					options = {
-						method: 'POST',
-						data: _getFormatedParams()
-					};
-
-				if ('method' in ajax_settings)
-					options.data.method = ajax_settings.method;
-
-				if ('content_type' in ajax_settings){
-					options.content_type = ajax_settings.content_type;
-
-					if (/\/json$/.test(ajax_settings.content_type))
-						options.data = JSON.stringify(options.data);
-				}
-
-				$.fetch(url,options).then(_onSuccess).catch(_onError);
+					_onSuccess({errors: [], ..._getFormatedParams()});
 			}
-			else
-				_onSuccess({ errors:[], ..._getFormatedParams() });
-		}
-		else {
-			_log(this.getObjectName()+' --> same value, no action taken', this.getId());
-			this._onBeforeHide();
-			this._hide();
-			this.fns('onNoChange');
-			_.isFunction(callback) && callback.call(null);
-		}
-		return this;
+			else {
+				_log(this.getObjectName() + ' --> same value, no action taken', this.getId());
+				this._onBeforeHide();
+				this._hide();
+				this.fns('onNoChange');
+				resolve();
+			}
+		});
 	}
 };

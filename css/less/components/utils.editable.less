@@ -30,9 +30,54 @@
 
 form.editable-form {
 	position:relative;
+	
+	//top arrow
+	&:before, &:after {
+		content: "";
+		position: absolute;
+		z-index: 1000;
+	}
+	&:before {
+		content: "";
+		border-left: 7px solid transparent;
+		border-right: 7px solid transparent;
+		border-bottom: 7px solid #007bff;
+		top: -6px;
+		left: 5%;
+	}
+	&:after {
+		content: "";
+		border-left: 6px solid transparent;
+		border-right: 6px solid transparent;
+		border-bottom: 6px solid #fff;
+		top: -5px;
+		left: calc(5% + 1px);
+	}
 
-	&.radio-type {
-		padding-left: 15px;
+	&[data-form-type="checkbox"] {
+		&:before, &:after {
+			display: none;
+		}
+	}
+
+	&[data-form-type="radio"] {
+		border: 1px solid #007bff;
+		background: #fff;
+		padding-left: 22px;
+		padding-top: 5px;
+		border-radius: 3px;
+		box-shadow: 0 2px 5px 0 rgba(0, 0, 0, .26);
+
+		&:before {
+			top: -7px;
+		}
+		&:after {
+			top: -6px;
+		}
+	}
+
+	&[data-form-type="textarea"] {
+		width: 100%;
 	}
 
 	.form-group, .form-control {
@@ -71,6 +116,9 @@ form.editable-form {
 			}
 		}
 	}
+	.selectize-input, .form-control {
+		border-color: #007bff;
+	}
 }
 
 //editable-target
@@ -86,6 +134,13 @@ form.editable-form {
 		color: inherit;
 	}
 
+	&.is-edited {
+		.readonly;
+		color: #7c7c7c !important;
+		border-bottom: none;
+		opacity: 0.5;
+	}
+
 	&.editable-wysiwyg {
 		border-bottom: none;
 		color: inherit;
@@ -97,6 +152,12 @@ form.editable-form {
 		&:hover {
 			border-color: @brand-primary;
 		}
+	}
+
+	&[contenteditable="true"] {
+		color: #c00 !important;
+		outline: 0;
+		border: none;
 	}
 }
 
