@@ -449,11 +449,15 @@ UTILS.Editable = class extends UTILS.Base {
 
 				this.values._is_cell_created = this._createCell()
 					.then(() => {
-						if (!is_lazyload && !is_type_checkbox)
+						if (!is_lazyload && !is_type_checkbox){
 							$target.on(toggle_action, event => {
 								event.preventDefault();
 								this._onActionTriggered();
 							});
+
+							if (this.isContentEditable())
+								$target.putCursorAtEnd();
+						}
 					});
 			}
 

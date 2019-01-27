@@ -726,9 +726,27 @@ $.extend($.fn,{
 	},
 	putCursorAtEnd: function(custom_focus_event='focus'){
 		return this.each(function(){
-			$(this)
-				.on(custom_focus_event,function(event){ setTimeout(function(){ this.selectionStart = this.selectionEnd = 10000; }.bind(this), 0); })
-				.focus();
+			let $field = $(this);
+
+			if ($field.prop('contenteditable')){
+				let range,
+					selection;
+
+				if (document.createRange){
+					range = document.createRange();
+					range.selectNodeContents(this);
+					range.collapse(false);
+					selection = window.getSelection();
+					selection.removeAllRanges();
+					selection.addRange(range);
+				}
+			}
+			else
+				$field.on(custom_focus_event,function(event){
+					setTimeout(function(){ this.selectionStart = this.selectionEnd = 10000; }.bind(this), 0); 
+				});
+
+			$field.focus();
 		});
 	}
 });
