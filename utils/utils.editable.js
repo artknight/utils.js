@@ -94,7 +94,7 @@ UTILS.Editable = class extends UTILS.Base {
 		('onNoChange' in data) && this.addCallback('onNoChange',data.onNoChange);
 		('onInputCreate' in data) && this.addCallback('onInputCreate', data.onInputCreate);
 		('value' in data) && this.setValue(data.value);
-		('empty' in data) && this.setEmptyValue(data.empty); //lets put it at the end to avoid race conditions
+		('placeholder' in data) && this.setPlaceholder(data.placeholder); //lets put it at the end to avoid race conditions
 
 		return this;
 	}
@@ -113,7 +113,7 @@ UTILS.Editable = class extends UTILS.Base {
 			DatePicker: null, //holds the date picker object 
 			options: {}, //holds options
 			field_name: '@field', //holds the field name to be passed to the server
-			empty_value: '--', //holds the empty value
+			placeholder: '--', //holds the placeholder value when there is no value to be displayed
 			is_lazyload: false, //holds whether the element is lazy-loaded ( true --> the trigger event was extrapolated and there is no need to add another one )
 			toggle_action: 'click', //toggle action to show/hide the popover
 			Spinner: new UTILS.Spinner({ type:'small', center:true, color:'black', blur:true }), //holds the spinner
@@ -162,12 +162,12 @@ UTILS.Editable = class extends UTILS.Base {
 		this.values.is_contenteditable = !!(state);
 		return this;
 	}
-	getEmptyValue(value){
-		return _.isFunction(this.values.empty_value) ? this.values.empty_value(value,this) : this.values.empty_value;
+	getPlaceholder(value){
+		return _.isFunction(this.values.placeholder) ? this.values.placeholder(value,this) : this.values.placeholder;
 	}
-	setEmptyValue(empty_value){
-		if (empty_value)
-			this.values.empty_value = empty_value;
+	setPlaceholder(placeholder){
+		if (placeholder)
+			this.values.placeholder = placeholder;
 
 		return this;
 	}
@@ -192,7 +192,7 @@ UTILS.Editable = class extends UTILS.Base {
 		if (typeof this.values.edit_filtermethod==='function')
 			_value = this.values.edit_filtermethod(value);
 
-		if (this.values.empty_value===_value)
+		if (this.values.placeholder===_value)
 			_value = '';
 
 		return _value;
@@ -214,7 +214,7 @@ UTILS.Editable = class extends UTILS.Base {
 		}
 
 		if (!_value.length)
-			_value = this.values.empty_value;
+			_value = this.values.placeholder;
 
 		return _value;
 	}
@@ -528,7 +528,7 @@ UTILS.Editable = class extends UTILS.Base {
 		this.getTarget().addClass('editable-target');
 
 		if (!this.getTarget().html().length)
-			this._setDisplayValue(this.values.empty_value);
+			this._setDisplayValue(this.values.placeholder);
 
 		return this;
 	}
@@ -750,7 +750,7 @@ UTILS.Editable = class extends UTILS.Base {
 
 			this.values.DatePicker = $target.data('datepicker');
 
-			if (display_value!==this.getEmptyValue())
+			if (display_value!==this.getPlaceholder())
 				$target.datepicker('setDate',moment(display_value,options.format).toDate());
 
 			resolve(this.values.DatePicker.picker);

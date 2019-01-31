@@ -736,9 +736,12 @@ $.extend($.fn,{
 					range = document.createRange();
 					range.selectNodeContents(this);
 					range.collapse(false);
-					selection = window.getSelection();
-					selection.removeAllRanges();
-					selection.addRange(range);
+
+					if (range.startOffset && range.endOffset){
+						selection = window.getSelection();
+						selection.removeAllRanges();
+						selection.addRange(range);
+					}
 				}
 			}
 			else

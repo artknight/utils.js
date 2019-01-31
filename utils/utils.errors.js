@@ -37,7 +37,9 @@ UTILS.Errors = {
 			}
 			else if ('fields' in error && error.fields.length){
 				_.each(error.fields,function(field){
-					if (($input = (field instanceof jQuery ? field : $('#'+field))).length){
+					let $input = field instanceof jQuery ? field : (/^(\.|#)/.test(field) ? $(field) : $('#'+field));
+
+					if ($input.length){
 						//lets check if perhaps the $input is 'selectized' --> if yes, we need to re-set the visible field
 						if ($input.hasClass('selectized'))
 							$input = $input.nextNodeByClass('selectize-input')
