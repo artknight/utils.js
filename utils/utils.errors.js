@@ -44,8 +44,8 @@ UTILS.Errors = {
 						if ($input.hasClass('selectized'))
 							$input = $input.nextNodeByClass('selectize-input')
 						//lets check if the field is editable
-						else if ($input.data('utils.editable'))
-							$input = $input.data('utils.editable').getInputField();
+						else if (Editable = $input.data('utils.editable'))
+							$input = Editable.isContentEditable() ? Editable.getTarget() : Editable.getInputField();
 						else
 							$input.select();
 
@@ -58,7 +58,7 @@ UTILS.Errors = {
 							});
 						}
 						else
-							TOOLTIP.hint({ target:$input, type:'error', msg:UTILS.Errors.getMessage(error.error), duration:50000, direction:direction });
+							TOOLTIP.hint({ target:$input, type:'error', msg:UTILS.Errors.getMessage(error.error), duration:20000, direction:direction });
 					}
 				});
 			}

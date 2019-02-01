@@ -252,11 +252,14 @@ UTILS.Editable = class extends UTILS.Base {
 				//content editables
 				if (is_contenteditable){
 					$input = $target;
+					let prev_value = $target.text();
 
 					//lets set the prev value & contenteditable attr
 					$input
-						.data('prev-value',$target.text())
-						.prop('contenteditable',true);
+						.data('prev-value',prev_value)
+						.prop('contenteditable',true)
+						.text(this._filterValueForEditing(prev_value))
+						.putCursorAtEnd();
 				}
 
 				$input.on('keydown.utils.editable', event => {
@@ -449,14 +452,16 @@ UTILS.Editable = class extends UTILS.Base {
 
 				this.values._is_cell_created = this._createCell()
 					.then(() => {
-						if (!is_lazyload && !is_type_checkbox){
-							$target.on(toggle_action, event => {
-								event.preventDefault();
-								this._onActionTriggered();
-							});
-
+						if (!is_type_checkbox){
+							if (!is_lazyload){
+								$target.on(toggle_action, event => {
+									event.preventDefault();
+									this._onActionTriggered();
+								});
+							}
+							
 							if (this.isContentEditable())
-								$target.putCursorAtEnd();
+								$target.putCursorAtEnd('focus.utils.editable');
 						}
 					});
 			}
@@ -849,7 +854,8 @@ UTILS.Editable = class extends UTILS.Base {
 				spinner = this.getSpinner(),
 				ajax_settings = this.getAjaxData(),
 				params = this.getParams(),
-				field_name = this.getFieldName();
+				field_name = this.getFieldName(),
+				is_contenteditable = this.isContentEditable();
 
 			if (is_type_date)
 				$editable = this.values.DatePicker.picker;
@@ -861,15 +867,24 @@ UTILS.Editable = class extends UTILS.Base {
 			//spinner
 			spinner.setTarget($editable);
 
+			let _updateContentEditable = () => {
+				$target
+					.prop('contenteditable',false)
+					.text(this._filterValueForDisplay(value));
+			};
+
 			//lets check if the value has changed
 			if (this.getDisplayValue()!=this._filterValueForDisplay(value)){
 				_log(this.getObjectName() + ' --> value changed, saving...', this.getId());
 
-				var _onError = function (error){
+				let _onError = error => {
 					spinner.hide();
 
 					if (error instanceof Error)
 						UTILS.Errors.show(error.message);
+
+					if (is_contenteditable)
+						_updateContentEditable();
 
 					this._onBeforeHide();
 					this._hide();
@@ -880,9 +895,9 @@ UTILS.Editable = class extends UTILS.Base {
 					this.fns('onSaveError', error);
 
 					reject();
-				}.bind(this);
+				};
 
-				var _onSuccess = function (response){
+				let _onSuccess = response => {
 					spinner.hide();
 
 					if (_.isString(response))
@@ -903,7 +918,7 @@ UTILS.Editable = class extends UTILS.Base {
 
 						resolve();
 					}
-				}.bind(this);
+				};
 
 				this.fns('onBeforeSave', value);
 				spinner.show();
@@ -944,6 +959,10 @@ UTILS.Editable = class extends UTILS.Base {
 			}
 			else {
 				_log(this.getObjectName() + ' --> same value, no action taken', this.getId());
+
+				if (is_contenteditable)
+					_updateContentEditable();
+
 				this._onBeforeHide();
 				this._hide();
 				this.fns('onNoChange');

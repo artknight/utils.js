@@ -162,6 +162,13 @@ form.editable-form {
 	}
 }
 
+//if there is no text, the cursor does not show unless we have padding-left specified
+span.editable-target {
+	&[contenteditable="true"] {
+		padding-left: 1px;
+	}
+}
+
 //shards-ui overrides
 html:not([dir="rtl"]) .noUi-horizontal .noUi-handle {
 	right: -10px;

@@ -136,6 +136,9 @@ form.editable-form .form-control {
   border: none;
   pointer-events: none;
 }
+span.editable-target[contenteditable="true"] {
+  padding-left: 1px;
+}
 html:not([dir="rtl"]) .noUi-horizontal .noUi-handle {
   right: -10px;
 }
