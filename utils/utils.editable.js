@@ -101,7 +101,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.5.6',
+			version: '0.5.7',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -159,7 +159,10 @@ UTILS.Editable = class extends UTILS.Base {
 		return this.values.is_contenteditable;
 	}
 	setContentEditableState(state){
-		this.values.is_contenteditable = !!(state);
+		//only applies to input or textarea fields
+		if (this.isTypeInput() || this.isTypeTextarea())
+			this.values.is_contenteditable = !!(state);
+
 		return this;
 	}
 	getPlaceholder(value){
@@ -227,9 +230,8 @@ UTILS.Editable = class extends UTILS.Base {
 				is_type_radio = this.isTypeRadio(),
 				is_selectize = this.isSelectize(),
 				is_wysiwyg = this.isWysiwyg(),
-				is_type_input = this.isTypeInput(),
 				is_type_textarea = this.isTypeTextarea(),
-				is_contenteditable = this.isContentEditable() && (is_type_input || is_type_textarea), //only applies to inputs and textareas
+				is_contenteditable = this.isContentEditable(),
 				$input = this.getInputField(),
 				$next_editable = $target.nextNodeByClass('editable-target'),
 				value = this.getValue(),
@@ -251,8 +253,7 @@ UTILS.Editable = class extends UTILS.Base {
 			if (!is_type_date && !is_type_checkbox){
 				//content editables
 				if (is_contenteditable){
-					$input = $target;
-					let prev_value = $target.text();
+					let prev_value = $input.text();
 
 					//lets set the prev value & contenteditable attr
 					$input
@@ -623,7 +624,7 @@ UTILS.Editable = class extends UTILS.Base {
 		this.fns('onCancel');
 	}
 	getInputField(){
-		return this.values.$input;
+		return this.isContentEditable() ? this.getTarget() : this.values.$input;
 	}
 	setInputField(input){
 		this.values.$input = $(input);
