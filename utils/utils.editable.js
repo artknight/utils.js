@@ -398,16 +398,21 @@ UTILS.Editable = class extends UTILS.Base {
 				}
 
 				if (!is_contenteditable){
-					$target.addClass('is-edited').after($cell);
+					$target.addClass('is-edited').after($cell.css({ position:'absolute' }));
 
 					//lets make sure the parent has the relative class
 					let $target_parent = $target.parent();
-					(!$target_parent.attr('class').match(/pos-fixed|pos-absolute|pos-relative/g)) && $target_parent.addClass('pos-relative'); //add class if not found
+
+					if (!$target_parent.attr('class').match(/pos-fixed|pos-absolute|pos-relative/g) && !/absolute|relative|fixed/i.test($target_parent.css('position')))
+						$target_parent.addClass('pos-relative'); //add class if not found
 
 					//lets position the editable field correctly
 					let pos = $target.position();
+
+					if (/flex/i.test($target_parent.css('display')))
+						pos.left += parseInt($target.css('margin-left'));
+
 					$cell.css({
-						position: 'absolute',
 						top: pos.top + $target.height(),
 						left: pos.left,
 						minWidth: 250

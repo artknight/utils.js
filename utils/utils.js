@@ -728,7 +728,7 @@ $.extend($.fn,{
 		return this.each(function(){
 			let $field = $(this);
 
-			if ($field.prop('contenteditable')){
+			if (/true/i.test($field.prop('contenteditable'))){
 				let range,
 					selection;
 
