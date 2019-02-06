@@ -101,7 +101,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.5.8',
+			version: '0.5.9',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -367,7 +367,7 @@ UTILS.Editable = class extends UTILS.Base {
 							event.stopPropagation();
 
 							if (!is_processing){
-								this._onSave($(event.currentTarget).val());
+								this._onSave($input.val());
 								is_processing = true;
 							}
 						});
@@ -382,29 +382,13 @@ UTILS.Editable = class extends UTILS.Base {
 							}
 						});
 					}
-					else if (is_contenteditable){
-						let $input_parent = $input.parent();
-
-						$(document).on('click.utils.editable',event => {
-							if (!$(event.target).hasClass('editable-target') && $(event.target)[0]!=$input_parent[0]){
-								event.preventDefault();
-								event.stopPropagation();
-
-								if (!is_processing){
-									this._onSave($input.text());
-									is_processing = true;
-								}
-							}
-						});
-					}
 					else {
 						$input.on('blur.utils.editable', event => {
 							event.preventDefault();
 							event.stopPropagation();
 
 							if (!is_processing){
-								let $field = $(event.currentTarget),
-									value = $field.val();
+								let value = $input[is_contenteditable ? 'text' : 'val']();
 
 								this._onSave(value);
 								is_processing = true;
@@ -481,9 +465,6 @@ UTILS.Editable = class extends UTILS.Base {
 									this._onActionTriggered();
 								});
 							}
-							
-							if (this.isContentEditable())
-								$target.putCursorAtEnd('focus.utils.editable');
 						}
 					});
 			}
@@ -855,7 +836,7 @@ UTILS.Editable = class extends UTILS.Base {
 				else
 					$input.off('keydown.utils.editable change.utils.editable blur.utils.editable focus.utils.editable');
 
-				if (is_type_radio || is_contenteditable)
+				if (is_type_radio)
 					$(document).off('click.utils.editable');
 			}
 

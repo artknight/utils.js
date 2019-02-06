@@ -134,7 +134,6 @@ form.editable-form .form-control {
   color: #c00 !important;
   outline: 0;
   border: none;
-  pointer-events: none;
 }
 span.editable-target[contenteditable="true"] {
   padding-left: 1px;
