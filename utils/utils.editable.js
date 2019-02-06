@@ -462,7 +462,9 @@ UTILS.Editable = class extends UTILS.Base {
 							if (!is_lazyload){
 								$target.on(toggle_action, event => {
 									event.preventDefault();
-									this._onActionTriggered();
+
+									if (!/true/i.test($target.prop('contenteditable')))
+										this._onActionTriggered();
 								});
 							}
 						}
