@@ -561,9 +561,11 @@ $.extend($.fn,{
 	setPhone: function(){
 		return this.each(function(){
 			var $input = $(this);
-			$input.on('keyup',function(event){
+
+			if ($input.is(':input'))
 				$input.val(UTILS.format.phone($input.val()));
-			});
+			else
+				$input.text(UTILS.format.phone($input.text()));
 		});
 	},
 
@@ -571,12 +573,11 @@ $.extend($.fn,{
 	setMask: function(mask){
 		return this.each(function(){
 			var $input = $(this);
-			if (format=='destroy')
-				$input.off('keyup blur');
+
+			if ($input.is(':input'))
+				$input.val(UTILS.format.mask($input.val(),mask));
 			else
-				$input.on('keyup blur',function(event){
-					$input.val(UTILS.format.mask($input.val(),mask));
-				});
+				$input.text(UTILS.format.mask($input.text(),mask));
 		});
 	},
 
