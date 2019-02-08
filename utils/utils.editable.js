@@ -101,7 +101,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.5.9',
+			version: '0.6.0',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -294,6 +294,7 @@ UTILS.Editable = class extends UTILS.Base {
 					$input.selectize({
 						onFocus: () => {
 							is_processing = false;
+							this.removeErrorTooltip();
 						},
 						onChange: () => {
 							let value = $input[0].selectize.getValue();
@@ -353,13 +354,20 @@ UTILS.Editable = class extends UTILS.Base {
 							},
 							onFocus: () => {
 								is_processing = false;
+								this.removeErrorTooltip();
 							}
 						}
 					}));
 				}
 				else {
-					if (!is_type_radio)
-						$input.on('focus.utils.editable', event => { event.preventDefault(); is_processing = false; });
+					if (!is_type_radio){
+						$input.on('focus.utils.editable', event => {
+							event.preventDefault();
+							is_processing = false;
+
+							this.removeErrorTooltip();
+						});
+					}
 
 					if (!this.isInlineTabbing() && !is_contenteditable){
 						$input.on('change.utils.editable', event => {
@@ -392,6 +400,7 @@ UTILS.Editable = class extends UTILS.Base {
 
 								this._onSave(value);
 								is_processing = true;
+								this.removeErrorTooltip();
 							}
 						});
 					}
@@ -434,6 +443,15 @@ UTILS.Editable = class extends UTILS.Base {
 
 			this.fns('onAfterActionTriggered');
 		});
+	}
+	removeErrorTooltip(){
+		let $input = this.getInputField(),
+			Hint = $input.data('utils.hint');
+
+		if (Hint)
+			Hint.clean();
+
+		return this;
 	}
 	enable(){
 		_log('editable --> enabled', this.getId());

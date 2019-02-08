@@ -83,7 +83,7 @@ UTILS.Errors = {
 
 		if ('errors' in data && data.errors.length){
 
-			var _onComplete = function(){
+			let _onComplete = () => {
 				(!silent) && UTILS.Errors.showTooltips(data);
 			};
 

@@ -32,12 +32,13 @@ UTILS.Hint = class extends UTILS.Base {
 			duration: data.duration || 'onhover',
 			is_error: data.is_error || false
 		}).fns('onCreate');
+
 		return this;
 	}
 	getDefaults(){
 		return {
 			object:'utils.hint',
-			version:'1.5.2',
+			version:'1.5.3',
 			history: {}, //holds the historic values
 			css: {},
 			is_error: false,
@@ -65,7 +66,7 @@ UTILS.Hint = class extends UTILS.Base {
 			this.values.$target.addClass(_.joinArray(_.values(this.values.css),' ')); //adding hint classes
 
 			//if elm is input and not form-control, we need to set the width, otherwise it will shrink
-			if (this.isInputOrSelect() && !this.values.$elm.hasClass('form-control') && !this.values.$elm.hasClass('input-field'))
+			if (this.isFormElm() && !this.values.$elm.hasClass('form-control') && !this.values.$elm.hasClass('input-field'))
 				this.values.$target.width(this.values.$target.width());
 
 			this.values.$target.attr({'data-hint':this.values.msg}); //setting the msg
@@ -75,7 +76,7 @@ UTILS.Hint = class extends UTILS.Base {
 
 			//only focus if target is an input field and duration is not specified (meaning it will not self-clean)
 			//also, focus() because otherwise the input field is not focused when clicked and therefore the 'onBlur' event is not triggered
-			if (this.isInputOrSelect() && this.values.duration==0)
+			if (this.isFormElm() && this.values.duration==0)
 				this.values.$elm.focus();
 		}.bind(this);
 		//if @is_wrapped exists, that means that the input field has been wrapped for the first time, so we must delay to make sure the DOM tree has time to update
@@ -92,15 +93,15 @@ UTILS.Hint = class extends UTILS.Base {
 		this.clean();
 		return this;
 	}
-	isInputOrSelect(){
-		return (this.values.$elm.is('input') || this.values.$elm.is('select'));
+	isFormElm(){
+		return this.values.$elm.is(':input');
 	}
 	//private - only is used when the UTILS.Hint is an error, we hightlight the border red of the input field
 	highlight(){
 		if (this.values.is_error){
 			if (!('highlight' in this.values.history)){
 				this.values.history.highlight = {};
-				this.values.history.highlight.$elm = this.isInputOrSelect() ? this.values.$elm : this.values.$target;
+				this.values.history.highlight.$elm = this.isFormElm() ? this.values.$elm : this.values.$target;
 				this.values.history.highlight.border_color = this.values.history.highlight.$elm.css('background-color');
 			}
 
@@ -123,9 +124,11 @@ UTILS.Hint = class extends UTILS.Base {
 		}
 	}
 	setTarget(target){
+		let $target = $(target);
+
 		//if elm is an input|select|textarea - check if elm is inside a "shell" or wrap SPAN around it to be used for the hint (:before and :after do not work on form elms)
-		if ($(target).is('input') || $(target).is('select')){
-			this.values.$elm = $(target); //setting the original target elm
+		if ($target.is(':input')){
+			this.values.$elm = $target; //setting the original target elm
 			this.values.css.show_always = 'hint-always'; //show hint always
 			var $parent = this.values.$elm.parent('div.form-group,span.tooltip-wrapper,div.input-group');
 
@@ -134,14 +137,14 @@ UTILS.Hint = class extends UTILS.Base {
 				$parent = this.values.$elm.parent('div');
 
 			if ($parent.length)
-				this.values.$target = $parent;
+				$target = $parent;
 			else {
 				this.values.$elm.wrap('<span class="tooltip-wrapper"></span>');
-				this.values.$target = this.values.$elm.parent('span.tooltip-wrapper');
+				$target = this.values.$elm.parent('span.tooltip-wrapper');
 
 				//if input has 100% width, make wrapper be 100% as well, otherwise it pushes the input field inside
 				if (this.values.$elm.hasClass('width-full'))
-					this.values.$target.addClass('width-full');
+					$target.addClass('width-full');
 
 				this.values.is_wrapped = true; //set the flag so that when it is shown for the first time it can be delayed
 			}
@@ -151,16 +154,21 @@ UTILS.Hint = class extends UTILS.Base {
 					this.clean();
 			}.bind(this);
 
-			this.values.$elm.off('blur',this.values.onblur_event).on('blur',this.values.onblur_event);
+			this.values.$elm
+				.off('blur',this.values.onblur_event)
+				.on('blur',this.values.onblur_event);
 		}
 		else { //for all other 'normal' elms that support :before & :after properties
 			if (this.values.$elm && ('onblur_event' in this.values))
 				this.values.$elm.off('blur',this.values.onblur_event);
 
-			this.values.$elm = this.values.$target = $(target);
+			this.values.$elm = $target;
 
 			delete this.values.css.show_always; //delete the 'show_always' key
 		}
+
+		super.setTarget($target);
+
 		return this;
 	}
 	set(data){
