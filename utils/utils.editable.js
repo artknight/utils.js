@@ -66,6 +66,11 @@ UTILS.Editable = class extends UTILS.Base {
 					]
 				};
 			}
+			else if (/^select\-multiselect/i.test(data.type)){
+				this.values.options = {
+					search_url: null //lookup url
+				};
+			}
 		}
 
 		 this._onSave = _.debounce(this.__onSave__.bind(this),500);
@@ -101,7 +106,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.6.0',
+			version: '0.6.4',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -110,13 +115,14 @@ UTILS.Editable = class extends UTILS.Base {
 			$input: null, //holds the input field ( except for date fields )
 			$container: $('body'), //holds DOM where popover will be appended to
 			value: null, //holds the new value
-			DatePicker: null, //holds the date picker object 
+			DatePicker: null, //holds the date picker object
+			Selectize: null, //holds the selectize object
 			options: {}, //holds options
 			field_name: '@field', //holds the field name to be passed to the server
 			placeholder: '--', //holds the placeholder value when there is no value to be displayed
 			is_lazyload: false, //holds whether the element is lazy-loaded ( true --> the trigger event was extrapolated and there is no need to add another one )
 			toggle_action: 'click', //toggle action to show/hide the popover
-			Spinner: new UTILS.Spinner({ type:'small', center:true, color:'black', blur:true }), //holds the spinner
+			Spinner: new UTILS.Spinner({ type:'medium', center:true, color:'black', blur:true }), //holds the spinner
 			is_inline_tabbing: false, //holds whether tabbing should be allowed for inline editing
 			items: [], //holds the items
 			is_enabled: false, //holds the enable/disable state of the popover
@@ -175,16 +181,31 @@ UTILS.Editable = class extends UTILS.Base {
 		return this;
 	}
 	getItems(){
-		return this.values.items;
+		return _.clone(this.values.items);
+	}
+	_createOption(item,css){
+		let option;
+
+		if (_.isString(item))
+			option = { label:item, value:item, css:'' };
+		else if (_.isPlainObject(item)){
+			option = {
+				label: item.label || '',
+				value: item.value || '',
+				css: item.css || ''
+			};
+		}
+
+		//lets add external css if passed in
+		if (css)
+			option.css += ' '+css;
+
+		return option;
 	}
 	setItems(items){
-		if (_.isArray(items)){
-			//lets check if items are strings or objects
-			if (_.isString(items.first()))
-				items = _.map(items,function(item){ return { label:item, value:item }; });
-
-			this.values.items = items;
-		}
+		//lets check if all elms are strings or objects
+		if (_.every(items, elm => typeof elm==='string') || _.every(items, elm => _.isPlainObject(elm)))
+			this.values.items = _.map(items,this._createOption.bind(this));
 
 		return this;
 	}
@@ -193,7 +214,7 @@ UTILS.Editable = class extends UTILS.Base {
 		var _value = value;
 
 		if (typeof this.values.edit_filtermethod==='function')
-			_value = this.values.edit_filtermethod(value);
+			_value = this.values.edit_filtermethod(value,this);
 
 		if (this.values.placeholder===_value)
 			_value = '';
@@ -203,14 +224,24 @@ UTILS.Editable = class extends UTILS.Base {
 	//formats the display value of target ( after edit )
 	_filterValueForDisplay(value){
 		var type = this.getType(),
+			is_multiselect = this.isMultiSelect(),
+			items = this.getItems(),
 			_value = value;
 
 		//filter method
 		if (typeof this.values.display_filtermethod==='function')
-			_value = this.values.display_filtermethod(value);
+			_value = this.values.display_filtermethod(value,this);
+		//multiselect
+		else if (is_multiselect){
+			_value = _.map(value, selected_value => {
+				let found = _.find(items, item => (item.value==selected_value));
+
+				return (found) ? found.label : selected_value;
+			}).join(', ');
+		}
 		//select or radio
 		else if (/^(select|radio)$/.test(type.base)){
-			var item = _.find(this.getItems(),function(item){ return item.value==value; }); //using '==' to compare strings and integers alike
+			var item = _.find(items, item => (item.value==value)); //using '==' to compare strings and integers alike
 
 			if (item)
 				_value = item.label;
@@ -223,25 +254,28 @@ UTILS.Editable = class extends UTILS.Base {
 	}
 	_onActionTriggered(){
 		this.values._is_cell_created.then(() => {
-			var $target = this.getTarget(),
+			let $target = this.getTarget(),
 				$cell = this.getCell(),
 				is_type_date = this.isTypeDate(),
 				is_type_checkbox = this.isTypeCheckbox(),
 				is_type_radio = this.isTypeRadio(),
+				is_type_dropdown = this.isTypeDropDown(),
 				is_selectize = this.isSelectize(),
+				is_multiselect = this.isMultiSelect(),
 				is_wysiwyg = this.isWysiwyg(),
 				is_type_textarea = this.isTypeTextarea(),
 				is_contenteditable = this.isContentEditable(),
 				$input = this.getInputField(),
 				$next_editable = $target.nextNodeByClass('editable-target'),
 				value = this.getValue(),
+				items = this.getItems(),
 				options = this.getOptions(),
 				is_processing = false,
 				keys = { ENTER:13, ESCAPE:27, TAB:9 },
 				active_keys = [keys.ESCAPE];
 
 			//we need ENTER key to be used within textarea
-			if (!is_type_textarea)
+			if (!is_type_textarea && !is_multiselect)
 				active_keys.push(keys.ENTER);
 
 			var _triggerNextEditable = () => {
@@ -283,6 +317,13 @@ UTILS.Editable = class extends UTILS.Base {
 					}
 				});
 
+				//for dropdowns we need to update the options when activated rather than at creation
+				//otherwise new options do not appear when clicked second time
+				if (is_type_dropdown){
+					if (items.length)
+						$input.empty().append(_.map(items, item => $('<option value="'+item.value+'">'+item.label+'</option>')));
+				}
+
 				//for radios we need to set it differently
 				if (is_type_radio)
 					$input.val([value]);
@@ -290,30 +331,165 @@ UTILS.Editable = class extends UTILS.Base {
 					$input.val(value);
 
 				//lets check for selectize
-				if (is_selectize){
-					$input.selectize({
+				if (is_selectize || is_multiselect){
+					let _onItemSelected = item => {
+						let value = _.clone(this.getValue()),
+							is_multiselect = this.isMultiSelect();
+
+						if (is_multiselect)
+							value.push(item);
+
+						this.setValue(value);
+					};
+
+					let _onItemRemoved = item_value => {
+						let value = _.clone(this.getValue()),
+							is_multiselect = this.isMultiSelect();
+
+						if (is_multiselect)
+							_.remove(value, item => item==item_value);
+
+						this.setValue(value);
+					};
+
+					let _normalizeItemsForSelectize = items => {
+						return _.map(items, item => {
+							return {
+								text: item.label,
+								value: item.value
+							}
+						});
+					};
+
+					let _onItemSearch = (query='') => {
+						return new Promise((resolve,reject) => {
+							let $cell = this.getCell(),
+								spinner = this.getSpinner(),
+								options = this.getOptions(),
+								ajax_options = {
+									method: 'GET',
+									data: ('onBeforeSearch' in options) ? options.onBeforeSearch.call(this,query.urlEncode()) : { q:query.urlEncode() }
+								},
+								onAfterSearch = response => {
+									spinner.hide();
+
+									if (_.isString(response))
+										response = JSON.parse(response);
+
+									if (!UTILS.Errors.isError(response)){ //success
+										let items = ('onAfterSearch' in options) ? options.onAfterSearch.call(null,response) : response;
+
+										//now we need to replenish the options
+										let new_items = _.uniqBy([...this.getItems(),...items],'value');
+										this.setItems(new_items);
+
+										//lets check if the formatting is on par with selectize
+										if (!_.every(items, item => ('text' in item) && ('value' in item)))
+											items = _normalizeItemsForSelectize(items);
+
+										resolve(items);
+									}
+									else
+										reject();
+								},
+								onError = error => {
+									spinner.hide();
+
+									if (error instanceof Error)
+										UTILS.Errors.show(error.message);
+
+									reject();
+								};
+
+							if ('method' in options)
+								ajax_options.data.method = options.method;
+
+							if ('content_type' in options){
+								ajax_options.content_type = options.content_type;
+
+								if (/\/json$/.test(options.content_type))
+									ajax_options.data = JSON.stringify(ajax_options.data);
+							}
+
+							spinner.setTarget($cell).show();
+							$.fetch(options.search_url, ajax_options).then(onAfterSearch).catch(onError);
+						});
+					};
+
+					let selectize_options = {
+						create: false,
+						selectOnTab: this.isInlineTabbing(),
 						onFocus: () => {
 							is_processing = false;
 							this.removeErrorTooltip();
 						},
-						onChange: () => {
-							let value = $input[0].selectize.getValue();
-
-							if (value.length){
-								this._onSave(value);
-								is_processing = true;
-							}
-						},
 						onBlur: () => {
-							var value = $input[0].selectize.getValue();
+							var value = this.getSelectize().getValue();
 
-							if (value.length && !is_processing){
+							if (!is_processing){
 								this._onSave(value);
 								is_processing = true;
 							}
-						},
-						selectOnTab: this.isInlineTabbing()
-					});
+						}
+					};
+
+					if (is_selectize){
+						_.extend(selectize_options, {
+							onChange: () => {
+								let value = this.getSelectize().getValue();
+
+								if (value.length){
+									this._onSave(value);
+									is_processing = true;
+								}
+							}
+						});
+					}
+					else if (is_multiselect){
+						_.extend(selectize_options, {
+							delimiters: ',',
+							plugins: ['remove_button'],
+
+						});
+
+						//catching enter key to make sure no page refresh
+						this.getCell().on('keypress.utils.editable', event => {
+							if ([keys.ENTER].isIn(UTILS.getCharKey(event))) //enter
+								event.preventDefault();
+						});
+					}
+
+					//lets set the search url if privided
+					if (options.search_url){
+						_.extend(selectize_options, {
+							maxItems: ('limit' in options) ? options.limit : (is_multiselect ? null : 1),
+							onItemRemove: _onItemRemoved,
+							onItemAdd: _onItemSelected,
+							render: {
+								item: (item, escape) => {
+									return '<div><span class="editable-text">'+escape(item.text)+'</span></div>';
+								},
+								option: (item, escape) => {
+									return '<div class="padding-t5 padding-b5"><span class="editable-text">'+escape(item.text)+'</span></div>';
+								}
+							},
+							load: (query, selectize_callback) => {
+								if (query.length < 2)
+									return selectize_callback();
+
+								_onItemSearch(query).then(items => selectize_callback.call(null,items));
+							}
+						});
+					}
+
+					_.extend(selectize_options, options);
+
+					$input
+						.data('prev-value',value)
+						.selectize(selectize_options);
+
+					//lets store the selectize object
+					this.values.Selectize = $input[0].selectize;
 				}
 				else if (is_wysiwyg){
 					var self = this; //workaround to make sure the controls reference the utils.editable
@@ -431,7 +607,7 @@ UTILS.Editable = class extends UTILS.Base {
 				this._show();
 
 				//need to focus on the field so that the onblur kicks in
-				if (is_selectize)
+				if (is_selectize || is_multiselect)
 					$input[0].selectize.focus();
 				else if (is_wysiwyg)
 					$input.summernote('focus');
@@ -570,9 +746,8 @@ UTILS.Editable = class extends UTILS.Base {
 				option: type.split('-')[1]
 			};
 
-			if (this.values.type.option && /^wysiwyg/i.test(this.values.type.option)){
+			if (this.values.type.option && /^wysiwyg/i.test(this.values.type.option))
 				this.getTarget().addClass('editable-wysiwyg');
-			}
 		}
 		return this;
 	}
@@ -588,11 +763,17 @@ UTILS.Editable = class extends UTILS.Base {
 	isTypeInput(){
 		return /^input/i.test(this.getType().base);
 	}
+	isTypeDropDown(){
+		return /^select/i.test(this.getType().base);
+	}
 	isTypeTextarea(){
 		return /^textarea/i.test(this.getType().base);
 	}
 	isSelectize(){
 		return /^selectize/i.test(this.getType().option);
+	}
+	isMultiSelect(){
+		return /^multiselect/i.test(this.getType().option);
 	}
 	isWysiwyg(){
 		return /^wysiwyg/i.test(this.getType().option);
@@ -739,21 +920,14 @@ UTILS.Editable = class extends UTILS.Base {
 	}
 	_createDropdown(){
 		return new Promise((resolve,reject) => {
-			var value = this.getValue(),
+			var is_multiselect = this.isMultiSelect(),
+				value = this.getValue(),
 				css = this.getCss(),
 				$wrapper = $('<form class="form-inline editable-form" data-form-type="dropdown"><div class="form-group ' + css + '"><label class="sr-only">Select One</label></div></form>'),
-				$dropdown = $('<select class="form-control popup-editable-field custom-select"></select>');
+				$dropdown = $('<select class="form-control popup-editable-field custom-select" '+(is_multiselect ? 'multiple="multiple"' : '')+'></select>');
 
 			this.setInputField($dropdown);
 			$wrapper.find('.form-group').append($dropdown);
-
-			//lets populate
-			$dropdown.append(_.map(this.getItems(), function (item){
-				return $('<option value="' + item.value + '">' + item.label + '</option>');
-			}.bind(this)));
-
-			if (value && value.length)
-				$dropdown.val(value);
 
 			resolve($wrapper);
 		});
@@ -762,6 +936,7 @@ UTILS.Editable = class extends UTILS.Base {
 		return new Promise((resolve,reject) => {
 			var $target = this.getTarget(),
 				display_value = this.getDisplayValue(),
+				filtered_value = this._filterValueForEditing(display_value),
 				css = this.getCss(),
 				options = this.getOptions();
 
@@ -849,7 +1024,7 @@ UTILS.Editable = class extends UTILS.Base {
 
 		if (!is_type_checkbox){
 			if ($input){
-				if (this.isSelectize())
+				if (this.isSelectize() || this.isMultiSelect())
 					$input[0].selectize.destroy();
 				else if (this.isWysiwyg())
 					$input.summernote('destroy');
@@ -867,11 +1042,18 @@ UTILS.Editable = class extends UTILS.Base {
 		this.getSpinner().hide();
 		return this;
 	}
+	getDatePicker(){
+		return this.values.DatePicker;
+	}
+	getSelectize(){
+		return this.values.Selectize;
+	}
 	//save values
 	__onSave__(value){
 		return new Promise((resolve,reject) => {
-			var is_type_date = this.isTypeDate(),
+			let is_type_date = this.isTypeDate(),
 				is_type_checkbox = this.isTypeCheckbox(),
+				is_multiselect = this.isMultiSelect(),
 				$target = this.getTarget(),
 				$cell = this.getCell(),
 				$editable = null,
@@ -879,10 +1061,11 @@ UTILS.Editable = class extends UTILS.Base {
 				ajax_settings = this.getAjaxData(),
 				params = this.getParams(),
 				field_name = this.getFieldName(),
-				is_contenteditable = this.isContentEditable();
+				is_contenteditable = this.isContentEditable(),
+				DatePicker = this.getDatePicker();
 
 			if (is_type_date)
-				$editable = this.values.DatePicker.picker;
+				$editable = DatePicker.picker;
 			else if (is_type_checkbox)
 				$editable = $target.find('.custom-control');
 			else
@@ -897,8 +1080,15 @@ UTILS.Editable = class extends UTILS.Base {
 					.text(this._filterValueForDisplay(value));
 			};
 
+			let _isMultiSelectValueChanged = () => {
+				let curr_values = _.map(value, item => parseInt(item)),
+					prev_values = _.map(this.getInputField().data('prev-value'), item => parseInt(item));
+
+				return JSON.stringify(curr_values.sort())!==JSON.stringify(prev_values.sort());
+			};
+
 			//lets check if the value has changed
-			if (this.getDisplayValue()!=this._filterValueForDisplay(value)){
+			if ((is_multiselect && _isMultiSelectValueChanged()) || this.getDisplayValue()!=this._filterValueForDisplay(value)){
 				_log(this.getObjectName() + ' --> value changed, saving...', this.getId());
 
 				let _onError = error => {
@@ -914,7 +1104,7 @@ UTILS.Editable = class extends UTILS.Base {
 					this._hide();
 
 					if (is_type_date)
-						this.values.DatePicker.hide();
+						DatePicker.hide();
 
 					this.fns('onSaveError', error);
 
@@ -936,7 +1126,7 @@ UTILS.Editable = class extends UTILS.Base {
 						this._hide();
 
 						if (is_type_date)
-							this.values.DatePicker.hide();
+							DatePicker.hide();
 
 						this.fns('onAfterSave', response);
 
@@ -948,11 +1138,13 @@ UTILS.Editable = class extends UTILS.Base {
 				spinner.show();
 
 				var _getFormatedParams = () => {
-					var data = {};
+					let data = {};
+
 					if (params)
 						data = _.assign({}, (_.isFunction(params) ? params.call(null, value, this) : {...params, [field_name]: value}));
 					else
 						data[field_name] = is_type_checkbox ? !!(value) : value
+
 					return data;
 				};
 
@@ -961,7 +1153,7 @@ UTILS.Editable = class extends UTILS.Base {
 					spinner.getSpinner().css({left: 15});
 
 				if ('url' in ajax_settings && ajax_settings.url.length){
-					var url = ajax_settings.url,
+					let url = ajax_settings.url,
 						options = {
 							method: 'POST',
 							data: _getFormatedParams()
@@ -972,6 +1164,7 @@ UTILS.Editable = class extends UTILS.Base {
 
 					if ('content_type' in ajax_settings){
 						options.content_type = ajax_settings.content_type;
+
 						if (/\/json$/.test(ajax_settings.content_type))
 							options.data = JSON.stringify(options.data);
 					}

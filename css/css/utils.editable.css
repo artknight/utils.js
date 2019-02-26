@@ -101,6 +101,29 @@ form.editable-form .selectize-input,
 form.editable-form .form-control {
   border-color: #007bff;
 }
+form.editable-form .selectize-input [data-value] {
+  background-color: #1b9dec;
+  color: #fff;
+}
+form.editable-form .selectize-input [data-value] .editable-text {
+  color: #fff;
+  font-size: .85rem;
+}
+form.editable-form .selectize-input [data-value] .remove {
+  border-left-color: #fff;
+  top: 2px;
+}
+form.editable-form .selectize-dropdown-content [data-value] {
+  background-color: #fff;
+}
+form.editable-form .selectize-dropdown-content [data-value] .editable-text {
+  color: #007bff;
+  font-size: .85rem;
+}
+form.editable-form .selectize-dropdown-content [data-value] .editable-text .highlight {
+  background-color: #d8edff;
+  color: #007bff;
+}
 .editable-target {
   cursor: pointer;
   border-bottom: 1px dashed #6cbb23;
@@ -140,4 +163,7 @@ span.editable-target[contenteditable="true"] {
 }
 html:not([dir="rtl"]) .noUi-horizontal .noUi-handle {
   right: -10px;
+}
+.datepicker {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }

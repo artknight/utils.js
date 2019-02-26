@@ -119,6 +119,38 @@ form.editable-form {
 	.selectize-input, .form-control {
 		border-color: #007bff;
 	}
+
+	.selectize-input {
+		[data-value] {
+			background-color: #1b9dec;
+			color: #fff;
+
+			.editable-text {
+				color: #fff;
+				font-size: .85rem;
+			}
+
+			.remove {
+				border-left-color: #fff;
+				top: 2px;
+			}
+		}
+	}
+	.selectize-dropdown-content {
+		[data-value] {
+			background-color: #fff;
+
+			.editable-text {
+				color: #007bff;
+				font-size: .85rem;
+
+				.highlight {
+					background-color: @brand-light-blue-retro;
+					color: #007bff;
+				}
+			}
+		}
+	}
 }
 
 //editable-target
@@ -171,4 +203,9 @@ span.editable-target {
 //shards-ui overrides
 html:not([dir="rtl"]) .noUi-horizontal .noUi-handle {
 	right: -10px;
+}
+
+//datepicker overrides
+.datepicker {
+	font-family: -apple-system, BlinkMacSystemFont,"Segoe UI", Roboto, Oxygen-Sans, Ubuntu,Cantarell,"Helvetica Neue", sans-serif;
 }
