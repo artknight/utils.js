@@ -36,7 +36,7 @@ UTILS.Blur = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object:'utils.blur',
-			version:'2.0.3',
+			version:'2.0.4',
 			$elm: $('<div class="blur"></div>'),
 			is_shown: false,
 			colors: { //holds color combinations
@@ -82,14 +82,20 @@ UTILS.Blur = class extends UTILS.Base {
 	}
 	setTarget(target){
 		if (target){
-			this.values.$target = (target instanceof UTILS.Box) ? target.values.$elm : $(target);
+			super.setTarget(target);
 
-			//lets add 'this' to target
-			this.values.$target.data(this.getObjectName(),this);
+			if (target instanceof UTILS.Box)
+				this.values.$target = target.getBox();
 
-			(this.values.$target.hasClass('box')) && this.values.$elm.css({'zIndex':parseInt(this.values.$target.css('zIndex'))+20 || 20005});  //if target box, then set z-index to 20005
-			(this.values.$target.is('body')) && this.values.$elm.addClass('pos-fixed'); //if blur is on the body, need to make set position to 'fixed'
+			//if target box, then set z-index to 20005
+			if (this.values.$target.hasClass('box'))
+				this.values.$elm.css({'zIndex':parseInt(this.values.$target.css('zIndex'))+20 || 20005});
+
+			//if blur is on the body, need to make set position to 'fixed'
+			if (this.values.$target.is('body'))
+				this.values.$elm.addClass('pos-fixed');
 		}
+		
 		return this;
 	}
 	set(data){

@@ -11,7 +11,7 @@ APP.Box = class extends UTILS.Box {
 
 		//lets check for mappers (by now the 'set' method has executed)
 		if ('mapper' in data){
-			this.values.mapper = APP.members.getMapper(data.mapper);
+			this.values.mapper = APP.public.getMapper(data.mapper);
 			var title = '';
 			var stacked_boxes = APP.stack.getBoxes();
 			for (var i=0,box; box=stacked_boxes[i]; i++){

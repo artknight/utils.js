@@ -265,11 +265,11 @@ UTILS.SCache = class {
 	}
 
 	compress(content){
-		return lzbase62.compress(content);
+		return LZString.compressToBase64(content);
 	}
 
 	decompress(content){
-		return lzbase62.decompress(content);
+		return LZString.decompressFromBase64(content);
 	}
 
 	//this method is merely to provide a way to debug files inserted as a script tag

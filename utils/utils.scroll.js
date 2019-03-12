@@ -19,7 +19,7 @@ UTILS.Scroll = class extends UTILS.Base {
 	}
 	getDefaults(){
 		return {
-			version:'0.0.8',
+			version:'0.0.9',
 			$scroll: $(window),
 			start:0, //holds the current start of the items
 			per_page: 50, //holds the per page number of items
@@ -37,7 +37,7 @@ UTILS.Scroll = class extends UTILS.Base {
 		};
 	}
 	setTarget(target){
-		this.parent(target);
+		this.super(target);
 		this.createSpinner();
 		this.createMoreLink();
 		return this;

@@ -104,7 +104,7 @@ UTILS.Box =  class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.box',
-			version: '3.2.7',
+			version: '3.2.8',
 			history: {}, //holds the historic box settings (in case of maximize, etc...)
 			is_shown: false, //holds whether this box is shown
 			//holds the divs of the box
@@ -121,8 +121,13 @@ UTILS.Box =  class extends UTILS.Base {
 		};
 	}
 	setTarget(target){
-		if (target)
-			this.values.$target = (target instanceof UTILS.Box) ? target : $(target);
+		if (target){
+			super.setTarget(target);
+
+			if (target instanceof UTILS.Box)
+				this.values.$target = target;
+		}
+
 		return this;
 	}
 	//private - removes the div

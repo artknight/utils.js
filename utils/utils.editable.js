@@ -106,7 +106,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.6.4',
+			version: '0.6.6',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -630,7 +630,7 @@ UTILS.Editable = class extends UTILS.Base {
 		return this;
 	}
 	enable(){
-		_log('editable --> enabled', this.getId());
+		_log(this.getObjectName()+' --> editable enabled');
 
 		if (!this.values.is_enabled){
 			var $target = this.getTarget(),
@@ -671,7 +671,7 @@ UTILS.Editable = class extends UTILS.Base {
 		return this;
 	}
 	disable(){
-		_log('editable --> disabled', this.getId());
+		_log(this.getObjectName()+' --> editable disabled');
 
 		if (this.values.is_enabled){
 			var $target = this.getTarget(),
@@ -822,7 +822,7 @@ UTILS.Editable = class extends UTILS.Base {
 		return this;
 	}
 	_onCancel(){
-		_log(this.getObjectName()+' --> action cancelled', this.getId());
+		_log(this.getObjectName()+' --> action cancelled');
 		this._hide();
 		this.fns('onCancel');
 	}
@@ -861,7 +861,7 @@ UTILS.Editable = class extends UTILS.Base {
 					.then($cell => {
 						this.values.$cell = $cell;
 						this.fns('onInputCreate');
-						_log(this.getObjectName()+' --> '+JSON.stringify(type)+' cell created', this.values.$cell);
+						_log(this.getObjectName()+' --> '+JSON.stringify(type)+' cell created');
 						resolve();
 					})
 					.catch(error => {
@@ -936,25 +936,27 @@ UTILS.Editable = class extends UTILS.Base {
 		return new Promise((resolve,reject) => {
 			var $target = this.getTarget(),
 				display_value = this.getDisplayValue(),
-				filtered_value = this._filterValueForEditing(display_value),
 				css = this.getCss(),
 				options = this.getOptions();
 
 			$target.data('date',display_value);
 
-			$target.datepicker(options)
-				.on('changeDate',(event) => {
-					this._onSave(moment(event.date).format(options.format));
-				})
-				.on('show',(event) => {
-					$target.data('datepicker').picker.addClass(css); //adding custom class
-					this._show();
-				});
+			$target.datepicker(options);
 
 			this.values.DatePicker = $target.data('datepicker');
 
 			if (display_value!==this.getPlaceholder())
 				$target.datepicker('setDate',moment(display_value,options.format).toDate());
+
+			//adding event listeners here to avoid getting triggered by setDate above
+			$target
+				.on('changeDate', event => {
+					this._onSave(moment(event.date).format(options.format));
+				})
+				.on('show', event => {
+					$target.data('datepicker').picker.addClass(css); //adding custom class
+					this._show();
+				});
 
 			resolve(this.values.DatePicker.picker);
 		});
@@ -1088,8 +1090,8 @@ UTILS.Editable = class extends UTILS.Base {
 			};
 
 			//lets check if the value has changed
-			if ((is_multiselect && _isMultiSelectValueChanged()) || this.getDisplayValue()!=this._filterValueForDisplay(value)){
-				_log(this.getObjectName() + ' --> value changed, saving...', this.getId());
+			if ((is_multiselect && _isMultiSelectValueChanged()) || (!is_multiselect && this.getDisplayValue()!=this._filterValueForDisplay(value))){
+				_log(this.getObjectName()+' --> value changed, saving...');
 
 				let _onError = error => {
 					spinner.hide();
@@ -1117,7 +1119,17 @@ UTILS.Editable = class extends UTILS.Base {
 					if (_.isString(response))
 						response = JSON.parse(response);
 
-					response.direction = 'top'; //injecting direction of the error msg
+					//lets check for errors
+					if ('errors' in response && response.errors.length){
+						response.direction = 'top'; //injecting direction of the error msg
+
+						_.each(response.errors, error => {
+							//lets check if in case of an error a field was set
+							if ('fields' in error && !error.fields.length)
+								error.fields.push($target);
+						});
+
+					}
 
 					if (!UTILS.Errors.isError(response)){ //success
 						this.setValue(value);
@@ -1150,7 +1162,7 @@ UTILS.Editable = class extends UTILS.Base {
 
 				//if checkbox lets move the spinner right over the control
 				if (is_type_checkbox)
-					spinner.getSpinner().css({left: 15});
+					spinner.getSpinner().css({ left:15 });
 
 				if ('url' in ajax_settings && ajax_settings.url.length){
 					let url = ajax_settings.url,
@@ -1175,7 +1187,7 @@ UTILS.Editable = class extends UTILS.Base {
 					_onSuccess({errors: [], ..._getFormatedParams()});
 			}
 			else {
-				_log(this.getObjectName() + ' --> same value, no action taken', this.getId());
+				_log(this.getObjectName()+' --> same value, no action taken');
 
 				if (is_contenteditable)
 					_updateContentEditable();

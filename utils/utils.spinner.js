@@ -23,7 +23,7 @@ UTILS.Spinner =  class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object:'utils.spinner',
-			version:'2.1.2',
+			version:'2.1.3',
 			opts: {},
 			divs: {}, //holds all the divs of the main elm
 			is_shown: false, //holds whether the spinner is shown
@@ -116,10 +116,10 @@ UTILS.Spinner =  class extends UTILS.Base {
 		return this;
 	}
 	setTarget(target){
-		this.values.$target = (target instanceof UTILS.Box) ? target.values.$elm : $(target);
+		super.setTarget(target);
 
-		//lets add 'this' to target
-		this.values.$target.data(this.getObjectName(),this);
+		if (target instanceof UTILS.Box)
+			this.values.$target = target.getBox();
 
 		return this;
 	}

@@ -3,8 +3,8 @@ if (!UTILS) var UTILS = {};
 UTILS.Base = class {
 	constructor(data={}){
 		this.values = {
-			object:'utils.base',
-			version:'0.1.6',
+			object: 'utils.base',
+			version: '0.1.8',
 			id: UTILS.uuid(), //id of the class
 			$target: $('body'), //holds the target elm
 			ajax:{ url:'', method:'', type:'POST', params:{} },
@@ -22,11 +22,11 @@ UTILS.Base = class {
 			('id' in data) && this.setId(data.id);
 		}
 
-		//_log(this.getObjectName()+' --> instantiated!',this.getId());
+		//_log(this.getObjectName()+' --> instantiated!');
 		return this;
 	}
 	getObjectName(){
-		return this.values.object;
+		return this.values.object+' v'+this.values.version;
 	}
 	getObjectVersion(){
 		return this.values.version;
@@ -56,7 +56,7 @@ UTILS.Base = class {
 	}
 	addCallback(type,callback){
 		if (_.isFunction(callback)){
-			_log(this.getObjectName()+' --> callback added!',this.getId(),callback);
+			_log(this.getObjectName()+' --> callback added!',callback);
 			if (!_.includes(_.keys(this.values.fns),type))
 				this.values.fns[type] = [];
 
@@ -75,10 +75,12 @@ UTILS.Base = class {
 		return this.values.$target;
 	}
 	setTarget(target){
+		let object_name = this.getObjectName().split(' v')[0]; //just need the object w/out version
+
 		this.values.$target = (target instanceof UTILS.Box) ? target.getMainbody() : $(target);
 
 		//lets add 'this' to target
-		this.values.$target.data(this.getObjectName(),this);
+		this.values.$target.data(object_name,this);
 
 		return this;
 	}
