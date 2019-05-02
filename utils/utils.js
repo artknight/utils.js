@@ -2,7 +2,7 @@ if (!UTILS) var UTILS = {};
 
 UTILS.values = {
 	object:'utils',
-	version:'1.0.1',
+	version:'1.0.2',
 	numbers: '1234567890',
 	letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
 	special: ' .,-!@#$%&()?/":;\'',
@@ -159,6 +159,12 @@ UTILS.format = {
 	},
 	htmlDecode: function(str){
 		return he.decode(str.toString());
+	},
+	lzEncode: function(str){
+		return LZString.compressToBase64(str);
+	},
+	lzDecode: function(str){
+		return LZString.decompressFromBase64(str);
 	},
 	idify: function(item_id){
 		return item_id ? ~~parseFloat(item_id) : 0;
@@ -850,6 +856,8 @@ $.cssNumber.gridRowStart = $.cssNumber.gridRowEnd = $.cssNumber.gridColumnStart 
 (!String.prototype.sha1Encode) && (String.prototype.sha1Encode = function(){ return UTILS.Encryption.sha1(this); });
 (!String.prototype.base64Encode) && (String.prototype.base64Encode = function(){ return UTILS.Encryption.base64.encode(this); });
 (!String.prototype.base64Decode) && (String.prototype.base64Decode = function(){ return UTILS.Encryption.base64.decode(this); });
+(!String.prototype.lzEncode) && (String.prototype.lzEncode = function(){ return UTILS.format.lzEncode(this); });
+(!String.prototype.lzDecode) && (String.prototype.lzDecode = function(){ return UTILS.format.lzDecode(this); });
 (!String.prototype.fileExtension) && (String.prototype.fileExtension = function(){ return UTILS.file.ext(this); });
 (!String.prototype.capitalize) && (String.prototype.capitalize = function(scope){ return UTILS.format.capitalize(this,scope); });
 (!String.prototype.idify) && (String.prototype.idify = Number.prototype.idify = function(){ return UTILS.format.idify(this); });
