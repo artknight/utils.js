@@ -168,7 +168,9 @@ UTILS.Box =  class extends UTILS.Base {
 			this.values.is_shown = true;
 		}.bind(this);
 
-		(this.values.scrollable) && this.enableScrolling(); //if scrollable, enable scrolling
+		//if scrollable, enable scrolling
+		if (this.values.scrollable)
+			this.enableScrolling();
 
 		if (this.values.dimmer){
 			var onClose = new Function;
@@ -185,9 +187,9 @@ UTILS.Box =  class extends UTILS.Base {
 			}
 			else { //we are within another DOM elm
 				var blur = new UTILS.Blur({
-					target:this.values.$target,
-					color:(this instanceof APP.Confirm) ? 'black' : 'white',
-					onShow:_show
+					target: this.values.$target,
+					color: (this instanceof APP.Confirm) ? 'black' : 'white',
+					onShow: _show
 				});
 				onClose = blur.hide.bind(blur);
 				blur.show();

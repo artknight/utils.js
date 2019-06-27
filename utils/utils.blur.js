@@ -36,7 +36,7 @@ UTILS.Blur = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object:'utils.blur',
-			version:'2.0.4',
+			version:'2.0.5',
 			$elm: $('<div class="blur"></div>'),
 			is_shown: false,
 			colors: { //holds color combinations
@@ -94,6 +94,9 @@ UTILS.Blur = class extends UTILS.Base {
 			//if blur is on the body, need to make set position to 'fixed'
 			if (this.values.$target.is('body'))
 				this.values.$elm.addClass('pos-fixed');
+
+			//little trick to contain the blur's position:fixed within the parent elm
+			this.values.$target.addClass('blur-target');
 		}
 		
 		return this;

@@ -1,41 +1,5 @@
 /*
     == UTILS.Editable ==
-
-	== dependencies ==
-	jquery.js
-	bootstrap.js
-	selectize.js
-	bootstrap-datepicker.js
-
-	** example **
-	var editable = new UTILS.Editable({
-		target: $('#button'),
-		type: 'select',
-		items: [
-			{ label:'Javascript',value:'JS' },
-			{ label:'Python',value:'PY' }
-		],
-		field: 'language'
-	});
-
-	== definitions ==
-		@target - (required) DOM elm where the dropdown will be shown
-
-	** local
-		@items - (required) items that will be the options of the dropdown
-		@params - (optional) parameters to be passed in the ajax call onSave
-		@type - (optional)
-				- type of the input field to show --> defaults to 'input' ( avail. options input|textarea|select|date )
-				- sometimes type can consist of a subtype --> 'select-selectize' or 'checkbox-switch' to provide a deeper configuration
-
-		@options - (optional) used in date and checkbox to provide additional configuration options
-		@css - (optional) extra css classes to be added to the input field --> defaults to ''
-		@container - (optional) DOM elm where the popover will be inserted --> defaults to 'body'
-		@direction - (optional) direction of the popover --> defaults to 'bottom'
-		@tabbing - (optional) state to allow tabbing in inline configuration --> defaults to 'false'
-		@field - (optional) name of the field containing the updated value
-		@filterValueForEditing - (optional) method to format value before displaying it for editing --> $10.00 should be displayed as 10.00
-		@filterValueForDisplay - (optional) method to format value before updating the original parent value --> 10.00 should be displayed as $10.00
 */
 UTILS.Editable = class extends UTILS.Base {
 	constructor(data={}){
@@ -43,7 +7,7 @@ UTILS.Editable = class extends UTILS.Base {
 
 		if ('type' in data ){
 			//if date, lets set some default settings
-			if (/^date/i.test(data.type)){
+			if (/^date$/i.test(data.type)){
 				this.values.options = {
 					container: this.getContainer(),
 					orientation: 'bottom',
@@ -51,6 +15,20 @@ UTILS.Editable = class extends UTILS.Base {
 					format: 'MM/DD/YYYY',
 					startDate: moment().add(1, 'day').toDate(),
 					todayHighlight: true
+				};
+			}
+			else if (/^date\-range$/i.test(data.type)){
+				this.values.options = {
+					is_editable_usage: true,
+					container: this.getContainer(),
+					auto_close: false,
+					date_format: 'MM/DD/YYYY',
+					separator: ' - ',
+					start_date: moment().add(1,'day').format('MM/DD/YYYY'),
+					show_topbar: false,
+					custom_methods_override: [ //disable the save method as we want to take over that process
+						{ name:'setTargetValue', method:() => {} }
+					]
 				};
 			}
 			else if (/^textarea\-wysiwyg/i.test(data.type)){
@@ -80,8 +58,9 @@ UTILS.Editable = class extends UTILS.Base {
 		('type' in data) && this.setType(data.type);
 		('options' in data) && this.setOptions(data.options);
 		('css' in data) && this.setCss(data.css);
-		('filterMethodForEditingValue' in data) && this.setFilterMethodForEditingValue(data.filterMethodForEditingValue);
-		('filterMethodForDisplayValue' in data) && this.setFilterMethodForDisplayValue(data.filterMethodForDisplayValue);
+		('custom_methods_override' in data) && this.setCustomMethodsOverride(data.custom_methods_override);
+		('filterMethodForEditingValue' in data) && this.setCustomMethodsOverride([{ name:'filterValueForEditing', method:data.filterMethodForEditingValue }]); //deprecated
+		('filterMethodForDisplayValue' in data) && this.setCustomMethodsOverride([{ name:'filterValueForDisplay', method:data.filterMethodForDisplayValue }]); //deprecated
 		('tabbing' in data) && this.setInlineTabbing(data.tabbing);
 		('lazyload' in data) && this.setLazyLoadState(data.lazyload);
 		('contenteditable' in data) && this.setContentEditableState(data.contenteditable);
@@ -106,7 +85,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.6.6',
+			version: '0.7.0',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -116,6 +95,7 @@ UTILS.Editable = class extends UTILS.Base {
 			$container: $('body'), //holds DOM where popover will be appended to
 			value: null, //holds the new value
 			DatePicker: null, //holds the date picker object
+			DateRangePicker: null, //holds the date range picker object
 			Selectize: null, //holds the selectize object
 			options: {}, //holds options
 			field_name: '@field', //holds the field name to be passed to the server
@@ -127,10 +107,9 @@ UTILS.Editable = class extends UTILS.Base {
 			items: [], //holds the items
 			is_enabled: false, //holds the enable/disable state of the popover
 			is_shown: false, //holds the display state
-			display_filtermethod: null,
-			edit_filtermethod: null,
 			is_contenteditable: false, //holds whether we want the content to be edited within the target element
-			_is_cell_created: null
+			_is_cell_created: null,
+			custom_methods_override: [] //holds overrides of the native methods with custom methods
 		}
 	}
 	getCss(){
@@ -210,29 +189,23 @@ UTILS.Editable = class extends UTILS.Base {
 		return this;
 	}
 	//formats the input field value ( on edit )
-	_filterValueForEditing(value){
+	filterValueForEditing(value){
 		var _value = value;
-
-		if (typeof this.values.edit_filtermethod==='function')
-			_value = this.values.edit_filtermethod(value,this);
-
+		
 		if (this.values.placeholder===_value)
 			_value = '';
 
 		return _value;
 	}
 	//formats the display value of target ( after edit )
-	_filterValueForDisplay(value){
+	filterValueForDisplay(value){
 		var type = this.getType(),
 			is_multiselect = this.isMultiSelect(),
 			items = this.getItems(),
 			_value = value;
 
-		//filter method
-		if (typeof this.values.display_filtermethod==='function')
-			_value = this.values.display_filtermethod(value,this);
 		//multiselect
-		else if (is_multiselect){
+		if (is_multiselect){
 			_value = _.map(value, selected_value => {
 				let found = _.find(items, item => (item.value==selected_value));
 
@@ -293,7 +266,7 @@ UTILS.Editable = class extends UTILS.Base {
 					$input
 						.data('prev-value',prev_value)
 						.prop('contenteditable',true)
-						.text(this._filterValueForEditing(prev_value))
+						.text(this.filterValueForEditing(prev_value))
 						.putCursorAtEnd();
 				}
 
@@ -551,7 +524,8 @@ UTILS.Editable = class extends UTILS.Base {
 							event.stopPropagation();
 
 							if (!is_processing){
-								this._onSave($input.val());
+								let value = is_type_radio ? $input.filter(':checked').val() : $input.val();
+								this._onSave(value);
 								is_processing = true;
 							}
 						});
@@ -698,12 +672,16 @@ UTILS.Editable = class extends UTILS.Base {
 	getSpinner(){
 		return this.values.Spinner;
 	}
-	setFilterMethodForEditingValue(method){
-		(typeof method==='function') && (this.values.edit_filtermethod = method);
-		return this;
-	}
-	setFilterMethodForDisplayValue(method){
-		(typeof method==='function') && (this.values.display_filtermethod = method);
+	//use this with extreme caution as it will replace the native methods with custom ones
+	setCustomMethodsOverride(overrides){
+		if (!_.isArray(overrides))
+			overrides = [overrides];
+
+		_.each(overrides, override => {
+			if (typeof override.method==='function')
+				this[override.name] = override.method;
+		});
+
 		return this;
 	}
 	getFieldName(){
@@ -732,7 +710,7 @@ UTILS.Editable = class extends UTILS.Base {
 		this.getTarget().addClass('editable-target');
 
 		if (!this.getTarget().html().length)
-			this._setDisplayValue(this.values.placeholder);
+			this.setDisplayValue(this.values.placeholder);
 
 		return this;
 	}
@@ -752,7 +730,10 @@ UTILS.Editable = class extends UTILS.Base {
 		return this;
 	}
 	isTypeDate(){
-		return /^date$/i.test(this.getType().base);
+		return /^date/i.test(this.getType().base);
+	}
+	isDateRange(){
+		return /^range/i.test(this.getType().option);
 	}
 	isTypeCheckbox(){
 		return /^checkbox/i.test(this.getType().base);
@@ -793,14 +774,14 @@ UTILS.Editable = class extends UTILS.Base {
 				$target.data('editable-options', _.extend(target_options,{ value:value }));
 		}
 
-		this._setDisplayValue(value);
+		this.setDisplayValue(value);
 
 		return this;
 	}
-	_setDisplayValue(value){
+	setDisplayValue(value){
 		var $target = this.getTarget(),
 			is_type_checkbox = this.isTypeCheckbox(),
-			_value = (is_type_checkbox) ? value : this._filterValueForDisplay(value);
+			_value = (is_type_checkbox) ? value : this.filterValueForDisplay(value);
 
 		if (!is_type_checkbox)
 			$target.html(_value);
@@ -894,7 +875,7 @@ UTILS.Editable = class extends UTILS.Base {
 			var display_value = this.getDisplayValue(),
 				css = this.getCss(),
 				$wrapper = $('<form class="form-inline editable-form" data-form-type="input"><div class="form-group ' + css + '"><label class="sr-only">Enter Text</label></div></form>'),
-				$input = $('<input type="text" class="form-control popup-editable-field" value="' + this._filterValueForEditing(display_value) + '">');
+				$input = $('<input type="text" class="form-control popup-editable-field" value="' + this.filterValueForEditing(display_value) + '">');
 
 			//adding onFocus event listener to make sure when focused the cursor is at the end of text
 			$input.putCursorAtEnd('focus.utils.editable');
@@ -910,7 +891,7 @@ UTILS.Editable = class extends UTILS.Base {
 			var display_value = this.getDisplayValue(),
 				css = this.getCss(),
 				$wrapper = $('<form class="form-inline editable-form" data-form-type="textarea"><div class="form-group '+css+'"><label class="sr-only">Enter Text</label></div></form>'),
-				$textarea = $('<textarea class="form-control popup-editable-field" rows="3">'+this._filterValueForEditing(display_value)+'</textarea>');
+				$textarea = $('<textarea class="form-control popup-editable-field" rows="3">'+this.filterValueForEditing(display_value)+'</textarea>');
 
 			this.setInputField($textarea);
 			$wrapper.find('.form-group').append($textarea);
@@ -935,30 +916,58 @@ UTILS.Editable = class extends UTILS.Base {
 	_createDate(){
 		return new Promise((resolve,reject) => {
 			var $target = this.getTarget(),
+				is_date_range = this.isDateRange(),
 				display_value = this.getDisplayValue(),
 				css = this.getCss(),
-				options = this.getOptions();
+				options = this.getOptions(),
+				$picker = null;
 
 			$target.data('date',display_value);
 
-			$target.datepicker(options);
-
-			this.values.DatePicker = $target.data('datepicker');
-
-			if (display_value!==this.getPlaceholder())
-				$target.datepicker('setDate',moment(display_value,options.format).toDate());
-
-			//adding event listeners here to avoid getting triggered by setDate above
-			$target
-				.on('changeDate', event => {
-					this._onSave(moment(event.date).format(options.format));
-				})
-				.on('show', event => {
-					$target.data('datepicker').picker.addClass(css); //adding custom class
-					this._show();
+			if (is_date_range){
+				_.extend(options,{
+					target: $target,
+					onApply: (DateRangePicker, options) => {
+						this._onSave(options.range);
+					},
+					onShown: (DateRangePicker, options) => {
+						DateRangePicker.getElm().addClass(css); //adding custom class
+						this._show();
+					}
 				});
 
-			resolve(this.values.DatePicker.picker);
+				this.values.DateRangePicker = new UTILS.Daterange(options).enable();
+
+				if (display_value!==this.getPlaceholder()){
+					let dates = _.map(display_value.split('-'), date => date.trim());
+
+					this.values.DateRangePicker.setDateRange(...dates);
+				}
+
+				$picker = this.values.DateRangePicker.getElm();
+			}
+			else {
+				$target.datepicker(options);
+
+				this.values.DatePicker = $target.data('datepicker');
+
+				if (display_value!==this.getPlaceholder())
+					$target.datepicker('setDate',moment(display_value,options.format).toDate());
+
+				//adding event listeners here to avoid getting triggered by setDate above
+				$target
+					.on('changeDate', event => {
+						this._onSave(moment(event.date).format(options.format));
+					})
+					.on('show', event => {
+						$target.data('datepicker').picker.addClass(css); //adding custom class
+						this._show();
+					});
+
+				$picker = this.values.DatePicker.picker;
+			}
+
+			resolve($picker);
 		});
 	}
 	_createCheckbox(){
@@ -1022,9 +1031,10 @@ UTILS.Editable = class extends UTILS.Base {
 		var $input = this.getInputField(),
 			is_type_checkbox = this.isTypeCheckbox(),
 			is_type_radio = this.isTypeRadio(),
-			is_contenteditable = this.isContentEditable();
+			is_contenteditable = this.isContentEditable(),
+			is_date_range = this.isDateRange();
 
-		if (!is_type_checkbox){
+		if (!is_type_checkbox && !is_date_range){
 			if ($input){
 				if (this.isSelectize() || this.isMultiSelect())
 					$input[0].selectize.destroy();
@@ -1047,6 +1057,9 @@ UTILS.Editable = class extends UTILS.Base {
 	getDatePicker(){
 		return this.values.DatePicker;
 	}
+	getDateRangePicker(){
+		return this.values.DateRangePicker;
+	}
 	getSelectize(){
 		return this.values.Selectize;
 	}
@@ -1054,6 +1067,7 @@ UTILS.Editable = class extends UTILS.Base {
 	__onSave__(value){
 		return new Promise((resolve,reject) => {
 			let is_type_date = this.isTypeDate(),
+				is_date_range = this.isDateRange(),
 				is_type_checkbox = this.isTypeCheckbox(),
 				is_multiselect = this.isMultiSelect(),
 				$target = this.getTarget(),
@@ -1064,10 +1078,11 @@ UTILS.Editable = class extends UTILS.Base {
 				params = this.getParams(),
 				field_name = this.getFieldName(),
 				is_contenteditable = this.isContentEditable(),
-				DatePicker = this.getDatePicker();
+				DatePicker = this.getDatePicker(),
+				DateRangePicker = this.getDateRangePicker();
 
 			if (is_type_date)
-				$editable = DatePicker.picker;
+				$editable = is_date_range ? DateRangePicker.getElm() : DatePicker.picker;
 			else if (is_type_checkbox)
 				$editable = $target.find('.custom-control');
 			else
@@ -1079,7 +1094,7 @@ UTILS.Editable = class extends UTILS.Base {
 			let _updateContentEditable = () => {
 				$target
 					.prop('contenteditable',false)
-					.text(this._filterValueForDisplay(value));
+					.text(this.filterValueForDisplay(value));
 			};
 
 			let _isMultiSelectValueChanged = () => {
@@ -1090,7 +1105,7 @@ UTILS.Editable = class extends UTILS.Base {
 			};
 
 			//lets check if the value has changed
-			if ((is_multiselect && _isMultiSelectValueChanged()) || (!is_multiselect && this.getDisplayValue()!=this._filterValueForDisplay(value))){
+			if ((is_multiselect && _isMultiSelectValueChanged()) || (!is_multiselect && this.getDisplayValue()!=this.filterValueForDisplay(value))){
 				_log(this.getObjectName()+' --> value changed, saving...');
 
 				let _onError = error => {
@@ -1105,8 +1120,12 @@ UTILS.Editable = class extends UTILS.Base {
 					this._onBeforeHide();
 					this._hide();
 
-					if (is_type_date)
-						DatePicker.hide();
+					if (is_type_date){
+						if (is_date_range)
+							DateRangePicker.hide();
+						else
+							DatePicker.hide();
+					}
 
 					this.fns('onSaveError', error);
 
@@ -1137,8 +1156,12 @@ UTILS.Editable = class extends UTILS.Base {
 						$target.velocity('callout.flash');
 						this._hide();
 
-						if (is_type_date)
-							DatePicker.hide();
+						if (is_type_date){
+							if (is_date_range)
+								DateRangePicker.hide();
+							else
+								DatePicker.hide();
+						}
 
 						this.fns('onAfterSave', response);
 

@@ -1,12 +1,16 @@
 .blur {
-	top:0;
-	left:0;
-	background-color:#fff;
-	margin:0;
-	width:100%;
-	height:100%;
-	position:absolute;
-	z-index:999;
+	top: 0;
+	left: 0;
+	background-color: #fff;
+	margin: 0;
+	width: 100%;
+	height: 100%;
+	position: fixed; 
+	z-index: 999;
 
 	.datepicker > & { display:block; }
+}
+//little trick to contain the blur's position:fixed within the parent elm
+.blur-target {
+	transform: translateZ(0);
 }
