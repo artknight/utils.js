@@ -22,13 +22,16 @@ UTILS.Daterange =  class extends UTILS.Base {
 		}
 
 		('range' in data) && this.setDateRange(data.range);
+		('start' in data) && this.setStart(data.start);
+		('end' in data) && this.setEnd(data.end);
 		('container' in data) && this.setContainer(data.container);
 		('value' in data) && this.setInitialTargetValue(data.value);
 		('onShow' in data) && this.addCallback('onShow',data.onShow);
 		('onShown' in data) && this.addCallback('onShown',data.onShown);
 		('onHide' in data) && this.addCallback('onHide',data.onHide);
 		('onHidden' in data) && this.addCallback('onHidden',data.onHidden);
-		('onFirstDateSelected' in data) && this.addCallback('onFirstDateSelected',data.onFirstDateSelected);
+		('onStartSelected' in data) && this.addCallback('onStartSelected',data.onStartSelected);
+		('onEndSelected' in data) && this.addCallback('onEndSelected',data.onEndSelected);
 		('onApply' in data) && this.addCallback('onApply',data.onApply);
 		('onDateChanged' in data) && this.addCallback('onDateChanged',data.onDateChanged);
 		
@@ -43,7 +46,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.daterange',
-			version: '0.0.1',
+			version: '0.0.3',
 			date_format: 'MM/DD/YYYY',
 			$elm: null, //holds the date range element
 			auto_close: false,
@@ -122,9 +125,9 @@ UTILS.Daterange =  class extends UTILS.Base {
 			this.resetMonthsView(default_date);
 
 			if (this.values.time.enabled){
-				if ((this.values.start_date && this.values.end_date) || (this.values.start && this.values.end)){
-					this.showTime(moment(this.values.start || this.values.start_date).toDate(), 'time1');
-					this.showTime(moment(this.values.end || this.values.end_date).toDate(), 'time2');
+				if ((this.values.start_date && this.values.end_date) || (this.getStart() && this.getEnd())){
+					this.showTime(moment(this.getStart() || this.values.start_date).toDate(), 'time1');
+					this.showTime(moment(this.getEnd() || this.values.end_date).toDate(), 'time2');
 				}
 				else {
 					var defaultEndTime = this.values.defaultEndTime ? this.values.defaultEndTime : default_date;
@@ -174,7 +177,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 			$elm.find('.month-wrapper table').on('mouseleave','.cell',event => {
 				$elm.find('.date-range-length-tip').remove();
 
-				if (this.values.single_date)
+				if (this.isSingleDate())
 					this.clearOnCellHover();
 			});
 
@@ -200,32 +203,38 @@ UTILS.Daterange =  class extends UTILS.Base {
 					range = ('method' in shortcut) ? { ...shortcut.method(this) } : { start:null, end:null },
 					is_autoclose = this.isAutoClose();
 
-				if (range.start && range.end){
+				if (this.isDate(range.start) && this.isDate(range.end)){
 					this.setDateRange(range.start, range.end);
 					this.validateSelection();
 				}
-				else if (range.start){
-					this.renderCalendar(range.start, 'month1');
-					this.renderCalendar(this.nextMonth(range.start), 'month2');
-					this.showDivider();
-				}
-				else { //this means the values could be anything
-					if (!_.isString(range))
-						range = _.toArray(range).join('');
-
-					this.values.start = false;
-					this.values.end = false;
-
+				//this happens when the user clicked on the custom shortcut that did not produce a date object
+				else if (this.values.show_shortcuts && (!this.isDate(range.start) || !this.isDate(range.end))){
 					$elm.find('.cell.checked').removeClass('checked');
 
-					this.setTargetValue(range);
+					if ('start' in range && 'end' in range)
+						this.triggerApply(range);
+					else {
+						if (!_.isString(range))
+							range = _.toArray(range).join('');
 
+						this.setTargetValue(range);
+					}
+
+					this.setStart(null);
+					this.setEnd(null);
 					this.validateSelection();
 					this.updateSelectionInHeader(true);
 					this.showSelectedDates();
 
+					this.fns('onEndSelected');
+
 					if (is_autoclose)
 						this.hide();
+				}
+				else if (this.isDate(range.start)){
+					this.renderCalendar(range.start, 'month1');
+					this.renderCalendar(this.nextMonth(range.start), 'month2');
+					this.showDivider();
 				}
 			});
 
@@ -346,12 +355,13 @@ UTILS.Daterange =  class extends UTILS.Base {
 				var $container = this.getContainer(),
 					is_show_topbar = this.isShowTopbar(),
 					is_autoclose = this.isAutoClose(),
+					is_single_date = this.isSingleDate(),
 					wrapper_class = [];
 
 				if (this.values.extra_class)
 					wrapper_class.push(this.values.extra_class);
 
-				if (this.values.single_date)
+				if (is_single_date)
 					wrapper_class.push('single-date');
 
 				if (!this.values.show_shortcuts)
@@ -379,7 +389,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 					else {
 						let $normal_top = $('<div class="normal-top"><span class="selection-top">'+this.translate('selected')+' </span><b class="start-day">...</b></div>');
 
-						if (!this.values.single_date)
+						if (!is_single_date)
 							$normal_top.append('<span class="separator-day">'+this.values.separator+'</span> <b class="end-day">...</b> <i class="selected-days">(<span class="selected-days-num">3</span> '+this.translate('days')+')</i>');
 
 						$topbar.append($normal_top);
@@ -389,7 +399,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 				}
 
 				let _colspan = this.values.show_week_numbers ? 6 : 5,
-					$month_wrapper = $(`<div class="month-wrapper ${this.values.single_date ? 'is-single-date' : ''}" data-sticky="${this.values.sticky ? 'yes' : 'no'}"></div>`),
+					$month_wrapper = $(`<div class="month-wrapper ${is_single_date ? 'is-single-date' : ''}" data-sticky="${this.values.sticky ? 'yes' : 'no'}"></div>`),
 					$month1 = $(`<table class="month1" cellspacing="0" border="0" cellpadding="0" data-view="${this.values.min_view_mode}">
 									<thead>
 										<tr class="caption">
@@ -422,7 +432,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 
 				let $time = $(`<div class="time ${!this.values.time.enabled ? 'hide' : ''}"><div class="time1"></div></div>`);
 
-				if (!this.values.single_date)
+				if (!is_single_date)
 					$time.append('<div class="time2"></div>');
 
 				let $footer = $('<div class="footer"></div>');
@@ -433,6 +443,9 @@ UTILS.Daterange =  class extends UTILS.Base {
 
 					_.each(this.values.shortcuts, shortcut => {
 						var $shortcut = $('<a class="shortcut" href="#">'+shortcut.name+'</a>').data('shortcut',shortcut);
+
+						if ('css' in shortcut)
+							$shortcut.addClass(shortcut.css);
 
 						shortcuts.push($shortcut);
 					});
@@ -457,29 +470,35 @@ UTILS.Daterange =  class extends UTILS.Base {
 		this.values.date_format = format;
 		return this;
 	}
-	setStart(date1){
-		let date_format = this.getDateFormat();
+	setStart(date){
+		if (this.isDate(date)){
+			if (_.isString(date))
+				date = moment(date, this.getDateFormat()).valueOf();
+			else
+				date = moment(date).valueOf();
+		}
 
-		if (typeof date1 == 'string')
-			date1 = moment(date1, date_format).toDate();
-
-		this.values.end = false;
-		this.setSingleDate(date1);
+		this.values.start = date;
 
 		return this;
 	}
-	setEnd(date2, silent){
-		let start = new Date(),
-			date_format = this.getDateFormat();
+	setEnd(date){
+		if (this.isDate(date)){
+			if (_.isString(date))
+				date = moment(date, this.getDateFormat()).valueOf();
+			else
+				date = moment(date).valueOf();
+		}
 
-		start.setTime(this.values.start);
-
-		if (typeof date2 == 'string')
-			date2 = moment(date2, date_format).toDate();
-
-		this.setDateRange(start, date2, silent);
+		this.values.end = date;
 
 		return this;
+	}
+	getStart(){
+		return this.values.start;
+	}
+	getEnd(){
+		return this.values.end;
 	}
 	getContainer(){
 		return this.values.$container;
@@ -516,14 +535,15 @@ UTILS.Daterange =  class extends UTILS.Base {
 
 	goNext(event){
 		let { $cell, $table, month, view } = this.getEventData(event),
-			curr_date = this.values[month];
+			curr_date = this.values[month],
+			is_single_date = this.isSingleDate();
 
 		switch(view){
 			case 'days':
 				if (!this.values.sticky){
 					curr_date = this.nextMonth(curr_date);
 
-					if (!this.values.single_month && !this.values.single_date && !/month2/.test(month) && this.compareMonth(curr_date, this.values.month2) >= 0 || this.isDateOutOfBounds(curr_date))
+					if (!this.values.single_month && !is_single_date && !/month2/.test(month) && this.compareMonth(curr_date, this.values.month2) >= 0 || this.isDateOutOfBounds(curr_date))
 						return;
 
 					this.renderCalendar(curr_date, month);
@@ -540,7 +560,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 							date1 = this.prevMonth(date2);
 					}
 
-					if (this.isDateOutOfBounds(date2) || !this.values.single_date && this.compareMonth(date1, date2) >= 0)
+					if (this.isDateOutOfBounds(date2) || !is_single_date && this.compareMonth(date1, date2) >= 0)
 						return;
 
 					this.renderCalendar(date1, 'month1');
@@ -553,7 +573,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 				if (!this.values.sticky){
 					curr_date = this.nextYear(curr_date);
 
-					if (!this.values.single_month && !this.values.single_date && !/month2/.test(month) && this.compareYear(curr_date, this.values.month2) >= 0 || this.isDateOutOfBounds(curr_date))
+					if (!this.values.single_month && !is_single_date && !/month2/.test(month) && this.compareYear(curr_date, this.values.month2) >= 0 || this.isDateOutOfBounds(curr_date))
 						return;
 
 					this.renderCalendar(curr_date, month);
@@ -572,7 +592,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 							date1 = this.prevYear(date2);
 					}
 
-					if (this.isDateOutOfBounds(date2) || !this.values.single_date && this.compareYear(date1, date2) >= 0)
+					if (this.isDateOutOfBounds(date2) || !is_single_date && this.compareYear(date1, date2) >= 0)
 						return;
 
 					this.renderCalendar(date1, 'month1');
@@ -602,7 +622,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 							date1 = this.prevDecade(date2);
 					}
 
-					if (this.isDateOutOfBounds(date1) || !this.values.single_date && this.compareYear(date2, date1)<=0)
+					if (this.isDateOutOfBounds(date1) || !is_single_date && this.compareYear(date2, date1)<=0)
 						return;
 
 					this.renderCalendar(date2, 'month2');
@@ -620,7 +640,8 @@ UTILS.Daterange =  class extends UTILS.Base {
 
 	goPrev(event){
 		let { $cell, $table, month, view } = this.getEventData(event),
-			curr_date = this.values[month];
+			curr_date = this.values[month],
+			is_single_date = this.isSingleDate();
 
 		switch(view){
 			case 'days':
@@ -644,7 +665,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 							date1 = this.prevMonth(date2);
 					}
 
-					if (this.isDateOutOfBounds(date1) || !this.values.single_date && this.compareMonth(date2, date1) <= 0)
+					if (this.isDateOutOfBounds(date1) || !is_single_date && this.compareMonth(date2, date1) <= 0)
 						return;
 
 					this.renderCalendar(date2, 'month2');
@@ -674,7 +695,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 							date1 = this.prevYear(date2);
 					}
 
-					if (this.isDateOutOfBounds(date1) || !this.values.single_date && this.compareYear(date2, date1)<=0)
+					if (this.isDateOutOfBounds(date1) || !is_single_date && this.compareYear(date2, date1)<=0)
 						return;
 
 					this.renderCalendar(date2, 'month2');
@@ -704,7 +725,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 							date1 = this.prevDecade(date2);
 					}
 
-					if (this.isDateOutOfBounds(date1) || !this.values.single_date && this.compareYear(date2, date1)<=0)
+					if (this.isDateOutOfBounds(date1) || !is_single_date && this.compareYear(date2, date1)<=0)
 						return;
 
 					this.renderCalendar(date2, 'month2');
@@ -793,9 +814,10 @@ UTILS.Daterange =  class extends UTILS.Base {
 	setInitialTargetValue(value){
 		let dates = value ? value.split(this.values.separator) : '',
 			date_format = this.getDateFormat(),
+			is_single_date = this.isSingleDate(),
 			dates_as_string = '';
 
-		if (dates && ((dates.length===1 && this.values.single_date) || dates.length>=2)){
+		if (dates && ((dates.length===1 && is_single_date) || dates.length>=2)){
 			if (date_format.match(/Do/)){
 				date_format = date_format.replace(/Do/, 'D');
 				dates[0] = dates[0].replace(/(\d+)(th|nd|st)/, '$1');
@@ -806,7 +828,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 
 			if (dates.length>=2)
 				dates_as_string = this.getDateString(new Date(this.getValidValue(dates[0], date_format, moment.locale(this.values.language)))) + this.values.separator +this.getDateString(new Date(this.getValidValue(dates[1], date_format, moment.locale(this.values.language))));
-			else if (dates.length===1 && this.values.single_date)
+			else if (dates.length===1 && is_single_date)
 				dates_as_string = this.getDateString(new Date(this.getValidValue(dates[0], date_format, moment.locale(this.values.language))));
 
 			this.setTargetValue(dates_as_string);
@@ -817,9 +839,10 @@ UTILS.Daterange =  class extends UTILS.Base {
 	checkAndSetDefaultValue(){
 		let target_value = this.getTargetValue(),
 			defaults = target_value ? target_value.split(this.values.separator) : '',
-			date_format = this.getDateFormat();
+			date_format = this.getDateFormat(),
+			is_single_date = this.isSingleDate();
 
-		if (defaults && ((defaults.length == 1 && this.values.single_date) || defaults.length >= 2)){
+		if (defaults && ((defaults.length == 1 && is_single_date) || defaults.length >= 2)){
 			if (date_format.match(/Do/)){
 				date_format = date_format.replace(/Do/, 'D');
 				defaults[0] = defaults[0].replace(/(\d+)(th|nd|st)/, '$1');
@@ -833,7 +856,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 
 			if (defaults.length>=2)
 				this.setDateRange(this.getValidValue(defaults[0], date_format, moment.locale(this.values.language)), this.getValidValue(defaults[1], date_format, moment.locale(this.values.language)));
-			else if (defaults.length===1 && this.values.single_date)
+			else if (defaults.length===1 && is_single_date)
 				this.setSingleDate(this.getValidValue(defaults[0], date_format, moment.locale(this.values.language)));
 
 			this.setActivated(true);
@@ -887,22 +910,23 @@ UTILS.Daterange =  class extends UTILS.Base {
 	}
 
 	swapTime(){
-		this.renderTime('time1', this.values.start);
-		this.renderTime('time2', this.values.end);
+		this.renderTime('time1', this.getStart());
+		this.renderTime('time2', this.getEnd());
 
 		return this;
 	}
 
 	setTime(name, hour, minute){
-		let $elm = this.getElm();
+		let $elm = this.getElm(),
+			start = this.getStart();
 
 		hour && ($elm.find('.' + name + ' .hour-val').text(hour));
 		minute && ($elm.find('.' + name + ' .minute-val').text(minute));
 
 		switch (name){
 			case 'time1':
-				if (this.values.start)
-					_setRange('start', moment(this.values.start));
+				if (start)
+					_setRange('start', moment(start));
 
 				_setRange('startTime', moment(this.values.startTime || moment().valueOf()));
 				break;
@@ -935,8 +959,9 @@ UTILS.Daterange =  class extends UTILS.Base {
 	clearSelection(){
 		let $elm = this.getElm();
 
-		this.values.start = false;
-		this.values.end = false;
+		this.setStart(null);
+		this.setEnd(null);
+
 		$elm.find('.checked').removeClass('checked');
 		$elm.find('.last-date-selected').removeClass('last-date-selected');
 		$elm.find('.first-date-selected').removeClass('first-date-selected');
@@ -995,12 +1020,15 @@ UTILS.Daterange =  class extends UTILS.Base {
 	}
 
 	onDateChanged(event){
-		var $target = this.getTarget(),
+		let $target = this.getTarget(),
 			{ $cell, $table, month, view } = this.getEventData(event),
 			time = moment(parseInt($cell.attr('data-value'))),
 			is_autoclose = this.isAutoClose(),
 			is_isoweek = this.isIsoWeek(),
-			is_editable_usage = this.isEditableUsage();
+			is_editable_usage = this.isEditableUsage(),
+			is_single_date = this.isSingleDate(),
+			start = this.getStart(),
+			end = this.getEnd();
 
 		if ($cell.hasClass('invalid'))
 			return;
@@ -1009,73 +1037,70 @@ UTILS.Daterange =  class extends UTILS.Base {
 
 		this.clearOnCellHover();
 
-		if (this.values.single_date){
-			this.values.start = time.valueOf();
-			this.values.end = false;
+		if (is_single_date){
+			start = time.valueOf();
+			end = null;
 		}
 
 		switch(true){
 			case /days/.test(view):
 				if (this.values.batch_mode==='week'){
 					if (is_isoweek){
-						this.values.start = time.startOf('isoweek').valueOf();
-						this.values.end = time.endOf('isoweek').valueOf();
+						start = time.startOf('isoweek').valueOf();
+						end = time.endOf('isoweek').valueOf();
 					}
 					else {
-						this.values.end = time.endOf('week').valueOf();
-						this.values.start = time.startOf('week').valueOf();
+						end = time.endOf('week').valueOf();
+						start = time.startOf('week').valueOf();
 					}
 				}
 				else if (this.values.batch_mode==='workweek'){
-					this.values.start = time.day(1).valueOf();
-					this.values.end = time.day(5).valueOf();
+					start = time.day(1).valueOf();
+					end = time.day(5).valueOf();
 				}
 				else if (this.values.batch_mode==='weekend'){
-					this.values.start = time.day(6).valueOf();
-					this.values.end = time.day(7).valueOf();
+					start = time.day(6).valueOf();
+					end = time.day(7).valueOf();
 				}
 				else if (this.values.batch_mode==='month'){
-					this.values.start = time.startOf('month').valueOf();
-					this.values.end = time.endOf('month').valueOf();
+					start = time.startOf('month').valueOf();
+					end = time.endOf('month').valueOf();
 				}
-				else if ((this.values.start && this.values.end) || (!this.values.start && !this.values.end)){
-					this.values.start = this.handleStart(time.valueOf());
-					this.values.end = false;
+				else if ((start && end) || (!start && !end)){
+					start = this.handleStart(time.valueOf());
+					end = null;
 				}
-				else if (this.values.start){
-					this.values.end = this.handleEnd(time.valueOf());
+				else if (start){
+					end = this.handleEnd(time.valueOf());
 
 					if (this.values.time.enabled)
-						this.changeTime('end', this.values.end);
+						this.changeTime('end', end);
 				}
 
 				//Update time in case it is enabled and timestamps are available
 				if (this.values.time.enabled){
-					if (this.values.start)
-						this.changeTime('start', this.values.start);
+					if (start)
+						this.changeTime('start', start);
 
-					if (this.values.end)
-						this.changeTime('end', this.values.end);
+					if (end)
+						this.changeTime('end', end);
 				}
 
 				//In case the start is after the end, swap the timestamps
-				if (!this.values.single_date && this.values.start && this.values.end && this.values.start > this.values.end){
-					var tmp = this.values.end;
-					this.values.end = this.handleEnd(this.values.start);
-					this.values.start = this.handleStart(tmp);
+				if (!is_single_date && start && end && start > end){
+					var tmp = end;
+					end = this.handleEnd(start);
+					start = this.handleStart(tmp);
 
 					if (this.values.time.enabled && this.values.swap_time)
 						this.swapTime();
 				}
 
-				this.values.start = parseInt(this.values.start);
-				this.values.end = parseInt(this.values.end);
-
 			break;
 			case /^months$|^years$/.test(view):
 				var opposite_month = /month1/.test(month) ? 'month2' : 'month1',
-					start_date = this.values.start_date ? moment(this.values.start_date) : false,
-					end_date = this.values.end_date ? moment(this.values.end_date) : false,
+					start_date = this.values.start_date ? this._getMomentDate(this.values.start_date) : false,
+					end_date = this.values.end_date ? this._getMomentDate(this.values.end_date) : false,
 					unit = view;
 
 				if (/^months$/.test(view))
@@ -1087,18 +1112,18 @@ UTILS.Daterange =  class extends UTILS.Base {
 					time.startOf(unit);
 
 					if (view===this.values.min_view_mode){
-						if ((this.values.start && this.values.end) || (!this.values.start && !this.values.end)){
-							this.values.start = time.valueOf();
-							this.values.end = false;
+						if ((start && end) || (!start && !end)){
+							start = time.valueOf();
+							end = false;
 						}
-						else if (this.values.start)
-							this.values.end = time.valueOf();
+						else if (start)
+							end = time.valueOf();
 
 						//if start is after the end
-						if (!this.values.single_date && this.values.start && this.values.end && this.values.start > this.values.end){
-							var tmp = this.values.end;
-							this.values.end = this.values.start;
-							this.values.start = tmp;
+						if (!is_single_date && start && end && start > end){
+							var tmp = end;
+							end = start;
+							start = tmp;
 						}
 					}
 				}
@@ -1130,11 +1155,16 @@ UTILS.Daterange =  class extends UTILS.Base {
 			break;
 		}
 
-		if (this.values.start && !this.values.end){
-			this.fns('onFirstDateSelected',{ date1:new Date(this.values.start) });
+		this.setStart(start);
+		this.setEnd(end);
+
+		if (start && !end){
+			this.fns('onStartSelected',{ start:new Date(start) });
 
 			this.onCellHover(event);
 		}
+		else if (start && end)
+			this.fns('onEndSelected',{ start:new Date(start), end:new Date(end) });
 
 		this.showDivider();
 		this.updateSelectableRange(month);
@@ -1145,32 +1175,42 @@ UTILS.Daterange =  class extends UTILS.Base {
 		//lets update the header
 		$table.attr('data-view',this.values.view[month]);
 
-		if (this.values.start && this.values.end && (is_editable_usage || is_autoclose || /^months$|^years$/i.test(this.values.min_view_mode)))
+		if (start && end && (is_editable_usage || is_autoclose || /^months$|^years$/i.test(this.values.min_view_mode)))
 			this.triggerApply();
 
 		if (/days/.test(view) && /^days$/i.test(this.values.min_view_mode) || /months/.test(view) && /^months$/i.test(this.values.min_view_mode) || /years/.test(view) && /^years$/i.test(this.values.min_view_mode))
 			this.autoClose();
 	}
 
-	triggerApply(){
-		let $target = this.getTarget(),
+	isDate(date){
+		return date && moment(new Date(date)).isValid();
+	}
+
+	//@data - when using custom shortcuts we could have a different set of values to be applied
+	triggerApply(data={}){
+		let is_single_date = this.isSingleDate(),
+			start = ('start' in data) ? data.start : this.getStart(),
+			end = ('end' in data) ? data.end : this.getEnd(),
 			range = '',
 			options = {};
 
-		if (this.values.single_date===true){
-			range = this.getDateString(new Date(this.values.start));
+		if (is_single_date){
+			range = (this.isDate(start) ? this.getDateString(new Date(start)) : start);
 
 			options = {
-				date1: new Date(this.values.start),
+				date: new Date(start),
 				range: range
 			};
 		}
 		else {
-			range = this.getDateString(new Date(this.values.start)) + this.values.separator + this.getDateString(new Date(this.values.end));
+			//sometimes when custom shortcuts are used we might end up with a string that is not a date object so we still need to pass it back
+			range = (this.isDate(start) ? this.getDateString(new Date(start)) : start) +
+					this.values.separator +
+					(this.isDate(end) ? this.getDateString(new Date(end)) : end);
 
 			options = {
-				date1: new Date(this.values.start),
-				date2: new Date(this.values.end),
+				start: this.isDate(start) ? new Date(start) : start,
+				end: this.isDate(end) ? new Date(end) : end,
 				range: range
 			};
 		}
@@ -1187,6 +1227,10 @@ UTILS.Daterange =  class extends UTILS.Base {
 		return /monday/i.test(this.getStartOfWeek());
 	}
 
+	isSingleDate(){
+		return this.values.single_date;
+	}
+
 	weekNumberClicked(event){
 		var { $cell, $table, month, view } = this.getEventData(event),
 			$elm = this.getElm(),
@@ -1199,16 +1243,16 @@ UTILS.Daterange =  class extends UTILS.Base {
 			this.values.start_week = thisTime;
 			$cell.addClass('week-number-selected');
 			date1 = new Date(thisTime);
-			this.values.start = moment(date1).day(is_isoweek ? 1 : 0).valueOf();
-			this.values.end = moment(date1).day(is_isoweek ? 7 : 6).valueOf();
+			this.setStart(moment(date1).day(is_isoweek ? 1 : 0).valueOf());
+			this.setEnd(moment(date1).day(is_isoweek ? 7 : 6).valueOf());
 		}
 		else {
 			$elm.find('.week-number-selected').removeClass('week-number-selected');
 			date1 = new Date(thisTime < this.values.start_week ? thisTime : this.values.start_week);
 			date2 = new Date(thisTime < this.values.start_week ? this.values.start_week : thisTime);
 			this.values.start_week = false;
-			this.values.start = moment(date1).day(is_isoweek ? 1 : 0).valueOf();
-			this.values.end = moment(date2).day(is_isoweek ? 7 : 6).valueOf();
+			this.setStart(moment(date1).day(is_isoweek ? 1 : 0).valueOf());
+			this.setEnd(moment(date2).day(is_isoweek ? 7 : 6).valueOf());
 		}
 
 		this.updateSelectableRange(month);
@@ -1232,12 +1276,26 @@ UTILS.Daterange =  class extends UTILS.Base {
 
 	isValidTime(time,month){
 		var time = parseInt(time),
-			view = this.getCurrentView(month);
+			view = this.getCurrentView(month),
+			is_single_date = this.isSingleDate(),
+			start = this.getStart(),
+			end = this.getEnd(),
+			start_date = this.values.start_date,
+			end_date = this.values.end_date;
 
-		if ((this.values.start_date && this.compareDates(time, this.values.start_date) < 0) || (this.values.end_date && this.compareDates(time, this.values.end_date) > 0))
+		//when min_view_mode is days but we are in months view, we need to compare first of the month rather than the raw start_date
+		if (/^days$/i.test(this.values.min_view_mode) && /^months|years$/i.test(view)){
+			if (start_date)
+				start_date = this._getMomentDate(this.values.start_date).startOf('month').toDate();
+
+			if (end_date)
+				end_date = moment(this.values.end_date).endOf('month').toDate();
+		}
+
+		if ((start_date && this.compareDates(time, start_date) < 0) || (end_date && this.compareDates(time, end_date) > 0))
 			return false;
 
-		if (this.values.start && !this.values.end && !this.values.single_date){
+		if (start && !end && !is_single_date){
 			let min = this.values.min_days,
 				max = this.values.max_days;
 
@@ -1251,11 +1309,11 @@ UTILS.Daterange =  class extends UTILS.Base {
 			}
 
 			//check max and min setting
-			if ((max > 0 && this.countDiff(time, this.values.start) > max) || (min > 0 && this.countDiff(time, this.values.start) < min))
+			if ((max > 0 && this.countDiff(time, start) > max) || (min > 0 && this.countDiff(time, start) < min))
 				return false;
 
 			//check select_forward and select_backward
-			if (this.values.select_forward && time < this.values.start || this.values.select_backward && time > this.values.start)
+			if (this.values.select_forward && time < start || this.values.select_backward && time > start)
 				return false;
 
 			//check disabled days
@@ -1263,16 +1321,16 @@ UTILS.Daterange =  class extends UTILS.Base {
 				var valid = true,
 					timeTmp = time;
 
-				while (this.countDiff(timeTmp, this.values.start) > 1){
+				while (this.countDiff(timeTmp, start) > 1){
 					valid = this.customDateFilter(new Date(timeTmp),view);
 
-					if (!valid || Math.abs(moment(timeTmp).diff(moment(this.values.start),this.values.min_view_mode))<1)
+					if (!valid || Math.abs(moment(timeTmp).diff(moment(start),this.values.min_view_mode))<1)
 						break;
 					else {
-						if (moment(timeTmp).isAfter(moment(this.values.start),this.values.min_view_mode))
+						if (moment(timeTmp).isAfter(moment(start),this.values.min_view_mode))
 							timeTmp = moment(timeTmp).add(-1,this.values.min_view_mode).valueOf();
 
-						if (moment(timeTmp).isBefore(moment(this.values.start),this.values.min_view_mode))
+						if (moment(timeTmp).isBefore(moment(start),this.values.min_view_mode))
 							timeTmp = moment(timeTmp).add(1,this.values.min_view_mode).valueOf();
 					}
 				}
@@ -1286,11 +1344,13 @@ UTILS.Daterange =  class extends UTILS.Base {
 
 
 	updateSelectableRange(month){
-		let $elm = this.getElm();
+		let $elm = this.getElm(),
+			start = this.getStart(),
+			end = this.getEnd();
 
 		$elm.find('.cell.invalid.tmp').removeClass('tmp invalid').addClass('valid');
 
-		if (this.values.start && !this.values.end){
+		if (start && !end){
 			_.each($elm.find('.cell.valid:not(.other-month)'), cell => {
 				var $cell = $(cell),
 					time = parseInt($cell.attr('data-value'), 10);
@@ -1323,41 +1383,42 @@ UTILS.Daterange =  class extends UTILS.Base {
 			{ $cell, $table, month, view } = this.getEventData(event),
 			show_tooltip = this.showTooltip(),
 			is_mobile = this.isMobile(),
+			is_single_date = this.isSingleDate(),
 			hover_time = parseInt($cell.attr('data-value')),
-			tooltip = '';
+			tooltip = '',
+			start = this.getStart(),
+			end = this.getEnd();
 
 		if (view===this.values.min_view_mode){
 			if ($cell.hasClass('has-tooltip') && $cell.attr('data-tooltip'))
 				tooltip = '<span class="tooltip-content">' + $cell.attr('data-tooltip') + '</span>';
 			else if (!$cell.hasClass('invalid')){
-				if (this.values.single_date){
+				if (is_single_date){
 					$elm.find('.cell.hovering').removeClass('hovering');
 					$cell.addClass('hovering');
 				}
 				else {
 					_.each($elm.find('.cell'), cell => {
 						var $cell = $(cell),
-							time = parseInt($cell.attr('data-value')),
-							start = this.values.start,
-							end = this.values.end;
+							time = parseInt($cell.attr('data-value'));
 
 						if (time == hover_time)
 							$cell.addClass('hovering');
 						else
 							$cell.removeClass('hovering');
 
-						if (this.values.start && !this.values.end && ((this.values.start < time && hover_time >= time) || (this.values.start > time && hover_time <= time)))
+						if (start && !this.values.end && ((start < time && hover_time >= time) || (start > time && hover_time <= time)))
 							$cell.addClass('hovering');
 						else
 							$cell.removeClass('hovering');
 					});
 
-					if (this.values.start && !this.values.end){
-						var days = this.countDiff(hover_time, this.values.start);
+					if (start && !end){
+						var days = this.countDiff(hover_time, start);
 
 						if (show_tooltip){
 							if (!is_mobile)
-								tooltip = this.hoveringTooltip(days, this.values.start, hover_time);
+								tooltip = this.hoveringTooltip(days, start, hover_time);
 							else if (days > 1)
 								tooltip = days + ' ' + this.translate(this.values.min_view_mode)
 						}
@@ -1399,9 +1460,12 @@ UTILS.Daterange =  class extends UTILS.Base {
 
 	autoClose(){
 		let is_activated = this.isActivated(),
-			is_autoclose = this.isAutoClose();
+			is_autoclose = this.isAutoClose(),
+			is_single_date = this.isSingleDate(),
+			start = this.getStart(),
+			end = this.getEnd();
 
-		if (is_activated && (this.values.single_date && this.values.start || this.values.start && this.values.end) ){
+		if (is_activated && (is_single_date && start || start && end) ){
 			if (is_autoclose)
 				this.hide();
 		}
@@ -1411,11 +1475,12 @@ UTILS.Daterange =  class extends UTILS.Base {
 
 	validateSelection(){
 		var $elm = this.getElm(),
-			start = moment(this.values.start||null),
-			end = moment(this.values.end||null),
+			start = moment(this.getStart() || null),
+			end = moment(this.getEnd() || null),
 			units_apart = (start.isValid() && end.isValid()) ? end.diff(start,this.values.min_view_mode) + 1 : NaN,
 			min = this.values.min_days,
-			max = this.values.max_days;
+			max = this.values.max_days,
+			is_single_date = this.isSingleDate();
 
 		if (/^months$/i.test(this.values.min_view_mode)){
 			min = this.values.min_months;
@@ -1426,21 +1491,21 @@ UTILS.Daterange =  class extends UTILS.Base {
 			max = this.values.max_years;
 		}
 
-		if (this.values.single_date){ //validate if only start is there
+		if (is_single_date){ //validate if only start is there
 			if (start.isValid() && !end.isValid())
 				$elm.find('.drp_top-bar').removeClass('error').addClass('normal');
 			else
 				$elm.find('.drp_top-bar').removeClass('error').removeClass('normal');
 		}
 		else if (max && units_apart > max){
-			this.values.start = false;
-			this.values.end = false;
+			this.setStart(null);
+			this.setEnd(null);
 			$elm.find('.cell').removeClass('checked');
 			$elm.find('.drp_top-bar').removeClass('normal').addClass('error').find('.error-top').html(this.translate('less-than').replace('%d', max));
 		}
 		else if (min && units_apart < min){
-			this.values.start = false;
-			this.values.end = false;
+			this.setStart(null);
+			this.setEnd(null);
 			$elm.find('.cell').removeClass('checked');
 			$elm.find('.drp_top-bar').removeClass('normal').addClass('error').find('.error-top').html(this.translate('more-than').replace('%d', min));
 		}
@@ -1451,15 +1516,15 @@ UTILS.Daterange =  class extends UTILS.Base {
 				$elm.find('.drp_top-bar').removeClass('error').removeClass('normal');
 		}
 
-		if ((this.values.single_date && this.values.start && !this.values.end) || (!this.values.single_date && this.values.start && this.values.end))
+		if ((is_single_date && this.getStart() && !this.getEnd()) || (!is_single_date && this.getStart() && this.getEnd()))
 			$elm.find('.apply-btn').removeClass('disabled');
 		else
 			$elm.find('.apply-btn').addClass('disabled');
 
 		if (this.values.batch_mode){
-			if ((this.values.start && this.values.start_date && this.compareDates(this.values.start, this.values.start_date) < 0) || (this.values.end && this.values.end_date && this.compareDates(this.values.end, this.values.end_date) > 0)){
-				this.values.start = false;
-				this.values.end = false;
+			if ((this.getStart() && this.values.start_date && this.compareDates(this.getStart(), this.values.start_date) < 0) || (this.getEnd() && this.values.end_date && this.compareDates(this.getEnd(), this.values.end_date) > 0)){
+				this.setStart(null);
+				this.setEnd(null);
 				$elm.find('.cell').removeClass('checked');
 			}
 		}
@@ -1469,9 +1534,12 @@ UTILS.Daterange =  class extends UTILS.Base {
 
 	updateSelectionInHeader(force_validate, silent){
 		let $elm = this.getElm(),
+			start = this.getStart(),
+			end = this.getEnd(),
 			is_activated = this.isActivated(),
 			is_show_topbar = this.isShowTopbar(),
 			is_autoclose = this.isAutoClose(),
+			is_single_date = this.isSingleDate(),
 			range;
 
 		if (is_show_topbar){
@@ -1479,17 +1547,17 @@ UTILS.Daterange =  class extends UTILS.Base {
 			$elm.find('.end-day').html('...');
 			$elm.find('.selected-days').addClass('hide');
 
-			if (this.values.start)
-				$elm.find('.start-day').html(this.getDateString(new Date(parseInt(this.values.start))));
+			if (start)
+				$elm.find('.start-day').html(this.getDateString(new Date(parseInt(start))));
 
-			if (this.values.end)
-				$elm.find('.end-day').html(this.getDateString(new Date(parseInt(this.values.end))));
+			if (end)
+				$elm.find('.end-day').html(this.getDateString(new Date(parseInt(end))));
 		}
 
-		if (this.values.start){
-			if (this.values.single_date){
+		if (start){
+			if (is_single_date){
 				$elm.find('.apply-btn').removeClass('disabled');
-				range = this.getDateString(new Date(this.values.start));
+				range = this.getDateString(new Date(start));
 
 				if (is_autoclose)
 					this.setTargetValue(range);
@@ -1497,14 +1565,14 @@ UTILS.Daterange =  class extends UTILS.Base {
 				if (is_activated && !silent){
 					this.fns('onDateChanged',{
 						range: range,
-						date1: new Date(this.values.start)
+						date1: new Date(start)
 					});
 				}
 			}
-			else if (this.values.end){
-				$elm.find('.selected-days').removeClass('hide').find('.selected-days-num').html(this.countDiff(this.values.end, this.values.start));
+			else if (end){
+				$elm.find('.selected-days').removeClass('hide').find('.selected-days-num').html(this.countDiff(end, start));
 				$elm.find('.apply-btn').removeClass('disabled');
-				range = this.getDateString(new Date(this.values.start)) + this.values.separator + this.getDateString(new Date(this.values.end));
+				range = this.getDateString(new Date(start)) + this.values.separator + this.getDateString(new Date(end));
 
 				if (is_autoclose)
 					this.setTargetValue(range);
@@ -1512,8 +1580,8 @@ UTILS.Daterange =  class extends UTILS.Base {
 				if (is_activated && !silent){
 					this.fns('onDateChanged',{
 						range: range,
-						date1: new Date(this.values.start),
-						date2: new Date(this.values.end)
+						date1: new Date(start),
+						date2: new Date(end)
 					});
 				}
 			}
@@ -1558,8 +1626,8 @@ UTILS.Daterange =  class extends UTILS.Base {
 			return;
 		}
 
-		this.values.start = date1.getTime();
-		this.values.end = date2.getTime();
+		this.setStart(date1.getTime());
+		this.setEnd(date2.getTime());
 
 		if (this.values.time.enabled){
 			this.renderTime('time1', date1);
@@ -1635,70 +1703,63 @@ UTILS.Daterange =  class extends UTILS.Base {
 		return this;
 	}
 
-	setSingleDate(date1){
+	setSingleDate(date){
+		let start = this.getStart(),
+			end = this.getEnd();
 
-		var valid = true;
+		if (start && this.compareDates(date, start)<0 || end && this.compareDates(date, end)>0)
+			this.renderCalendar(start, 'month1');
+		else {
+			this.setStart(date);
+			
+			if (this.values.time.enabled)
+				this.renderTime('time1', date);
 
-		if (this.values.start_date && this.compareDates(date1, this.values.start_date) < 0)
-			valid = false;
+			this.renderCalendar(date, 'month1');
 
-		if (this.values.end_date && this.compareDates(date1, this.values.end_date) > 0)
-			valid = false;
+			if (!this.values.single_month)
+				this.renderCalendar(this.nextMonth(date), 'month2');
 
-		if (!valid){
-			this.renderCalendar(this.values.start_date, 'month1');
-			return;
+			this.showDivider();
+			this.updateSelectionInHeader();
+			this.autoClose();
+
 		}
-
-		this.values.start = date1.getTime();
-
-
-		if (this.values.time.enabled)
-			this.renderTime('time1', date1);
-
-		this.renderCalendar(date1, 'month1');
-
-		if (this.values.single_month !== true){
-			var date2 = this.nextMonth(date1);
-			this.renderCalendar(date2, 'month2');
-		}
-
-		this.showDivider();
-		this.updateSelectionInHeader();
-		this.autoClose();
 
 		return this;
 	}
 
 	showSelectedDates(){
-		let $elm = this.getElm();
+		let $elm = this.getElm(),
+			start = this.getStart(),
+			end = this.getEnd();
 
-		if (this.values.start || this.values.end){
+		if (start || end){
 			_.each($elm.find('.cell'), cell => {
 				var $cell = $(cell),
 					time = parseInt($cell.attr('data-value')),
-					start = this.values.start,
-					end = this.values.end;
+					_start = start,
+					_end = end;
 
 				if (this.values.time.enabled){
 					time = moment(time).startOf('day').valueOf();
-					start = moment(start || moment().valueOf()).startOf('day').valueOf();
-					end = moment(end || moment().valueOf()).startOf('day').valueOf();
+					_start = moment(_start || moment().valueOf()).startOf('day').valueOf();
+					_end = moment(_end || moment().valueOf()).startOf('day').valueOf();
 				}
 
-				if ((this.values.start && this.values.end && end >= time && start <= time) || (this.values.start && !this.values.end && moment(start).format('YYYY-MM-DD') == moment(time).format('YYYY-MM-DD')))
+				if ((start && end && _end >= time && _start <= time) || (start && !end && moment(_start).format('YYYY-MM-DD') == moment(time).format('YYYY-MM-DD')))
 					$cell.addClass('checked');
 				else
 					$cell.removeClass('checked');
 
 				//add first-date-selected class name to the first date selected
-				if (this.values.start && moment(start).format('YYYY-MM-DD') == moment(time).format('YYYY-MM-DD'))
+				if (start && moment(_start).format('YYYY-MM-DD') == moment(time).format('YYYY-MM-DD'))
 					$cell.addClass('first-date-selected');
 				else
 					$cell.removeClass('first-date-selected');
 
 				//add last-date-selected
-				if (this.values.end && moment(end).format('YYYY-MM-DD') == moment(time).format('YYYY-MM-DD'))
+				if (end && moment(_end).format('YYYY-MM-DD') == moment(time).format('YYYY-MM-DD'))
 					$cell.addClass('last-date-selected');
 				else
 					$cell.removeClass('last-date-selected');
@@ -1757,14 +1818,14 @@ UTILS.Daterange =  class extends UTILS.Base {
 	createMonthsHtml(date,month){
 		let html = '',
 			i = 0,
-			selected_date = /^month1$/i.test(month) ? this.values.start : this.values.end,
+			selected_date = /^month1$/i.test(month) ? this.getStart() : this.getEnd(),
 			today = moment(),
 			view = this.getCurrentView(month);
 
 		while (i < 12){
-			let month = new Date(date.getFullYear(), i).getMonth(),
-				month_in_loop = moment(date).month(month),
-				is_today_month = today.isSame(moment(date).month(month),'month'),
+			let _month = new Date(date.getFullYear(), i).getMonth(),
+				month_in_loop = moment(date).month(_month),
+				is_today_month = today.isSame(moment(date).month(_month),'month'),
 				valid = this.isValidTime(month_in_loop.valueOf(),month);
 
 			if (/^months$/.test(this.values.min_view_mode) && (this.values.start_date && this.compareMonth(month_in_loop.toDate(), this.values.start_date)<0 || this.values.end_date && this.compareMonth(month_in_loop.toDate(), this.values.end_date)>0))
@@ -1773,7 +1834,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 			if (valid)
 				valid = this.customDateFilter(month_in_loop.toDate(),view);
 
-			html += '<div class="cell cell-month '+(is_today_month ? 'cell-current' : '')+' '+(valid ? 'valid' : 'invalid')+'" data-value="'+month_in_loop.valueOf()+'">'+this.nameMonth(month)+'</div>';
+			html += '<div class="cell cell-month '+(is_today_month ? 'cell-current' : '')+' '+(valid ? 'valid' : 'invalid')+'" data-value="'+month_in_loop.valueOf()+'">'+this.nameMonth(_month)+'</div>';
 			i++
 		}
 
@@ -1866,22 +1927,26 @@ UTILS.Daterange =  class extends UTILS.Base {
 				-1;
 	}
 
+	_getMomentDate(date){
+		return typeof date==='string' ? moment(date,this.getDateFormat()) : moment(date);
+	}
+
 	compareYear(date1, date2){
-		var p = parseInt(moment(date1).format('YYYY')) - parseInt(moment(date2).format('YYYY'));
+		var p = parseInt(this._getMomentDate(date1).format('YYYY')) - parseInt(this._getMomentDate(date2).format('YYYY'));
 		if (p > 0) return 1;
 		if (p === 0) return 0;
 		return -1;
 	}
 
 	compareMonth(date1, date2){
-		var p = parseInt(moment(date1).format('YYYYMM')) - parseInt(moment(date2).format('YYYYMM'));
+		var p = parseInt(this._getMomentDate(date1).format('YYYYMM')) - parseInt(this._getMomentDate(date2).format('YYYYMM'));
 		if (p > 0) return 1;
 		if (p === 0) return 0;
 		return -1;
 	}
 
 	compareDay(date1, date2){
-		var p = parseInt(moment(date1).format('YYYYMMDD')) - parseInt(moment(date2).format('YYYYMMDD'));
+		var p = parseInt(this._getMomentDate(date1).format('YYYYMMDD')) - parseInt(this._getMomentDate(date2).format('YYYYMMDD'));
 		if (p > 0) return 1;
 		if (p === 0) return 0;
 		return -1;
@@ -2150,20 +2215,21 @@ UTILS.Daterange =  class extends UTILS.Base {
 	}
 
 	getDefaultDate(){
-		var default_date = this.values.defaultDate ? this.values.defaultDate : new Date();
+		var default_date = this.values.defaultDate ? this.values.defaultDate : new Date(),
+			is_single_date = this.isSingleDate();
 
 		if (this.values.look_behind){
-			if (this.values.start_date && this.compareMonth(default_date, this.values.start_date) < 0) default_date = this.nextMonth(moment(this.values.start_date).toDate());
-			if (this.values.end_date && this.compareMonth(default_date, this.values.end_date) > 0) default_date = moment(this.values.end_date).toDate();
+			if (this.values.start_date && this.compareMonth(default_date, this.values.start_date) < 0) default_date = this.nextMonth(this._getMomentDate(this.values.start_date).toDate());
+			if (this.values.end_date && this.compareMonth(default_date, this.values.end_date) > 0) default_date = this._getMomentDate(this.values.end_date).toDate();
 		}
 		else {
-			if (this.values.start_date && this.compareMonth(default_date, this.values.start_date) < 0) default_date = moment(this.values.start_date).toDate();
-			if (this.values.end_date && this.compareMonth(this.nextMonth(default_date), this.values.end_date) > 0) default_date = this.prevMonth(moment(this.values.end_date).toDate());
+			if (this.values.start_date && this.compareMonth(default_date, this.values.start_date) < 0) default_date = this._getMomentDate(this.values.start_date).toDate();
+			if (this.values.end_date && this.compareMonth(this.nextMonth(default_date), this.values.end_date) > 0) default_date = this.prevMonth(this._getMomentDate(this.values.end_date).toDate());
 		}
 
-		if (this.values.single_date){
-			if (this.values.start_date && this.compareMonth(default_date, this.values.start_date) < 0) default_date = moment(this.values.start_date).toDate();
-			if (this.values.end_date && this.compareMonth(default_date, this.values.end_date) > 0) default_date = moment(this.values.end_date).toDate();
+		if (is_single_date){
+			if (this.values.start_date && this.compareMonth(default_date, this.values.start_date) < 0) default_date = this._getMomentDate(this.values.start_date).toDate();
+			if (this.values.end_date && this.compareMonth(default_date, this.values.end_date) > 0) default_date = this._getMomentDate(this.values.end_date).toDate();
 		}
 
 		return default_date;
@@ -2193,7 +2259,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 			this.renderCalendar(next_date, 'month2');
 		}
 
-		if (this.values.single_date)
+		if (this.isSingleDate())
 			this.renderCalendar(date, 'month1');
 
 		this.showSelectedDates();

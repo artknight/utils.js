@@ -85,7 +85,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.7.0',
+			version: '0.7.1',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -225,6 +225,78 @@ UTILS.Editable = class extends UTILS.Base {
 
 		return _value;
 	}
+
+	_normalizeItemsForDropdown(items){
+		let is_selectize = this.isSelectize(),
+			is_multiselect = this.isMultiSelect();
+
+		if (is_selectize || is_multiselect){
+			items = _.map(items, item => {
+				return {
+					text: item.label,
+					value: item.value
+				}
+			});
+		}
+
+		return items;
+	}
+
+	_onItemSearch(query=''){
+		return new Promise((resolve,reject) => {
+			let $cell = this.getCell(),
+				spinner = this.getSpinner(),
+				options = this.getOptions(),
+				ajax_options = {
+					method: 'GET',
+					data: ('onBeforeSearch' in options) ? options.onBeforeSearch.call(this,query.urlEncode()) : { q:query.urlEncode() }
+				},
+				onAfterSearch = response => {
+					spinner.hide();
+
+					if (_.isString(response))
+						response = JSON.parse(response);
+
+					if (!UTILS.Errors.isError(response)){ //success
+						let items = ('onAfterSearch' in options) ? options.onAfterSearch.call(null,response) : response;
+
+						//now we need to replenish the options
+						let new_items = _.uniqBy([...this.getItems(),...items],'value');
+						this.setItems(new_items);
+
+						//lets check if the formatting is on par with selectize
+						if (!_.every(items, item => ('text' in item) && ('value' in item)))
+							items = this._normalizeItemsForDropdown(items);
+
+						resolve(items);
+					}
+					else
+						reject();
+				},
+				onError = error => {
+					spinner.hide();
+
+					if (error instanceof Error)
+						UTILS.Errors.show(error.message);
+
+					reject();
+				};
+
+			if ('method' in options)
+				ajax_options.data.method = options.method;
+
+			if ('content_type' in options){
+				ajax_options.content_type = options.content_type;
+
+				if (/\/json$/.test(options.content_type))
+					ajax_options.data = JSON.stringify(ajax_options.data);
+			}
+
+			spinner.setTarget($cell).show();
+			$.fetch(options.search_url, ajax_options).then(onAfterSearch).catch(onError);
+		});
+	}
+
 	_onActionTriggered(){
 		this.values._is_cell_created.then(() => {
 			let $target = this.getTarget(),
@@ -238,6 +310,7 @@ UTILS.Editable = class extends UTILS.Base {
 				is_wysiwyg = this.isWysiwyg(),
 				is_type_textarea = this.isTypeTextarea(),
 				is_contenteditable = this.isContentEditable(),
+				is_autocomplete = this.isAutoComplete(),
 				$input = this.getInputField(),
 				$next_editable = $target.nextNodeByClass('editable-target'),
 				value = this.getValue(),
@@ -268,25 +341,50 @@ UTILS.Editable = class extends UTILS.Base {
 						.prop('contenteditable',true)
 						.text(this.filterValueForEditing(prev_value))
 						.putCursorAtEnd();
+
+					if (is_autocomplete){
+						$input.contenteditableAutocomplete();
+
+						$input
+							.on('autocomplete:request', (event,query,callback) => {
+								if (query.length < 2)
+									event.preventDefault();
+								else {
+									if (options.search_url)
+										this._onItemSearch(query).then(callback);
+									else {
+										let items = _.filter(this.getItems(),item => item.value.toLowerCase().includes(query.toLowerCase()));
+
+										callback(items);
+									}
+								}
+							})
+							.on('autocomplete:select', (event,item) => {
+								this._onSave(item.value);
+								is_processing = true;
+							});
+					}
 				}
 
 				$input.on('keydown.utils.editable', event => {
-					let $field = $(event.currentTarget),
-						value = $field[is_contenteditable ? 'text' : 'val']();
+					if (!this.isAutoComplete()){
+						let $field = $(event.currentTarget),
+							value = $field[is_contenteditable ? 'text' : 'val']();
 
-					if (active_keys.isIn(UTILS.getCharKey(event))){ //enter & escape
-						event.preventDefault();
-						this._onSave(value);
-						is_processing = true;
-					}
-					else if ([keys.TAB].isIn(UTILS.getCharKey(event)) && this.isInlineTabbing()){ //tab
-						event.preventDefault();
-						is_processing = true;
-
-						if ($next_editable.length)
-							this._onSave(value).then(_triggerNextEditable);
-						else
+						if (active_keys.isIn(UTILS.getCharKey(event))){ //enter & escape
+							event.preventDefault();
 							this._onSave(value);
+							is_processing = true;
+						}
+						else if ([keys.TAB].isIn(UTILS.getCharKey(event)) && this.isInlineTabbing()){ //tab
+							event.preventDefault();
+							is_processing = true;
+
+							if ($next_editable.length)
+								this._onSave(value).then(_triggerNextEditable);
+							else
+								this._onSave(value);
+						}
 					}
 				});
 
@@ -323,70 +421,6 @@ UTILS.Editable = class extends UTILS.Base {
 							_.remove(value, item => item==item_value);
 
 						this.setValue(value);
-					};
-
-					let _normalizeItemsForSelectize = items => {
-						return _.map(items, item => {
-							return {
-								text: item.label,
-								value: item.value
-							}
-						});
-					};
-
-					let _onItemSearch = (query='') => {
-						return new Promise((resolve,reject) => {
-							let $cell = this.getCell(),
-								spinner = this.getSpinner(),
-								options = this.getOptions(),
-								ajax_options = {
-									method: 'GET',
-									data: ('onBeforeSearch' in options) ? options.onBeforeSearch.call(this,query.urlEncode()) : { q:query.urlEncode() }
-								},
-								onAfterSearch = response => {
-									spinner.hide();
-
-									if (_.isString(response))
-										response = JSON.parse(response);
-
-									if (!UTILS.Errors.isError(response)){ //success
-										let items = ('onAfterSearch' in options) ? options.onAfterSearch.call(null,response) : response;
-
-										//now we need to replenish the options
-										let new_items = _.uniqBy([...this.getItems(),...items],'value');
-										this.setItems(new_items);
-
-										//lets check if the formatting is on par with selectize
-										if (!_.every(items, item => ('text' in item) && ('value' in item)))
-											items = _normalizeItemsForSelectize(items);
-
-										resolve(items);
-									}
-									else
-										reject();
-								},
-								onError = error => {
-									spinner.hide();
-
-									if (error instanceof Error)
-										UTILS.Errors.show(error.message);
-
-									reject();
-								};
-
-							if ('method' in options)
-								ajax_options.data.method = options.method;
-
-							if ('content_type' in options){
-								ajax_options.content_type = options.content_type;
-
-								if (/\/json$/.test(options.content_type))
-									ajax_options.data = JSON.stringify(ajax_options.data);
-							}
-
-							spinner.setTarget($cell).show();
-							$.fetch(options.search_url, ajax_options).then(onAfterSearch).catch(onError);
-						});
 					};
 
 					let selectize_options = {
@@ -446,11 +480,11 @@ UTILS.Editable = class extends UTILS.Base {
 									return '<div class="padding-t5 padding-b5"><span class="editable-text">'+escape(item.text)+'</span></div>';
 								}
 							},
-							load: (query, selectize_callback) => {
+							load: (query, callback) => {
 								if (query.length < 2)
-									return selectize_callback();
+									return callback();
 
-								_onItemSearch(query).then(items => selectize_callback.call(null,items));
+								this._onItemSearch(query).then(callback);
 							}
 						});
 					}
@@ -755,6 +789,9 @@ UTILS.Editable = class extends UTILS.Base {
 	}
 	isMultiSelect(){
 		return /^multiselect/i.test(this.getType().option);
+	}
+	isAutoComplete(){
+		return /^autocomplete/i.test(this.getType().option);
 	}
 	isWysiwyg(){
 		return /^wysiwyg/i.test(this.getType().option);
@@ -1070,6 +1107,7 @@ UTILS.Editable = class extends UTILS.Base {
 				is_date_range = this.isDateRange(),
 				is_type_checkbox = this.isTypeCheckbox(),
 				is_multiselect = this.isMultiSelect(),
+				is_autocomplete = this.isAutoComplete(),
 				$target = this.getTarget(),
 				$cell = this.getCell(),
 				$editable = null,
@@ -1085,6 +1123,8 @@ UTILS.Editable = class extends UTILS.Base {
 				$editable = is_date_range ? DateRangePicker.getElm() : DatePicker.picker;
 			else if (is_type_checkbox)
 				$editable = $target.find('.custom-control');
+			else if (is_autocomplete)
+				$editable = $target.parent();
 			else
 				$editable = $cell;
 
