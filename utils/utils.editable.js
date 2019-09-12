@@ -58,7 +58,6 @@ UTILS.Editable = class extends UTILS.Base {
 		('type' in data) && this.setType(data.type);
 		('options' in data) && this.setOptions(data.options);
 		('css' in data) && this.setCss(data.css);
-		('custom_methods_override' in data) && this.setCustomMethodsOverride(data.custom_methods_override);
 		('filterMethodForEditingValue' in data) && this.setCustomMethodsOverride([{ name:'filterValueForEditing', method:data.filterMethodForEditingValue }]); //deprecated
 		('filterMethodForDisplayValue' in data) && this.setCustomMethodsOverride([{ name:'filterValueForDisplay', method:data.filterMethodForDisplayValue }]); //deprecated
 		('tabbing' in data) && this.setInlineTabbing(data.tabbing);
@@ -85,7 +84,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.7.1',
+			version: '0.7.2',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -108,8 +107,7 @@ UTILS.Editable = class extends UTILS.Base {
 			is_enabled: false, //holds the enable/disable state of the popover
 			is_shown: false, //holds the display state
 			is_contenteditable: false, //holds whether we want the content to be edited within the target element
-			_is_cell_created: null,
-			custom_methods_override: [] //holds overrides of the native methods with custom methods
+			_is_cell_created: null
 		}
 	}
 	getCss(){
@@ -301,6 +299,7 @@ UTILS.Editable = class extends UTILS.Base {
 		this.values._is_cell_created.then(() => {
 			let $target = this.getTarget(),
 				$cell = this.getCell(),
+				is_type_input = this.isTypeInput(),
 				is_type_date = this.isTypeDate(),
 				is_type_checkbox = this.isTypeCheckbox(),
 				is_type_radio = this.isTypeRadio(),
@@ -341,29 +340,27 @@ UTILS.Editable = class extends UTILS.Base {
 						.prop('contenteditable',true)
 						.text(this.filterValueForEditing(prev_value))
 						.putCursorAtEnd();
+				}
 
-					if (is_autocomplete){
-						$input.contenteditableAutocomplete();
-
-						$input
-							.on('autocomplete:request', (event,query,callback) => {
-								if (query.length < 2)
-									event.preventDefault();
+				if (is_type_input && is_autocomplete){
+					new UTILS.Autocomplete({
+						target: $input,
+						onInput: (Autocomplete,opts) => {
+							if (opts.query.length > 1){
+								if (options.search_url)
+									this._onItemSearch(opts.query).then(opts.callback);
 								else {
-									if (options.search_url)
-										this._onItemSearch(query).then(callback);
-									else {
-										let items = _.filter(this.getItems(),item => item.value.toLowerCase().includes(query.toLowerCase()));
+									let items = _.filter(this.getItems(),item => item.value.toLowerCase().includes(opts.query.toLowerCase()));
 
-										callback(items);
-									}
+									opts.callback(items);
 								}
-							})
-							.on('autocomplete:select', (event,item) => {
-								this._onSave(item.value);
-								is_processing = true;
-							});
-					}
+							}
+						},
+						onSelected: (Autocomplete,opts) => {
+							this._onSave(opts.item.value);
+							is_processing = true;
+						}
+					});
 				}
 
 				$input.on('keydown.utils.editable', event => {
@@ -705,18 +702,6 @@ UTILS.Editable = class extends UTILS.Base {
 	}
 	getSpinner(){
 		return this.values.Spinner;
-	}
-	//use this with extreme caution as it will replace the native methods with custom ones
-	setCustomMethodsOverride(overrides){
-		if (!_.isArray(overrides))
-			overrides = [overrides];
-
-		_.each(overrides, override => {
-			if (typeof override.method==='function')
-				this[override.name] = override.method;
-		});
-
-		return this;
 	}
 	getFieldName(){
 		return this.values.field_name; //field name to be passed in the ajax call

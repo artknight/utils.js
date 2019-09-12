@@ -1,0 +1,44 @@
+@import (once) "../globals/variables";
+@import (once) "../globals/mixins";
+
+[data-autocomplete] {
+	position: relative;
+
+	.autocomplete-suggestions {
+		position: absolute;
+		top: 100%;
+		left: 0;
+		min-width: 100%;
+		border: 1px solid #ccc;
+		border-top: 0;
+		display: none;
+
+		background: #fff;
+		z-index: 2;
+		white-space: nowrap;
+		font-size: 0.8rem;
+		font-family: @font-family-base;
+		font-weight: @font-weight-base;
+		line-height: @line-height-base;
+		color: @gray;
+
+		> div {
+			padding: 4px 7px;
+			cursor: pointer;
+
+			&.highlight {
+				background: #0a5cb4;
+				color: #fff;
+			}
+
+			&:not(.highlight):hover {
+				color: @gray-dark;
+			}
+
+			strong {
+				font-weight: bold;
+			}
+		}
+	}
+}
+

@@ -16,11 +16,6 @@ UTILS.Daterange =  class extends UTILS.Base {
 		if (!('target' in data))
 			throw new Error('@target must be specified upon initialization!');
 
-		if ('custom_methods_override' in data){
-			this.values.custom_methods_override = {}; //lets clear it
-			this.setCustomMethodsOverride(data.custom_methods_override);
-		}
-
 		('range' in data) && this.setDateRange(data.range);
 		('start' in data) && this.setStart(data.start);
 		('end' in data) && this.setEnd(data.end);
@@ -46,7 +41,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.daterange',
-			version: '0.0.3',
+			version: '0.0.4',
 			date_format: 'MM/DD/YYYY',
 			$elm: null, //holds the date range element
 			auto_close: false,
@@ -90,7 +85,6 @@ UTILS.Daterange =  class extends UTILS.Base {
 			start_week: false,
 			is_activated: false,
 			show_tooltip: true,
-			custom_methods_override: {}, //holds overrides of the native methods with custom methods
 			is_editable_usage: false //only true if used by UTILS.Editable
 		};
 	}
@@ -327,21 +321,6 @@ UTILS.Daterange =  class extends UTILS.Base {
 	clean(){
 		this.disableControls();
 		this.values.$elm.remove();
-		return this;
-	}
-	//use this with extreme caution as it will replace the native methods with custom ones
-	setCustomMethodsOverride(overrides){
-		if (!_.isArray(overrides))
-			overrides = [overrides];
-
-		_.each(overrides, override => {
-			if (typeof override.method==='function'){
-				this[override.name] = override.method;
-				this.values.custom_methods_override[override.name] = override;
-			}
-
-		});
-		
 		return this;
 	}
 	isShowTopbar(){

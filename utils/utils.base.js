@@ -4,23 +4,29 @@ UTILS.Base = class {
 	constructor(data={}){
 		this.values = {
 			object: 'utils.base',
-			version: '0.1.8',
+			version: '0.1.9',
 			id: UTILS.uuid(), //id of the class
 			$target: $('body'), //holds the target elm
 			ajax:{ url:'', method:'', type:'POST', params:{} },
 			scripts: [], //holds the scripts needed to load
-			fns: {} //holds the callback stack
+			fns: {}, //holds the callback stack
+			custom_methods_override: {} //holds overrides of the native methods with custom methods
 		};
+
 		//lets update the default values
 		_.extend(this.values,this.getDefaults(),data);
 
-		//analizing data
-		if (_.isPlainObject(data)){
-			('target' in data) && this.setTarget(data.target);
-			('ajax' in data) && this.setAjaxData(data.ajax);
-			('scripts' in data) && this.setScripts(data.scripts);
-			('id' in data) && this.setId(data.id);
+		//lets check for custom method overrides
+		if ('custom_methods_override' in data){
+			this.values.custom_methods_override = {}; //lets clear it
+			this.setCustomMethodsOverride(data.custom_methods_override);
 		}
+
+		//analizing data
+		('target' in data) && this.setTarget(data.target);
+		('ajax' in data) && this.setAjaxData(data.ajax);
+		('scripts' in data) && this.setScripts(data.scripts);
+		('id' in data) && this.setId(data.id);
 
 		//_log(this.getObjectName()+' --> instantiated!');
 		return this;
@@ -62,6 +68,21 @@ UTILS.Base = class {
 
 			(!_.includes(this.values.fns[type],callback)) && this.values.fns[type].push(callback);
 		}
+		return this;
+	}
+	//use this with extreme caution as it will replace the native methods with custom ones
+	setCustomMethodsOverride(overrides){
+		if (!_.isArray(overrides))
+			overrides = [overrides];
+
+		_.each(overrides, override => {
+			if (typeof override.method==='function'){
+				this[override.name] = override.method;
+				this.values.custom_methods_override[override.name] = override;
+			}
+
+		});
+
 		return this;
 	}
 	getId(){
