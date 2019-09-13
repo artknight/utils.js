@@ -113,9 +113,9 @@
   font-size: 3em;
 }
 .spinner-mode .spinner-icon {
-  border: none;
-  -webkit-animation: none;
-  animation: none;
+  border: none !important;
+  -webkit-animation: none !important;
+  animation: none !important;
 }
 .spinner-mode .spinner-icon:before {
   font-family: "Material Design Icons";
