@@ -14,6 +14,8 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 		if (!('target' in data))
 			throw new Error('@target must be specified upon initialization!');
 
+		this._onInput = _.debounce(this.__onInput__.bind(this),500);
+
 		('is_multiple' in data) && this.setMultipleState(data.is_multiple);
 		('container' in data) && this.setContainer(data.container);
 		('value' in data) && this.setValue(data.value);
@@ -27,7 +29,7 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.autocomplete',
-			version: '0.0.1',
+			version: '0.0.2',
 			$container: null,
 			$suggestions: $('<div class="autocomplete-suggestions"></div>'),
 			current_value: null,
@@ -50,11 +52,11 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 		if (!$container)
 			this.setContainer($target.parent());
 
-		$target.on('focus', this.onFocus.bind(this));
-		$target.on('input', this.onInput.bind(this));
-		$target.on('keydown', this.onKeydown.bind(this));
-		$target.on('blur', this.onBlur.bind(this));
-		this.values.$suggestions.on('mousedown touchstart', '> div', this.onSuggestionClick.bind(this));
+		$target.off('focus.utils.autocomplete').on('focus.utils.autocomplete', this._onFocus.bind(this));
+		$target.off('input.utils.autocomplete').on('input.utils.autocomplete', this._onInput.bind(this));
+		$target.off('keydown.utils.autocomplete').on('keydown.utils.autocomplete', this._onKeydown.bind(this));
+		$target.off('blur.utils.autocomplete').on('blur.utils.autocomplete', this._onBlur.bind(this));
+		this.values.$suggestions.off('mousedown.utils.autocomplete touchstart.utils.autocomplete').on('mousedown.utils.autocomplete touchstart.utils.autocomplete', '> div', this._onClick.bind(this));
 
 		setTimeout(() => {
 			let cursor_pos = this.getCaretCharacterOffsetWithin($target[0]);
@@ -95,7 +97,7 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 		$target.is(':input') ? $target.val(value) : $target.html(value);
 		return this;
 	}
-	onFocus(){
+	_onFocus(){
 		let is_multiple = this.isMultiple();
 
 		this.values.current_value = this.getValue();
@@ -103,7 +105,7 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 		if (is_multiple)
 			this.addTrailingComma();
 	}
-	onInput(event){
+	__onInput__(event){
 		let is_multiple = this.isMultiple(),
 			new_value = this.getValue(),
 			query;
@@ -125,10 +127,7 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 			this.fns('onInput',{ query:query, callback:this.onNewSuggestions.bind(this) });
 		}
 	}
-	onKeydown(event){
-		if (!this.values.$suggestions.is(':visible') || !this.values.$suggestions.find('div').length)
-			return;
-
+	_onKeydown(event){
 		let is_multiple = this.isMultiple(),
 			keys = {
 				UP: 38,
@@ -168,7 +167,7 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 				return;
 		}
 	}
-	onBlur(event){
+	_onBlur(event){
 		let is_multiple = this.isMultiple();
 
 		this.values.$suggestions.hide();
@@ -176,7 +175,7 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 		if (is_multiple)
 			this.removeTrailingComma();
 	}
-	onSuggestionClick(event){
+	_onClick(event){
 		event.preventDefault();
 		event.stopPropagation();
 
@@ -265,18 +264,21 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 	selectSuggestionByElement($element){
 		let $target = this.getTarget(),
 			is_multiple = this.isMultiple(),
-			selected = this.values.current_suggestions[ $element.index() ],
-			value = selected.value;
+			selected = this.values.current_suggestions[ $element.index() ];
 
-		if (is_multiple)
-			this.replaceCurrentWordWith(value);
-		else {
-			this.setValue(value);
-			$target.focus();
-			this.setCursorAt(value.length);
+		if (selected){
+			if (is_multiple)
+				this.replaceCurrentWordWith(selected.value);
+			else {
+				this.setValue(selected.value);
+				$target.focus();
+				this.setCursorAt(selected.value.length);
+			}
 		}
 
-		this.fns('onSelected',{ item:selected });
+		this.fns('onSelected',{
+			value: selected ? selected.value : this.getValue()
+		});
 
 		return this;
 	}

@@ -21,6 +21,7 @@
 }
 form.editable-form {
   position: relative;
+  z-index: 1000;
 }
 form.editable-form:before,
 form.editable-form:after {
@@ -108,10 +109,13 @@ form.editable-form .selectize-input [data-value] {
 form.editable-form .selectize-input [data-value] .editable-text {
   color: #fff;
   font-size: .85rem;
+  font-weight: normal;
 }
 form.editable-form .selectize-input [data-value] .remove {
-  border-left-color: #fff;
-  top: 2px;
+  border-left-color: transparent;
+  top: 0;
+  right: 2px;
+  font-size: 17px;
 }
 form.editable-form .selectize-dropdown-content [data-value] {
   background-color: #fff;
@@ -119,11 +123,11 @@ form.editable-form .selectize-dropdown-content [data-value] {
 form.editable-form .selectize-dropdown-content [data-value] .editable-text {
   color: #007bff;
   font-size: .85rem;
-  font-weight: normal;
 }
 form.editable-form .selectize-dropdown-content [data-value] .editable-text .highlight {
   background-color: #d8edff;
   color: #007bff;
+  font-size: .85rem;
 }
 .editable-target {
   cursor: pointer;

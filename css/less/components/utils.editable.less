@@ -30,6 +30,7 @@
 
 form.editable-form {
 	position:relative;
+	z-index: 1000;
 	
 	//top arrow
 	&:before, &:after {
@@ -128,11 +129,14 @@ form.editable-form {
 			.editable-text {
 				color: #fff;
 				font-size: .85rem;
+				font-weight: normal;
 			}
 
 			.remove {
-				border-left-color: #fff;
-				top: 2px;
+				border-left-color: transparent;
+				top: 0;
+				right: 2px;
+				font-size: 17px;
 			}
 		}
 	}
@@ -143,11 +147,11 @@ form.editable-form {
 			.editable-text {
 				color: #007bff;
 				font-size: .85rem;
-				font-weight: normal;
 
 				.highlight {
 					background-color: @brand-light-blue-retro;
 					color: #007bff;
+					font-size: .85rem;
 				}
 			}
 		}

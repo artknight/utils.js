@@ -84,7 +84,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.7.2',
+			version: '0.7.3',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -357,7 +357,7 @@ UTILS.Editable = class extends UTILS.Base {
 							}
 						},
 						onSelected: (Autocomplete,opts) => {
-							this._onSave(opts.item.value);
+							this._onSave(opts.value);
 							is_processing = true;
 						}
 					});
