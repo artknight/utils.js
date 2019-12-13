@@ -15,7 +15,7 @@ UTILS.SCache = class {
 	getDefaults(){
 		return {
 			object: 'utils.scache',
-			version:'0.5.8',
+			version:'0.5.9',
 			id: 0, //holds the project id
 			name: '', //holds the name
 			fns: {},
@@ -265,11 +265,11 @@ UTILS.SCache = class {
 	}
 
 	compress(content){
-		return LZString.compressToBase64(content);
+		return content; //LZString.compressToBase64(content);
 	}
 
 	decompress(content){
-		return LZString.decompressFromBase64(content);
+		return content; //LZString.decompressFromBase64(content);
 	}
 
 	//this method is merely to provide a way to debug files inserted as a script tag

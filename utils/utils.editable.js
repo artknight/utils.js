@@ -84,7 +84,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.7.3',
+			version: '0.7.4',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -785,30 +785,32 @@ UTILS.Editable = class extends UTILS.Base {
 		return this.values.value;
 	}
 	setValue(value){
-		this.values.value = value;
+		return new Promise((resolve,reject) => {
+			this.values.value = value;
 
-		//accounting for lazyload
-		if (this.isLazyLoad()){
-			var $target = this.getTarget(),
-				target_options = $target.data('editable-options');
+			//accounting for lazyload
+			if (this.isLazyLoad()){
+				var $target = this.getTarget(),
+					target_options = $target.data('editable-options');
 
-			if (_.isPlainObject(target_options))
-				$target.data('editable-options', _.extend(target_options,{ value:value }));
-		}
+				if (_.isPlainObject(target_options))
+					$target.data('editable-options', _.extend(target_options,{ value:value }));
+			}
 
-		this.setDisplayValue(value);
-
-		return this;
+			this.setDisplayValue(value).then(resolve);
+		});
 	}
 	setDisplayValue(value){
-		var $target = this.getTarget(),
-			is_type_checkbox = this.isTypeCheckbox(),
-			_value = (is_type_checkbox) ? value : this.filterValueForDisplay(value);
+		return new Promise((resolve,reject) => {
+			var $target = this.getTarget(),
+				is_type_checkbox = this.isTypeCheckbox(),
+				_value = (is_type_checkbox) ? value : this.filterValueForDisplay(value);
 
-		if (!is_type_checkbox)
-			$target.html(_value);
+			if (!is_type_checkbox)
+				$target.html(_value);
 
-		return this;
+			resolve();
+		});
 	}
 	getDisplayValue(){
 		var $target = this.getTarget(),
@@ -1051,9 +1053,9 @@ UTILS.Editable = class extends UTILS.Base {
 	}
 	_onBeforeHide(){
 		var $input = this.getInputField(),
+			$target = this.getTarget(),
 			is_type_checkbox = this.isTypeCheckbox(),
 			is_type_radio = this.isTypeRadio(),
-			is_contenteditable = this.isContentEditable(),
 			is_date_range = this.isDateRange();
 
 		if (!is_type_checkbox && !is_date_range){
@@ -1071,9 +1073,11 @@ UTILS.Editable = class extends UTILS.Base {
 
 			this.getCell().remove();
 		}
-		
-		this.getTarget().removeClass('is-edited').prop('contenteditable',false);
+
+		$target.removeClass('is-edited').prop('contenteditable',false);
+
 		this.getSpinner().hide();
+
 		return this;
 	}
 	getDatePicker(){
@@ -1176,21 +1180,23 @@ UTILS.Editable = class extends UTILS.Base {
 					}
 
 					if (!UTILS.Errors.isError(response)){ //success
-						this.setValue(value);
-						this._onBeforeHide();
-						$target.velocity('callout.flash');
-						this._hide();
+						this.setValue(value)
+							.then(() => {
+								this._onBeforeHide();
+								$target.velocity('callout.flash');
+								this._hide();
 
-						if (is_type_date){
-							if (is_date_range)
-								DateRangePicker.hide();
-							else
-								DatePicker.hide();
-						}
+								if (is_type_date){
+									if (is_date_range)
+										DateRangePicker.hide();
+									else
+										DatePicker.hide();
+								}
 
-						this.fns('onAfterSave', response);
+								this.fns('onAfterSave', response);
 
-						resolve();
+								resolve();
+							});
 					}
 				};
 
@@ -1232,7 +1238,7 @@ UTILS.Editable = class extends UTILS.Base {
 					$.fetch(url, options).then(_onSuccess).catch(_onError);
 				}
 				else
-					_onSuccess({errors: [], ..._getFormatedParams()});
+					_onSuccess({ errors:[], ..._getFormatedParams() });
 			}
 			else {
 				_log(this.getObjectName()+' --> same value, no action taken');
