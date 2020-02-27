@@ -104,7 +104,7 @@ UTILS.Box =  class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.box',
-			version: '3.2.8',
+			version: '3.2.9',
 			history: {}, //holds the historic box settings (in case of maximize, etc...)
 			is_shown: false, //holds whether this box is shown
 			//holds the divs of the box
@@ -209,6 +209,9 @@ UTILS.Box =  class extends UTILS.Base {
 	}
 	isShown(){
 		return this.values.is_shown;
+	}
+	isDragable(){
+		return this.values.dd;
 	}
 	//private - only used to determine if the box is insterted into the body or within another DOM elm
 	isGlobalBox(){
@@ -657,11 +660,12 @@ UTILS.Box =  class extends UTILS.Base {
 					break; //set height minus 20px due to box padding
 					case /^title$/.test(k):
 						this.values.title = data[k];
+
 						if (this.values.title.length){
 							this.values.divs.$mainbody.removeClass('margin-t0');
 							this.values.divs.$hd.html('<span>'+this.values.title+'</span>').show();
 						}
-						else {
+						else if (!this.isDragable()){
 							this.values.divs.$mainbody.addClass('margin-t0');
 							this.values.divs.$hd.empty().hide();
 						}

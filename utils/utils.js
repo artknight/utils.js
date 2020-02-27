@@ -355,6 +355,26 @@ UTILS.getIframe = function(iframe){
 	};
 };
 
+UTILS.getIframeWindowObj = function(iframe){
+	let iframe_window = null,
+		$iframe = UTILS.getIframe(iframe);
+
+	if ($iframe.length)
+		iframe_window = $iframe[0].contentWindow ? $iframe[0].contentWindow : $iframe[0].contentDocument.defaultView;
+
+	return iframe_window;
+};
+
+UTILS.getIframeDocObj = function(iframe){
+	let iframe_document = null,
+		$iframe = UTILS.getIframe(iframe);
+
+	if ($iframe.length)
+		iframe_document = $iframe[0].contentDocument || $iframe[0].contentWindow.document;
+
+	return iframe_document;
+}
+
 UTILS.createPromise = function(){
 	var _resolve,
 		_reject,
@@ -369,25 +389,44 @@ UTILS.createPromise = function(){
 	return promise;
 };
 
-UTILS.printDiv = function(elm){
-	var $elm = $(elm),
-		html = $elm.html(),
-		$iframe = $('<iframe name="print-wrapper" style="position:absolute; top:-10000000px;"></iframe>').appendTo('body'),
-		iframe_win_obj = UTILS.getIframe($iframe).window;
+UTILS.print = function(url_or_elm=null){
+	if (!url_or_elm)
+		window.print();
+	else {
+		let $iframe = $('<iframe name="print-wrapper" style="position:absolute; top:-10000000px;"></iframe>'),
+			url = /^http|\//i.test(url_or_elm) ? url_or_elm : 'javascript:false;'; //rudimentary check for url string
 
-	iframe_win_obj.document.open();
-	iframe_win_obj.document.write('<html><head><title>print content</title>');
-	iframe_win_obj.document.write('</head><body>');
-	iframe_win_obj.document.write(html);
-	iframe_win_obj.document.write('</body></html>');
-	iframe_win_obj.document.close();
+		let _print = () => {
+			if (window.frames['print-wrapper'].document.body.innerHTML.length){
+				window.frames['print-wrapper'].focus();
+				window.frames['print-wrapper'].print();
 
-	setTimeout(function () {
-		window.frames["print-wrapper"].focus();
-		window.frames["print-wrapper"].print();
-		$iframe.remove();
-	}, 500);
+				//hack to make sure the print works
+				setTimeout(() => { $iframe.remove(); }, 100);
+			}
+			else
+				setTimeout(_print, 500);
+		};
 
+		let _onIframeLoaded = () => {
+			if (/^javascript/.test(url)){
+				let iframe_doc_obj = UTILS.getIframeDocObj($iframe),
+					html = $(url_or_elm).html();
+
+				iframe_doc_obj.open();
+				iframe_doc_obj.write(`<html><head><title>print content</title></head><body>${html}</body></html>`);
+				iframe_doc_obj.close();
+			}
+
+			_print();
+		};
+
+		$iframe
+			.on('load',_onIframeLoaded)
+			.prop('src',url)
+			.appendTo('body');
+	}
+	
 	return false;
 };
 

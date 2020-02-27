@@ -7,6 +7,7 @@ UTILS.SCache = class {
 
 		this.log(this.getObjectName() + ' --> instantiated');
 
+		('cache_version' in data) && this.setCacheVersion(data.cache_version);
 		('overlay' in data) && this.setOverlayOptions(data.overlay);
 		('scripts' in data) && this.addScripts(data.scripts);
 
@@ -26,7 +27,8 @@ UTILS.SCache = class {
 			},
 			all_scripts_loaded_promise: null, //holds the promise to resolve when all scripts are loaded
 			show_log: (typeof APP.showLog==='function') ? APP.showLog() : null, //holds whether the env is dev
-			show_timer: (typeof APP.showTimer==='function') ? APP.showTimer() : false
+			show_timer: (typeof APP.showTimer==='function') ? APP.showTimer() : false,
+			cache_version: 1
 		};
 	}
 	getObjectName(){
@@ -46,6 +48,36 @@ UTILS.SCache = class {
 			scope1[key] = scope2[key];
 		}
 		return scope1;
+	}
+	getCacheVersion(){
+		return this.values.cache_version;
+	}
+	getLSCacheVersion(){ 
+		return localStorage.getItem('scache_version');
+	}
+	setLSCacheVersion(cache_version){
+		localStorage.setItem('scache_version',cache_version);
+		return this;
+	}
+	setCacheVersion(cache_version){
+		this.values.cache_version = cache_version;
+
+		//lets try to clear the local storage
+		this.resetStorage();
+
+		return this;
+	}
+	resetStorage(){
+		let ls_cache_version = this.getLSCacheVersion(),
+			cache_version = this.getCacheVersion();
+		
+		if (ls_cache_version!=cache_version){
+			this.log(this.getObjectName() + ' --> clearing local cache');
+			localStorage.clear();
+			this.setLSCacheVersion(cache_version);
+		}
+
+		return this;
 	}
 	createOnAllScriptsLoadedPromise(){
 		var _resolve,
@@ -156,7 +188,7 @@ UTILS.SCache = class {
 		}
 
 		(this.values.show_timer) && console.timeEnd(script.timer_id); //stopping timer
-		script.promise_tuple.resolve();
+		script.promise.resolve();
 		
 		return this;
 	}
@@ -191,35 +223,21 @@ UTILS.SCache = class {
 		return this;
 	}
 	loadFromCache(script){
-		//if cached item url is not the request script url, clear the cache
-		if (script.ls_item.url!==script.script_url){
-			this.log(this.getObjectName() + ' --> script url changed, removing',script.ls_item.url);
+		this.log(this.getObjectName() + ' --> loading script from cache',script.ls_item.url);
 
-			localStorage.removeItem(script.base_url);
+		//need to make sure we do not add more than one script
+		if (!document.getElementById(script.id)){
+			script.$script = this.getScriptElm(script);
+			script.$script.appendChild(document.createTextNode( this.decompress(script.ls_item.content) ));
 
-			var existing_script = document.getElementById(script.id);
-			if (existing_script)
-				existing_script.parentNode.removeChild(existing_script);
+			//adding source map
+			script.$script.appendChild(document.createTextNode(this.getSourceUrlMapName(script)));
 
-			this[ script.is_js ? 'loadJS' : 'loadCSS' ](script);
+			this.addToPage(script);
 		}
-		else {
-			this.log(this.getObjectName() + ' --> loading script from cache',script.ls_item.url);
 
-			//need to make sure we do not add more than one script
-			if (!document.getElementById(script.id)){
-				script.$script = this.getScriptElm(script);
-				script.$script.appendChild(document.createTextNode( this.decompress(script.ls_item.content) ));
-
-				//adding source map
-				script.$script.appendChild(document.createTextNode(this.getSourceUrlMapName(script)));
-
-				this.addToPage(script);
-			}
-
-			(this.values.show_timer) && console.timeEnd(script.timer_id); //stopping timer
-			script.promise_tuple.resolve();
-		}
+		(this.values.show_timer) && console.timeEnd(script.timer_id); //stopping timer
+		script.promise.resolve();
 
 		return this;
 	}
@@ -270,6 +288,20 @@ UTILS.SCache = class {
 
 	decompress(content){
 		return content; //LZString.decompressFromBase64(content);
+	}
+
+	createPromise(){
+		let _resolve,
+			_reject,
+			promise = new Promise(function(resolve,reject){
+				_resolve = resolve;
+				_reject = reject;
+			});
+
+		promise.resolve = _resolve;
+		promise.reject = _reject;
+
+		return promise;
 	}
 
 	//this method is merely to provide a way to debug files inserted as a script tag
@@ -324,7 +356,7 @@ UTILS.SCache = class {
 					base_url: base_url,
 					ls_item: localStorage.getItem(base_url),
 					is_js: this.isJS(base_url),
-					promise_tuple: { resolve:null, reject:null }
+					promise: null
 				};
 
 			//lets check if '^type=js' exists to override the default type
@@ -333,11 +365,14 @@ UTILS.SCache = class {
 
 			//lets check if the script already exists
 			if (!this.values.loaded_scripts.find(s => s.base_url.includes(script.base_url))){
-				promises.push(new Promise(function(resolve,reject){
-					script.promise_tuple = { resolve,reject };
-					(this.values.show_timer) && console.time(script.timer_id); //start timer
-					this.loadScript(script);
-				}.bind(this)));
+				script.promise = this.createPromise();
+
+				//start timer
+				(this.values.show_timer) && console.time(script.timer_id);
+
+				promises.push(script.promise);
+
+				this.loadScript(script);
 			}
 			else
 				this.log(this.getObjectName() + ' --> dupplicate script found',script.script_url);

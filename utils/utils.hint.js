@@ -38,7 +38,7 @@ UTILS.Hint = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object:'utils.hint',
-			version:'1.5.3',
+			version:'1.5.4',
 			history: {}, //holds the historic values
 			css: {},
 			is_error: false,
@@ -105,12 +105,12 @@ UTILS.Hint = class extends UTILS.Base {
 				this.values.history.highlight.border_color = this.values.history.highlight.$elm.css('background-color');
 			}
 
-			this.values.history.highlight.$elm.css('background-color','#ffdddd');
+			this.values.history.highlight.$elm.addClass('hint-error');
 		}
 	}
 	unHighlight(){
 		if ('highlight' in this.values.history)
-			this.values.history.highlight.$elm.css('background-color',this.values.history.highlight.border_color);
+			this.values.history.highlight.$elm.removeClass('hint-error');
 	}
 	//private - called to adjust the direction in case left|right direction is out of bounds
 	adjustDirection(){

@@ -78,13 +78,14 @@ UTILS.Editable = class extends UTILS.Base {
 		('onInputCreate' in data) && this.addCallback('onInputCreate', data.onInputCreate);
 		('value' in data) && this.setValue(data.value);
 		('placeholder' in data) && this.setPlaceholder(data.placeholder); //lets put it at the end to avoid race conditions
+		('min_chars' in data) && this.setMinChars(data.min_chars);
 
 		return this;
 	}
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.7.4',
+			version: '0.8.1',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -107,7 +108,8 @@ UTILS.Editable = class extends UTILS.Base {
 			is_enabled: false, //holds the enable/disable state of the popover
 			is_shown: false, //holds the display state
 			is_contenteditable: false, //holds whether we want the content to be edited within the target element
-			_is_cell_created: null
+			_is_cell_created: null,
+			min_chars: 2 //holds the min char length for a query ( applies to autocomplete and selectize )
 		}
 	}
 	getCss(){
@@ -115,6 +117,12 @@ UTILS.Editable = class extends UTILS.Base {
 	}
 	setCss(css){
 		this.values.css = css||'';
+	}
+	getMinChars(){
+		return this.values.min_chars;
+	}
+	setMinChars(length){
+		this.values.min_chars = length||2; //default value
 	}
 	//sometimes we need to set it to NULL to make sure no ajax call happens
 	setAjaxData(ajax){
@@ -190,7 +198,7 @@ UTILS.Editable = class extends UTILS.Base {
 	filterValueForEditing(value){
 		var _value = value;
 		
-		if (this.values.placeholder===_value)
+		if (this.getPlaceholder()===_value)
 			_value = '';
 
 		return _value;
@@ -198,12 +206,12 @@ UTILS.Editable = class extends UTILS.Base {
 	//formats the display value of target ( after edit )
 	filterValueForDisplay(value){
 		var type = this.getType(),
-			is_multiselect = this.isMultiSelect(),
+			is_multiselect_dropdown = this.isMultiSelect() && this.isTypeDropDown(),
 			items = this.getItems(),
 			_value = value;
 
 		//multiselect
-		if (is_multiselect){
+		if (is_multiselect_dropdown){
 			_value = _.map(value, selected_value => {
 				let found = _.find(items, item => (item.value==selected_value));
 
@@ -219,16 +227,16 @@ UTILS.Editable = class extends UTILS.Base {
 		}
 
 		if (!_value.length)
-			_value = this.values.placeholder;
+			_value = this.getPlaceholder();
 
 		return _value;
 	}
 
 	_normalizeItemsForDropdown(items){
 		let is_selectize = this.isSelectize(),
-			is_multiselect = this.isMultiSelect();
+			is_multiselect_dropdown = this.isMultiSelect() && this.isTypeDropDown();
 
-		if (is_selectize || is_multiselect){
+		if (is_selectize || is_multiselect_dropdown){
 			items = _.map(items, item => {
 				return {
 					text: item.label,
@@ -247,7 +255,7 @@ UTILS.Editable = class extends UTILS.Base {
 				options = this.getOptions(),
 				ajax_options = {
 					method: 'GET',
-					data: ('onBeforeSearch' in options) ? options.onBeforeSearch.call(this,query.urlEncode()) : { q:query.urlEncode() }
+					data: ('onBeforeSearch' in options) ? options.onBeforeSearch.call(null,query.urlEncode(),this) : { q:query.urlEncode() }
 				},
 				onAfterSearch = response => {
 					spinner.hide();
@@ -256,7 +264,7 @@ UTILS.Editable = class extends UTILS.Base {
 						response = JSON.parse(response);
 
 					if (!UTILS.Errors.isError(response)){ //success
-						let items = ('onAfterSearch' in options) ? options.onAfterSearch.call(null,response) : response;
+						let items = ('onAfterSearch' in options) ? options.onAfterSearch.call(null,response,this) : response;
 
 						//now we need to replenish the options
 						let new_items = _.uniqBy([...this.getItems(),...items],'value');
@@ -306,6 +314,7 @@ UTILS.Editable = class extends UTILS.Base {
 				is_type_dropdown = this.isTypeDropDown(),
 				is_selectize = this.isSelectize(),
 				is_multiselect = this.isMultiSelect(),
+				is_multiselect_dropdown = is_multiselect && is_type_dropdown,
 				is_wysiwyg = this.isWysiwyg(),
 				is_type_textarea = this.isTypeTextarea(),
 				is_contenteditable = this.isContentEditable(),
@@ -317,10 +326,11 @@ UTILS.Editable = class extends UTILS.Base {
 				options = this.getOptions(),
 				is_processing = false,
 				keys = { ENTER:13, ESCAPE:27, TAB:9 },
-				active_keys = [keys.ESCAPE];
+				active_keys = [keys.ESCAPE],
+				min_chars = this.getMinChars();
 
 			//we need ENTER key to be used within textarea
-			if (!is_type_textarea && !is_multiselect)
+			if (!is_type_textarea && !is_multiselect_dropdown)
 				active_keys.push(keys.ENTER);
 
 			var _triggerNextEditable = () => {
@@ -332,7 +342,11 @@ UTILS.Editable = class extends UTILS.Base {
 			if (!is_type_date && !is_type_checkbox){
 				//content editables
 				if (is_contenteditable){
-					let prev_value = $input.text();
+					let prev_value = $input.html().replace(/(<([^>]+)>)/gi, elm => /\<\/span\>/.test(elm) ? ', ' : '');
+
+					//lets check if the prev_value ( aka current value of the editable element is the same as the placeholder )
+					if (prev_value===this.getPlaceholder())
+						prev_value = '';
 
 					//lets set the prev value & contenteditable attr
 					$input
@@ -343,10 +357,10 @@ UTILS.Editable = class extends UTILS.Base {
 				}
 
 				if (is_type_input && is_autocomplete){
-					new UTILS.Autocomplete({
+					let autocomplete_options = {
 						target: $input,
 						onInput: (Autocomplete,opts) => {
-							if (opts.query.length > 1){
+							if (opts.query.length >= min_chars){
 								if (options.search_url)
 									this._onItemSearch(opts.query).then(opts.callback);
 								else {
@@ -360,11 +374,18 @@ UTILS.Editable = class extends UTILS.Base {
 							this._onSave(opts.value);
 							is_processing = true;
 						}
-					});
+					};
+
+					if (is_multiselect)
+						autocomplete_options.multiple = true;
+
+					_.extend(autocomplete_options, options);
+
+					new UTILS.Autocomplete(autocomplete_options);
 				}
 
 				$input.on('keydown.utils.editable', event => {
-					if (!this.isAutoComplete()){
+					if (!is_autocomplete){
 						let $field = $(event.currentTarget),
 							value = $field[is_contenteditable ? 'text' : 'val']();
 
@@ -399,7 +420,7 @@ UTILS.Editable = class extends UTILS.Base {
 					$input.val(value);
 
 				//lets check for selectize
-				if (is_selectize || is_multiselect){
+				if (is_selectize || is_multiselect_dropdown){
 					let _onItemSelected = item => {
 						let value = _.clone(this.getValue()),
 							is_multiselect = this.isMultiSelect();
@@ -478,7 +499,7 @@ UTILS.Editable = class extends UTILS.Base {
 								}
 							},
 							load: (query, callback) => {
-								if (query.length < 2)
+								if (query.length < min_chars)
 									return callback();
 
 								this._onItemSearch(query).then(callback);
@@ -612,7 +633,7 @@ UTILS.Editable = class extends UTILS.Base {
 				this._show();
 
 				//need to focus on the field so that the onblur kicks in
-				if (is_selectize || is_multiselect)
+				if (is_selectize || is_multiselect_dropdown)
 					$input[0].selectize.focus();
 				else if (is_wysiwyg)
 					$input.summernote('focus');
@@ -729,7 +750,7 @@ UTILS.Editable = class extends UTILS.Base {
 		this.getTarget().addClass('editable-target');
 
 		if (!this.getTarget().html().length)
-			this.setDisplayValue(this.values.placeholder);
+			this.setDisplayValue(this.getPlaceholder());
 
 		return this;
 	}
@@ -738,9 +759,13 @@ UTILS.Editable = class extends UTILS.Base {
 	}
 	setType(type){
 		if (type){
+			let subtypes = type.split('-'),
+				base = subtypes.shift(), //getting first elm
+				option = subtypes.join('-');
+
 			this.values.type = {
-				base: type.split('-')[0],
-				option: type.split('-')[1]
+				base: base, 
+				option: option
 			};
 
 			if (this.values.type.option && /^wysiwyg/i.test(this.values.type.option))
@@ -752,7 +777,7 @@ UTILS.Editable = class extends UTILS.Base {
 		return /^date/i.test(this.getType().base);
 	}
 	isDateRange(){
-		return /^range/i.test(this.getType().option);
+		return /range/i.test(this.getType().option);
 	}
 	isTypeCheckbox(){
 		return /^checkbox/i.test(this.getType().base);
@@ -770,13 +795,13 @@ UTILS.Editable = class extends UTILS.Base {
 		return /^textarea/i.test(this.getType().base);
 	}
 	isSelectize(){
-		return /^selectize/i.test(this.getType().option);
+		return /selectize/i.test(this.getType().option);
 	}
 	isMultiSelect(){
-		return /^multiselect/i.test(this.getType().option);
+		return /multiselect/i.test(this.getType().option);
 	}
 	isAutoComplete(){
-		return /^autocomplete/i.test(this.getType().option);
+		return /autocomplete/i.test(this.getType().option);
 	}
 	isWysiwyg(){
 		return /^wysiwyg/i.test(this.getType().option);
@@ -802,12 +827,10 @@ UTILS.Editable = class extends UTILS.Base {
 	}
 	setDisplayValue(value){
 		return new Promise((resolve,reject) => {
-			var $target = this.getTarget(),
-				is_type_checkbox = this.isTypeCheckbox(),
-				_value = (is_type_checkbox) ? value : this.filterValueForDisplay(value);
+			var $target = this.getTarget();
 
-			if (!is_type_checkbox)
-				$target.html(_value);
+			if (!this.isTypeCheckbox())
+				$target.html(this.filterValueForDisplay(value));
 
 			resolve();
 		});
@@ -817,7 +840,9 @@ UTILS.Editable = class extends UTILS.Base {
 			is_type_checkbox = this.isTypeCheckbox(),
 			is_contenteditable = this.isContentEditable();
 
-		return is_type_checkbox ? this.getValue() : (is_contenteditable ? $target.data('prev-value') : $target.text());
+		return is_type_checkbox
+			? this.getValue()
+			: is_contenteditable ? $target.data('prev-value') || '' : $target.text();
 	}
 	getParams(){
 		return this.values.params;
@@ -926,7 +951,6 @@ UTILS.Editable = class extends UTILS.Base {
 	_createDropdown(){
 		return new Promise((resolve,reject) => {
 			var is_multiselect = this.isMultiSelect(),
-				value = this.getValue(),
 				css = this.getCss(),
 				$wrapper = $('<form class="form-inline editable-form" data-form-type="dropdown"><div class="form-group ' + css + '"><label class="sr-only">Select One</label></div></form>'),
 				$dropdown = $('<select class="form-control popup-editable-field custom-select" '+(is_multiselect ? 'multiple="multiple"' : '')+'></select>');
@@ -1056,13 +1080,16 @@ UTILS.Editable = class extends UTILS.Base {
 			$target = this.getTarget(),
 			is_type_checkbox = this.isTypeCheckbox(),
 			is_type_radio = this.isTypeRadio(),
+			is_selectize = this.isSelectize(),
+			is_multiselect_dropdown = this.isMultiSelect() && this.isTypeDropDown(),
+			is_wysiwyg = this.isWysiwyg(),
 			is_date_range = this.isDateRange();
 
 		if (!is_type_checkbox && !is_date_range){
 			if ($input){
-				if (this.isSelectize() || this.isMultiSelect())
+				if (is_selectize || is_multiselect_dropdown)
 					$input[0].selectize.destroy();
-				else if (this.isWysiwyg())
+				else if (is_wysiwyg)
 					$input.summernote('destroy');
 				else
 					$input.off('keydown.utils.editable change.utils.editable blur.utils.editable focus.utils.editable');
@@ -1108,6 +1135,10 @@ UTILS.Editable = class extends UTILS.Base {
 				DatePicker = this.getDatePicker(),
 				DateRangePicker = this.getDateRangePicker();
 
+			//lets parse the value for autocomplete multiselect to make sure there are no redundant spaces and commas
+			if (is_multiselect && is_autocomplete)
+				value = value.split(/,\s*/g).filter(str => str.replace(/,/g,'').length).join(',');
+
 			if (is_type_date)
 				$editable = is_date_range ? DateRangePicker.getElm() : DatePicker.picker;
 			else if (is_type_checkbox)
@@ -1123,14 +1154,27 @@ UTILS.Editable = class extends UTILS.Base {
 			let _updateContentEditable = () => {
 				$target
 					.prop('contenteditable',false)
-					.text(this.filterValueForDisplay(value));
+					.html(this.filterValueForDisplay(value));
 			};
 
 			let _isMultiSelectValueChanged = () => {
-				let curr_values = _.map(value, item => parseInt(item)),
-					prev_values = _.map(this.getInputField().data('prev-value'), item => parseInt(item));
+				let is_dropdown = this.isTypeDropDown(),
+					is_changed = false,
+					curr_values,
+					prev_values;
 
-				return JSON.stringify(curr_values.sort())!==JSON.stringify(prev_values.sort());
+				if (is_dropdown){ //selectize
+					curr_values = _.map(value, item => parseInt(item)),
+					prev_values = _.map(this.getInputField().data('prev-value'), item => parseInt(item));
+					is_changed = JSON.stringify(curr_values.sort())!==JSON.stringify(prev_values.sort());
+				}
+				else { //auto-complete
+					curr_values = value;
+					prev_values = this.getDisplayValue();
+					is_changed = curr_values.replace(/[\s,]/g,'')!==prev_values.replace(/[\s,]/g,''); //removing all spaces and commas to compare two strings
+				}
+				
+				return is_changed;
 			};
 
 			//lets check if the value has changed

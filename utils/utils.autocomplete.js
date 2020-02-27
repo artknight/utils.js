@@ -16,7 +16,7 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 
 		this._onInput = _.debounce(this.__onInput__.bind(this),500);
 
-		('is_multiple' in data) && this.setMultipleState(data.is_multiple);
+		('multiple' in data) && this.setMultipleState(data.multiple);
 		('container' in data) && this.setContainer(data.container);
 		('value' in data) && this.setValue(data.value);
 		('onInput' in data) && this.addCallback('onInput',data.onInput);
@@ -29,13 +29,14 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.autocomplete',
-			version: '0.0.2',
+			version: '0.0.5',
 			$container: null,
 			$suggestions: $('<div class="autocomplete-suggestions"></div>'),
 			current_value: null,
 			current_values: [],
 			current_suggestions: [],
 			is_multiple: false,
+			is_contenteditable: false,
 			items: [],
 			regex: {
 				escape_letters: /[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g,
@@ -56,15 +57,28 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 		$target.off('input.utils.autocomplete').on('input.utils.autocomplete', this._onInput.bind(this));
 		$target.off('keydown.utils.autocomplete').on('keydown.utils.autocomplete', this._onKeydown.bind(this));
 		$target.off('blur.utils.autocomplete').on('blur.utils.autocomplete', this._onBlur.bind(this));
-		this.values.$suggestions.off('mousedown.utils.autocomplete touchstart.utils.autocomplete').on('mousedown.utils.autocomplete touchstart.utils.autocomplete', '> div', this._onClick.bind(this));
+		this.values.$suggestions.off('mousedown.utils.autocomplete touchstart.utils.autocomplete').on('mousedown.utils.autocomplete touchstart.utils.autocomplete', '> div', this._onSuggestionClick.bind(this));
 
-		setTimeout(() => {
-			let cursor_pos = this.getCaretCharacterOffsetWithin($target[0]);
-			$target.focus();
-			this.setCursorAt(cursor_pos);
-		});
+		if (this.isContentEditable() && this.isMultiple()){
+			this.removeTrailingComma();
+			this.filterValueForDisplay();
+		}
 
 		return this;
+	}
+	setTarget(target){
+		super.setTarget(target);
+
+		//lets check if the target is not a form elm and needs to be contenteditable
+		if (!this.values.$target.is(':input')){
+			this.values.$target.prop('contenteditable',true);
+			this.values.is_contenteditable = true;
+		}
+
+		return this;
+	}
+	isContentEditable(){
+		return this.values.is_contenteditable;
 	}
 	getContainer(){
 		return this.values.$container;
@@ -89,25 +103,23 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 		return this;
 	}
 	getValue(){
-		let $target = this.getTarget();
-		return $target.is(':input') ? $target.val() : $target.text();
+		let $target = this.getTarget(),
+			is_contenteditable = this.isContentEditable(),
+			value = !is_contenteditable ? $target.val() : $target.html().replace(/(<([^>]+)>)/gi, elm => /\<\/span\>/.test(elm) ? ',' : '');
+
+		return value;
 	}
 	setValue(value){
-		let $target = this.getTarget();
-		$target.is(':input') ? $target.val(value) : $target.html(value);
+		let $target = this.getTarget(),
+			is_contenteditable = this.isContentEditable();
+
+		$target[is_contenteditable ? 'html' : 'val'](value);
+
 		return this;
-	}
-	_onFocus(){
-		let is_multiple = this.isMultiple();
-
-		this.values.current_value = this.getValue();
-
-		if (is_multiple)
-			this.addTrailingComma();
 	}
 	__onInput__(event){
 		let is_multiple = this.isMultiple(),
-			new_value = this.getValue(),
+			new_value = this.getValue().replace(/\&nbsp;/g,''),
 			query;
 
 		if (!new_value.trim()){
@@ -124,7 +136,8 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 			else
 				query = new_value;
 
-			this.fns('onInput',{ query:query, callback:this.onNewSuggestions.bind(this) });
+			if (query && query.length)
+				this.fns('onInput',{ query:query, callback:this.onNewSuggestions.bind(this) });
 		}
 	}
 	_onKeydown(event){
@@ -142,13 +155,11 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 			case keys.UP:
 				event.preventDefault();
 				this.highlightPreviousSuggestion();
-				return;
-
+			break;
 			case keys.DOWN:
 				event.preventDefault();
 				this.highlightNextSuggestion();
-				return;
-
+			break;
 			case is_multiple && keys.COMMA:
 			case keys.RETURN:
 			case keys.TAB:
@@ -156,26 +167,54 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 
 				this.values.$suggestions.hide();
 
-				// do not cancel event on TAB
-				if (event.keyCode === keys.TAB) return;
+				if (keys.TAB===event.keyCode)
+					return;
+				else if (is_multiple && keys.COMMA===event.keyCode){
+					this._onInput(event);
+					return;
+				}
 
 				event.preventDefault();
-				return;
-
+			break;
 			case keys.ESC:
 				this.values.$suggestions.hide();
-				return;
+			break;
 		}
 	}
-	_onBlur(event){
-		let is_multiple = this.isMultiple();
+	_onFocus(){
+		let $target = this.getTarget(),
+			is_multiple = this.isMultiple(),
+			is_contenteditable = this.isContentEditable();
+
+		this.values.current_value = this.getValue();
+
+		if (is_multiple){
+			this.setValue(this.values.current_value);
+			this.addTrailingComma();
+		}
+	}
+	_onBlur(){
+		let is_multiple = this.isMultiple(),
+			is_contenteditable = this.isContentEditable();
 
 		this.values.$suggestions.hide();
 
-		if (is_multiple)
+		if (is_multiple){
 			this.removeTrailingComma();
+
+			if (is_contenteditable)
+				this.filterValueForDisplay();
+		}
 	}
-	_onClick(event){
+	_onSelected(){
+		this.fns('onSelected',{ value:this.getValue() });
+		return this;
+	}
+	filterValueForDisplay(){
+		//normally nothing to be done unless values need to be displayed differently...as badges, etc...
+		return this;
+	}
+	_onSuggestionClick(event){
 		event.preventDefault();
 		event.stopPropagation();
 
@@ -195,14 +234,14 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 			.map(this.normalizeSuggestion.bind(this))
 			.filter(this.newSuggestionsOnly.bind(this));
 
-		if (this.values.current_suggestions.length === 0){
+		if (!this.values.current_suggestions.length){
 			this.values.$suggestions.hide();
 			return;
 		}
 
 		this.values.current_suggestions.forEach((suggestion, index) => {
 			let label = suggestion.label,
-				highlight = (index === 0) ? ' class="highlight"' : '';
+				highlight = (index===0) ? ' class="highlight"' : '';
 
 			if (!label) return;
 
@@ -273,13 +312,14 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 				this.setValue(selected.value);
 				$target.focus();
 				this.setCursorAt(selected.value.length);
+
+				this._onSelected();
 			}
 		}
-
-		this.fns('onSelected',{
-			value: selected ? selected.value : this.getValue()
-		});
-
+		else if (!is_multiple){
+			this._onSelected();
+		}
+		
 		return this;
 	}
 	setCursorAt(position){
@@ -313,10 +353,8 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 			}
 			charCount += word.length + 1; // add 1 for the ,
 		}
-
-		return this;
 	}
-	replaceCurrentWordWith(newWord){
+	replaceCurrentWordWith(new_word){
 		let $target = this.getTarget(),
 			cursorAt = this.getCaretCharacterOffsetWithin($target[0]),
 			charCount = 0,
@@ -335,9 +373,9 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 				beforeQuery = this.values.current_value.substring(0, charCount).trim();
 				afterQuery = this.values.current_value.substring(cursorAt);
 
-				this.setValue(this.htmlEscape(beforeQuery + ' ' + newWord) + ',&nbsp' + this.htmlEscape(afterQuery));
+				this.setValue(this.htmlEscape(beforeQuery + ' ' + new_word) + ', ' + this.htmlEscape(afterQuery));
 
-				this.setCursorAt((beforeQuery + ' ' + newWord + ', ').length);
+				this.setCursorAt((beforeQuery + ' ' + new_word + ', ').length);
 
 				return;
 			}
@@ -365,8 +403,7 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 		return caretOffset;
 	}
 	addTrailingComma(){
-		let $target = this.getTarget(),
-			current_value = this.getValue();
+		let current_value = this.getValue();
 
 		if (current_value)
 			this.setValue(current_value.replace(this.values.regex.trailing_comma, ', '));
@@ -374,10 +411,12 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 		return this;
 	}
 	removeTrailingComma(){
-		let $target = this.getTarget(),
-			current_value = this.getValue();
+		let val = this.getValue()
+				.replace(this.values.regex.trailing_comma, '')
+				.replace(/,{2,}/g, ',') //remove two or more commas
+				.trim();
 
-		this.setValue(current_value.replace(this.values.regex.trailing_comma, ''));
+		this.setValue(val);
 
 		return this;
 	}
