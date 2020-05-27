@@ -7,7 +7,7 @@
 }
 .sp-circle {
   border: 4px rgba(0, 0, 0, 0.25) solid;
-  border-top: 4px black solid;
+  border-top: 4px #2f7deb solid;
   border-radius: 50%;
   -webkit-animation: sp-circ-rot 0.6s infinite linear;
   animation: sp-circ-rot 0.6s infinite linear;
@@ -41,7 +41,7 @@
   height: 100%;
   top: 0px;
   left: 0px;
-  background-color: #ccc;
+  background-color: #eee;
   cursor: wait;
   position: fixed;
 }
@@ -55,11 +55,13 @@
   transform: translate(-50%, -50%);
   text-align: center;
   color: #969696;
-  border: 2px solid #a7a7a7;
-  border-radius: 5px;
-  background-color: #fff;
+  border: none;
+  background-color: transparent;
   cursor: wait;
 }
 .body-overlay-msg span {
   display: block;
+}
+.msg {
+  display: none;
 }

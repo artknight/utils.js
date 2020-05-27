@@ -131,31 +131,32 @@ APP.Alert = class extends UTILS.Box {
 			data.object = 'utils.box[app.alert]';
 
 		var defaults = {
-			version: '0.0.3',
+			version: '0.0.5',
 			w: 600,
 			title: '',
 			html: '',
 			dd: false,
 			light: true,
-			buttons: { close:true, maximize:false }
+			buttons: { close:true, maximize:false },
+			delay: 1000
 		};
 
 		var custom = {
-			error: { w:600, classname:'box-red', html:$('<span><i class="mdi mdi-alert mdi-24px"></i></span>'), fx:{effect:'expand-in'} },
-			success: { w:400, classname:'box-green', html:$('<span><i class="mdi mdi-check mdi-24px"></i></span>'), fx:{effect:'slide-up'} },
-			info: { w:400, classname:'box-blue', html:$('<span><i class="mdi mdi-info mdi-24px"></i></span>'), fx:{effect:'slide-right'} },
-			warning: { w:400, classname:'box-yellow', html:$('<span><i class="mdi mdi-exclamation mdi-24px"></i></span>'), fx:{effect:'expand-in'} },
+			error: { w:600, classname:'box-red alert-box', html:$('<span class="alert-box-content"><i class="mdi mdi-alert mdi-24px"></i></span>'), fx:{effect:'expand-in'} },
+			success: { w:400, classname:'box-green alert-box', html:$('<span class="alert-box-content"><i class="mdi mdi-check mdi-24px"></i></span>'), fx:{effect:'slide-up'} },
+			info: { w:400, classname:'box-blue alert-box', html:$('<span class="alert-box-content"><i class="mdi mdi-info mdi-24px"></i></span>'), fx:{effect:'slide-right'} },
+			warning: { w:400, classname:'box-yellow alert-box', html:$('<span class="alert-box-content"><i class="mdi mdi-exclamation mdi-24px"></i></span>'), fx:{effect:'expand-in'} },
 		};
 
 		//lets change the default html for soft error msgs
 		if (/error/.test(data.type) && 'classname' in data && /soft/.test(data.classname))
-			custom[data.type].html = $('<span><h4><i class="mdi mdi-alert mdi-24px"></i> Oops...</h4></span>');
+			custom[data.type].html = $('<span class="alert-box-content"><h4><i class="mdi mdi-alert mdi-24px"></i> Oops...</h4></span>');
 
 		//lets add the html
 		custom[data.type].html.append(' ').append(data.html||'');
 
 		//update default values with custom overwrites
-		var defaults = _.extend(defaults,custom[data.type]);
+		_.extend(defaults,custom[data.type]);
 		delete data.html; //now that data.html has already been updated, we should not overwrite it
 
 		if ('classname' in data){
@@ -176,8 +177,11 @@ APP.Alert = class extends UTILS.Box {
 		else {
 			this.set({
 				classname:'alert-box',
-				onShow: function(box){
-					box.clean.bind(box).delay(1000);
+				onShow: box => {
+					let delay = this.getDelay();
+
+					if (delay)
+						box.clean.bind(box).delay(delay);
 				}
 			});
 		}
@@ -186,6 +190,9 @@ APP.Alert = class extends UTILS.Box {
 		alert_boxes[data.type].push(this);
 
 		return this;
+	}
+	getDelay(){
+		return this.values.delay;
 	}
 	isSmallViewPort(){
 		return !!($(window).width() < (this.values.$elm.outerWidth()+10));

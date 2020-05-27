@@ -11,7 +11,3 @@
 .datepicker > .blur {
   display: block;
 }
-.blur-target {
-  -webkit-transform: translateZ(0);
-          transform: translateZ(0);
-}

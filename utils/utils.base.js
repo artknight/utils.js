@@ -4,29 +4,47 @@ UTILS.Base = class {
 	constructor(data={}){
 		this.values = {
 			object: 'utils.base',
-			version: '0.1.9',
+			version: '0.2.1',
 			id: UTILS.uuid(), //id of the class
 			$target: $('body'), //holds the target elm
 			ajax:{ url:'', method:'', type:'POST', params:{} },
 			scripts: [], //holds the scripts needed to load
 			fns: {}, //holds the callback stack
-			custom_methods_override: {} //holds overrides of the native methods with custom methods
+			custom_methods_override: {}, //holds overrides of the native methods with custom methods
+			options: {} //holds the options
 		};
 
 		//lets update the default values
-		_.extend(this.values,this.getDefaults(),data);
+		let _defaults = _.cloneDeep(this.getDefaults()),
+			_data = _.cloneDeep(data);
+
+		if ('options' in _defaults){
+			const _options = Object.entries(_defaults.options);
+
+			for (const [option, option_value] of _options) {
+				this.values.options[option] = option_value;
+			}
+
+			delete _defaults.options;
+			
+			//since we already set the default options we can delegate setting (e.q. setOptions()) of the options to the extender module
+			if ('options' in _data)
+				delete _data.options;
+		}
+
+		_.extend(this.values,_defaults,_data);
 
 		//lets check for custom method overrides
-		if ('custom_methods_override' in data){
+		if ('custom_methods_override' in _data){
 			this.values.custom_methods_override = {}; //lets clear it
-			this.setCustomMethodsOverride(data.custom_methods_override);
+			this.setCustomMethodsOverride(_data.custom_methods_override);
 		}
 
 		//analizing data
-		('target' in data) && this.setTarget(data.target);
-		('ajax' in data) && this.setAjaxData(data.ajax);
-		('scripts' in data) && this.setScripts(data.scripts);
-		('id' in data) && this.setId(data.id);
+		('target' in _data) && this.setTarget(_data.target);
+		('ajax' in _data) && this.setAjaxData(_data.ajax);
+		('scripts' in _data) && this.setScripts(_data.scripts);
+		('id' in _data) && this.setId(_data.id);
 
 		//_log(this.getObjectName()+' --> instantiated!');
 		return this;
@@ -116,25 +134,6 @@ UTILS.Base = class {
 			('params' in ajax)  && (this.values.ajax.params = ajax.params);
 			('content_type' in ajax)  && (this.values.ajax.content_type = ajax.content_type);
 		}
-		return this;
-	}
-	//get bundle of scripts that must be loaded before the current component can be loaded
-	getScripts(){
-		return this.values.scripts;
-	}
-	setScripts(scripts){
-		this.values.scripts = scripts;
-		return this;
-	}
-	//loads the bundled scripts
-	loadScripts(callback){
-		var scripts = this.getScripts(),
-			callback = _.isFunction(callback) ? callback.call(this) : new Function;
-
-		if (scripts.length)
-			$LAB.script(scripts).wait(callback);
-		else
-			callback(this);
 		return this;
 	}
 };

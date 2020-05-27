@@ -7,7 +7,7 @@
 }
 .sp-circle {
 	border: 4px rgba(0, 0, 0, 0.25) solid;
-	border-top: 4px black solid;
+	border-top: 4px #2f7deb solid;
 	border-radius: 50%;
 	-webkit-animation: sp-circ-rot .6s infinite linear;
 	animation: sp-circ-rot .6s infinite linear;
@@ -18,33 +18,35 @@
 }
 
 .body-overlay {
-	z-index:1000000;
-	border:none;
-	margin:0px;
-	padding:0px;
-	width:100%;
-	height:100%;
-	top:0px;
-	left:0px;
-	background-color:#ccc;
-	cursor:wait;
-	position:fixed;
+	z-index: 1000000;
+	border: none;
+	margin: 0px;
+	padding: 0px;
+	width: 100%;
+	height: 100%;
+	top: 0px;
+	left: 0px;
+	background-color: #eee;
+	cursor: wait;
+	position: fixed;
 }
 .body-overlay-msg {
-	z-index:1000001;
-	padding:10px;
-	position:fixed;
-	top:50%;
-	left:50%;
-	-webkit-transform:translate(-50%,-50%);
-	transform:translate(-50%,-50%);
-	text-align:center; color:rgb(150, 150, 150);
-	border:2px solid rgb(167, 167, 167);
-	border-radius:5px;
-	background-color:#fff;
-	cursor:wait;
+	z-index: 1000001;
+	padding: 10px;
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	-webkit-transform: translate(-50%,-50%);
+	transform: translate(-50%,-50%);
+	text-align: center; color:rgb(150, 150, 150);
+	border: none;
+	background-color: transparent;
+	cursor: wait;
 	
 	span {
 		display: block;
 	}
+}
+.msg {
+	display: none;
 }

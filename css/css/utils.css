@@ -6,12 +6,12 @@
 .cfx:after {
   clear: both;
 }
-.fade {
+.fade:not(.popover-custom) {
   opacity: 0;
   -webkit-transition: opacity .15s linear;
   transition: opacity .15s linear;
 }
-.fade.in {
+.fade:not(.popover-custom).in {
   opacity: 1;
 }
 .regular {
@@ -80,7 +80,7 @@
 .marked-for-removal {
   animation: blink-animation 1s steps(5, start) infinite;
   -webkit-animation: blink-animation 1s steps(5, start) infinite;
-  background: #f2dede;
+  background: #f2dede !important;
 }
 @keyframes blink-animation {
   to {
@@ -1030,6 +1030,9 @@
 .cursor-helpable {
   cursor: help !important;
 }
+.cursor-text {
+  cursor: text !important;
+}
 .cursor-grabbable {
   cursor: move;
   cursor: grab;
@@ -1044,18 +1047,98 @@
   margin-left: 7px;
 }
 .expandable:before {
-  content: "\f196";
+  content: "\F03C1";
   position: absolute;
   left: -15px;
-  font-family: FontAwesome;
+  font-family: "Material Design Icons";
   font-weight: normal;
 }
 .expandable.expanded:before {
-  content: "\f147";
+  content: "\F06F2";
 }
 .expandable-offset {
   position: relative;
   margin-left: 22px;
+}
+@-webkit-keyframes wobble1 {
+  0% {
+    -webkit-transform: rotate(-0.5deg);
+            transform: rotate(-0.5deg);
+    -webkit-animation-timing-function: ease-in;
+            animation-timing-function: ease-in;
+  }
+  50% {
+    -webkit-transform: rotate(0.5deg);
+            transform: rotate(0.5deg);
+    -webkit-animation-timing-function: ease-out;
+            animation-timing-function: ease-out;
+  }
+}
+@keyframes wobble1 {
+  0% {
+    -webkit-transform: rotate(-0.5deg);
+            transform: rotate(-0.5deg);
+    -webkit-animation-timing-function: ease-in;
+            animation-timing-function: ease-in;
+  }
+  50% {
+    -webkit-transform: rotate(0.5deg);
+            transform: rotate(0.5deg);
+    -webkit-animation-timing-function: ease-out;
+            animation-timing-function: ease-out;
+  }
+}
+@-webkit-keyframes wobble2 {
+  0% {
+    -webkit-transform: rotate(0.5deg);
+            transform: rotate(0.5deg);
+    -webkit-animation-timing-function: ease-in;
+            animation-timing-function: ease-in;
+  }
+  50% {
+    -webkit-transform: rotate(-0.5deg);
+            transform: rotate(-0.5deg);
+    -webkit-animation-timing-function: ease-out;
+            animation-timing-function: ease-out;
+  }
+}
+@keyframes wobble2 {
+  0% {
+    -webkit-transform: rotate(0.5deg);
+            transform: rotate(0.5deg);
+    -webkit-animation-timing-function: ease-in;
+            animation-timing-function: ease-in;
+  }
+  50% {
+    -webkit-transform: rotate(-0.5deg);
+            transform: rotate(-0.5deg);
+    -webkit-animation-timing-function: ease-out;
+            animation-timing-function: ease-out;
+  }
+}
+.wobble {
+  -webkit-animation-delay: -0.75s;
+          animation-delay: -0.75s;
+  -webkit-animation-duration: .25s;
+          animation-duration: .25s;
+}
+.wobble:nth-child(2n) {
+  -webkit-animation-name: wobble1;
+          animation-name: wobble1;
+  -webkit-animation-iteration-count: infinite;
+          animation-iteration-count: infinite;
+  -webkit-transform-origin: 30% 10%;
+          transform-origin: 30% 10%;
+}
+.wobble:nth-child(2n-1) {
+  -webkit-animation-name: wobble2;
+          animation-name: wobble2;
+  -webkit-animation-iteration-count: infinite;
+          animation-iteration-count: infinite;
+  -webkit-animation-direction: alternate;
+          animation-direction: alternate;
+  -webkit-transform-origin: 20% 5%;
+          transform-origin: 20% 5%;
 }
 .pos-absolute {
   position: absolute !important;

@@ -2,7 +2,7 @@ if (!UTILS) var UTILS = {};
 
 UTILS.values = {
 	object:'utils',
-	version:'1.0.2',
+	version:'1.0.4',
 	numbers: '1234567890',
 	letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
 	special: ' .,-!@#$%&()?/":;\'',
@@ -17,7 +17,8 @@ UTILS.values = {
 		hex: /^#?([a-f0-9]{6}|[a-f0-9]{3})$/, //#ffffff or #fff
 		ip: /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
 		pwd: /^((?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,16})$/ //6-16 characters, one lower case, one upper case, one digit
-	}
+	},
+	browser: null
 };
 
 UTILS.isRetina = function(){
@@ -25,7 +26,11 @@ UTILS.isRetina = function(){
 };
 
 UTILS.isMobile = function(){
-	return (bowser.mobile || bowser.tablet);
+	return !!UTILS.values.browser.satisfies({
+		mobile: {
+			safari: '>=9',
+			'android browser': '>3.10'
+		}});
 };
 
 UTILS.isValidCreditCard = function(str){
@@ -168,12 +173,6 @@ UTILS.format = {
 	},
 	idify: function(item_id){
 		return item_id ? ~~parseFloat(item_id) : 0;
-	},
-	compress: function(content){
-		return lzbase62.compress(content);
-	},
-	decompress: function(content){
-		return lzbase62.decompress(content);
 	},
 	toRegex: function(str){
 		var regex = null;
@@ -901,8 +900,6 @@ $.cssNumber.gridRowStart = $.cssNumber.gridRowEnd = $.cssNumber.gridColumnStart 
 (!String.prototype.capitalize) && (String.prototype.capitalize = function(scope){ return UTILS.format.capitalize(this,scope); });
 (!String.prototype.idify) && (String.prototype.idify = Number.prototype.idify = function(){ return UTILS.format.idify(this); });
 (!String.prototype.shorten) && (String.prototype.shorten = function(limit,ending){ return UTILS.format.shorten(this,limit,ending); });
-(!String.prototype.compress) && (String.prototype.compress = function(){ return UTILS.format.compress(this); });
-(!String.prototype.decompress) && (String.prototype.decompress = function(){ return UTILS.format.decompress(this); });
 (!String.prototype.toRegex) && (String.prototype.toRegex = function(){ return UTILS.format.toRegex(this); });
 (!String.prototype.isValidRegex) && (String.prototype.isValidRegex = function(){ return UTILS.isValidRegex(this); });
 

@@ -2,7 +2,7 @@
 @import (once) "../globals/mixins";
 
 .cfx { .cfx(); }
-.fade { .fade(); }
+.fade:not(.popover-custom) { .fade(); }
 .regular {
 	clear:both;
 	text-align:left;
@@ -36,7 +36,7 @@
 }
 .marked-for-removal {
 	.blink();
-	background:@state-danger-bg;
+	background:@state-danger-bg !important;
 }
 
 //readonly
@@ -106,6 +106,7 @@
 .cursor-clickable { cursor:pointer !important; }
 .cursor-movable { cursor:move !important; }
 .cursor-helpable { cursor:help !important; }
+.cursor-text { cursor:text !important; } 
 .cursor-grabbable {
 	cursor: move; // fallback if grab cursor is unsupported
 	cursor: grab;
@@ -120,26 +121,51 @@
 }
 
 .expandable {
-	position:relative;
-	margin-left:7px;
+	position: relative;
+	margin-left: 7px;
 
 	&:before {
-		content:"\f196";
-		position:absolute;
-		left:-15px;
-		font-family:FontAwesome;
-		font-weight:normal;
+		content: "\F03C1";
+		position: absolute;
+		left: -15px;
+		font-family: @font-fam-icons;
+		font-weight: normal;
 	}
 
 	&.expanded {
 		&:before {
-			content:"\f147";
+			content: "\F06F2";
 		}
 	}
 }
 .expandable-offset {
 	position:relative;
 	margin-left:22px;
+}
+
+//wobble animation
+@keyframes wobble1 {
+	0% { transform: rotate(-0.5deg); animation-timing-function: ease-in; }
+	50% { transform: rotate(0.5deg); animation-timing-function: ease-out; }
+}
+@keyframes wobble2 {
+	0% { transform: rotate(0.5deg); animation-timing-function: ease-in; }
+	50% { transform: rotate(-0.5deg); animation-timing-function: ease-out; }
+}
+.wobble {
+	animation-delay: -0.75s; animation-duration: .25s;
+
+	&:nth-child(2n){
+		animation-name: wobble1;
+		animation-iteration-count: infinite;
+		transform-origin: 30% 10%;
+	}
+	&:nth-child(2n-1){
+		animation-name: wobble2;
+		animation-iteration-count: infinite;
+		animation-direction: alternate;
+		transform-origin: 20% 5%;
+	}
 }
 
 // pos

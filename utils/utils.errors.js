@@ -58,7 +58,7 @@ UTILS.Errors = {
 							});
 						}
 						else
-							TOOLTIP.hint({ target:$input, type:'error', msg:UTILS.Errors.getMessage(error.error), duration:20000, direction:direction });
+							TOOLTIP.hint({ target:$input, type:'error', msg:UTILS.Errors.getMessage(error.error), duration:5000, direction:direction });
 					}
 				});
 			}

@@ -313,9 +313,6 @@ UTILS.Box =  class extends UTILS.Base {
 	boxExists(){
 		return !!($(this.values.$elm).length); //returns a boolean
 	}
-	getBox(){
-		return this.values.$elm;
-	}
 	blur(){ //blurs box content
 		var blur_instance = this.values.$elm.data('utils.blur');
 
@@ -595,8 +592,10 @@ UTILS.Box =  class extends UTILS.Base {
 		this.values.divs.$inner = $('<div id="'+this.values.id+'-box-inner" class="box-inner">');
 		this.values.divs.$outer = $('<div id="'+this.values.id+'-box-outer" class="box-outer">');
 		this.values.divs.$buttons = $('<div id="'+this.values.id+'-box-top-buttons" class="box-top-buttons">');
-		this.values.divs.$cls = $('<a id="'+this.values.id+'-box-boxcls" href="#" title="close" class="box-top-buttons-close"><i class="mdi mdi-close mdi-fw mdi-24px"></i></a>');
-		this.values.divs.$maximize = $('<a id="'+this.values.id+'-box-maximize" href="#" title="maximize" class="box-top-buttons-maximize"><i class="mdi mdi-arrow-expand-all mdi-fw mdi-24px"></i></a>');
+		this.values.divs.$cls = $('<a id="'+this.values.id+'-box-boxcls" href="#" title="close" class="box-top-buttons-close"><i class="mdi mdi-close mdi-fw"></i></a>');
+		this.values.divs.$maximize = $('<a id="'+this.values.id+'-box-maximize" href="#" title="maximize" class="box-top-buttons-maximize"><i class="mdi mdi-arrow-expand-all mdi-fw"></i></a>');
+		this.values.divs.$timestamp = $('<small id="'+this.values.id+'-box-timestamp" class="box-timestamp text-muted"></small>');
+
 		//appending
 		this.getTargetDOM().append(
 			this.values.$elm.append(
@@ -606,6 +605,7 @@ UTILS.Box =  class extends UTILS.Base {
 						this.values.divs.$mainbody
 					),
 					this.values.divs.$buttons.append(
+						this.values.divs.$timestamp,
 						this.values.divs.$maximize,
 						this.values.divs.$cls
 					)
@@ -627,6 +627,15 @@ UTILS.Box =  class extends UTILS.Base {
 
 		return this;
 	} //create
+
+	getTimestamp(){
+		return this.values.divs.$timestamp.html();
+	}
+
+	setTimestamp(time=''){
+		this.values.divs.$timestamp.html(time);
+		return this;
+	}
 
 	//if escape key is pressed, lets close the box
 	_onEscapeKeyPressed(event){
@@ -798,6 +807,9 @@ UTILS.Box =  class extends UTILS.Base {
 		}
 		return this;
 	} //set
+	getBox(){
+		return this.values.$elm;
+	}
 	getControls(){
 		return this.values.divs.$controls;
 	}

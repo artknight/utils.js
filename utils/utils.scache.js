@@ -16,7 +16,7 @@ UTILS.SCache = class {
 	getDefaults(){
 		return {
 			object: 'utils.scache',
-			version:'0.5.9',
+			version:'0.6.0',
 			id: 0, //holds the project id
 			name: '', //holds the name
 			fns: {},
@@ -135,6 +135,8 @@ UTILS.SCache = class {
 			var spinner = document.createElement('div'),
 				msg = document.createElement('div');
 
+			msg.setAttribute('class','msg');
+
 			overlay.id = 'body-overlay';
 			overlay.setAttribute('class','body-overlay');
 
@@ -148,7 +150,7 @@ UTILS.SCache = class {
 			overlay_msg.appendChild(spinner);
 			overlay_msg.appendChild(msg);
 
-			var body = document.getElementsByTagName('body')[0];
+			var body = document.querySelector('body');
 
 			if (body){
 				body.appendChild(overlay);
@@ -212,8 +214,8 @@ UTILS.SCache = class {
 	}
 
 	addToPage(script){
-		var $head = document.getElementsByTagName('head')[0],
-			$title = document.getElementsByTagName('title')[0],
+		var $head = document.querySelector('head'),
+			$title = document.querySelector('title'),
 			$insert_before_elm = script.is_js ? $head.firstChild : $title; //the order matters in CSS, so we have to add elements DESC
 
 		this.log(this.getObjectName() + ' --> added to HEAD',this._getFilteredUrl(script.script_url));
@@ -262,13 +264,13 @@ UTILS.SCache = class {
 		script.$script.setAttribute('type', 'text/css');
 		script.$script.setAttribute('href', script.script_url);
 		script.$script.setAttribute('id', script.id);
+		script.$script.setAttribute('media', 'print');
+		script.$script.onload = () => {
+			script.$script.setAttribute('media', 'all');
+			this.addToCache(script);
+		}
 
 		this.addToPage(script);
-
-		//this is a workaround to get onLoad event since CSS does not have one
-		var img = document.createElement('img');
-		img.onerror = this.addToCache.bind(this,script);
-		img.src = script.script_url;
 
 		return this;
 	}

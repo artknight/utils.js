@@ -1,7 +1,13 @@
 .box {
   position: fixed;
   background: #fff;
-  display: block;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-flow: column;
+          flex-flow: column;
   visibility: hidden;
   z-index: 1001;
   top: 0;
@@ -40,7 +46,6 @@
 .box.box-blue,
 .box.box-green,
 .box.box-gray {
-  border: none;
   z-index: 10000000 !important;
 }
 .box.box-red .box-outer,
@@ -73,6 +78,14 @@
 .box-inner {
   padding: 10px;
   margin: 0;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-flow: column;
+          flex-flow: column;
+  height: 100%;
 }
 .box-hd {
   position: absolute;
@@ -102,12 +115,18 @@
 .box-hd span + span {
   padding-left: 0;
 }
+.box-timestamp {
+  margin-right: 10px;
+  margin-top: 5px;
+}
 .box-mainbody {
   width: 100%;
   margin: 20px 0 0 0;
   padding: 0;
   overflow: auto;
   overscroll-bahavior: contain;
+  -ms-flex-preferred-size: 100%;
+      flex-basis: 100%;
 }
 .box-mainbody .form-group {
   margin-left: 0;
@@ -115,17 +134,18 @@
 }
 .box-top-buttons {
   position: absolute;
-  top: -10px;
+  top: -15px;
   right: -10px;
-  margin: 0;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
 }
 .box-top-buttons a {
-  display: inline-block;
-  margin: 0;
-  padding: 1px 3px;
+  font-size: 1.1rem;
 }
 .box-top-buttons a i.mdi {
-  color: #cdcdcd;
+  color: #000;
+  opacity: 0.5;
 }
 .box-top-buttons a i.mdi:hover {
   color: #999;
@@ -135,6 +155,10 @@
 }
 .box-top-buttons a:last-child {
   margin-right: 2px;
+}
+.alert-box .box-top-buttons {
+  top: -25px;
+  right: -25px;
 }
 .box-controls {
   position: absolute;
@@ -148,19 +172,22 @@
 .box-controls.expressed {
   background: #eaeaea;
 }
+.box-controls .controls-wrapper {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+}
 .box-controls .box-controls-controls {
-  display: inline-block;
   margin-left: 12px;
 }
 .box-controls .box-controls-result {
-  display: inline-block;
   margin-left: 10px;
   font-weight: normal;
   color: #555;
   min-width: 1px;
 }
 .box-controls .box-controls-close {
-  float: right;
+  margin-left: auto;
   margin-right: 12px;
   margin-top: 2px;
 }
@@ -194,8 +221,17 @@
 .box-gray {
   padding: 10px;
   margin-bottom: 10px;
-  border-style: solid;
-  border-width: 2px;
+  font-size: .875rem;
+  background-color: #ffffffd9;
+  background-clip: padding-box;
+  border: 1px solid #0000001a;
+  -webkit-box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+          box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+  -webkit-backdrop-filter: blur(10px);
+          backdrop-filter: blur(10px);
+  border-radius: .25rem;
+  border-top: 3px solid #44a2c6;
+  color: #000;
 }
 .box-red a,
 .box-yellow a,
@@ -213,38 +249,48 @@
 .box-gray i.mdi {
   margin-right: 10px;
 }
+.box-red .alert-box-content,
+.box-yellow .alert-box-content,
+.box-green .alert-box-content,
+.box-blue .alert-box-content,
+.box-gray .alert-box-content {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: horizontal;
+  -webkit-box-direction: normal;
+      -ms-flex-flow: row;
+          flex-flow: row;
+}
 .box-red {
-  border-color: #690d20;
-  background: #f2dede;
-  color: #97122e;
+  border-top-color: #e3536c;
 }
-.box-red.soft {
-  border-color: #fff;
-  background: #fff;
-  color: #4c4c4c;
-}
-.box-red.soft .mdi {
-  color: #d9534f;
+.box-red .alert-box-content .mdi {
+  color: #e3536c;
 }
 .box-yellow {
-  border-color: #996c00;
-  background: #fcf8e3 !important;
-  color: #996c00;
+  border-top-color: #fedd6d;
+}
+.box-yellow .alert-box-content .mdi {
+  color: #fedd6d;
 }
 .box-green {
-  border-color: #0c6b3d;
-  background: #dff0d8 !important;
-  color: #0c6b3d;
+  border-top-color: #78cfbf;
+}
+.box-green .alert-box-content .mdi {
+  color: #78cfbf;
 }
 .box-blue {
-  border-color: #006172;
-  background: #d9edf7 !important;
-  color: #006172;
+  border-top-color: #44a2c6;
+}
+.box-blue .alert-box-content .mdi {
+  color: #44a2c6;
 }
 .box-gray {
-  border-color: #eee;
-  background: #eee !important;
-  color: #f7f7f7;
+  border-top-color: #898f9f;
+}
+.box-gray .alert-box-content .mdi {
+  color: #898f9f;
 }
 .alert-box {
   z-index: 10000000 !important;
