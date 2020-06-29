@@ -1,4 +1,4 @@
-const utils_daterange_i18n = {
+var utils_daterange_i18n = {
 	"default": //default language: English
 		{
 			"selected": "Selected:",

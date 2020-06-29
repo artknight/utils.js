@@ -16,7 +16,7 @@ UTILS.SCache = class {
 	getDefaults(){
 		return {
 			object: 'utils.scache',
-			version:'0.6.0',
+			version:'0.6.1',
 			id: 0, //holds the project id
 			name: '', //holds the name
 			fns: {},
@@ -228,7 +228,7 @@ UTILS.SCache = class {
 		this.log(this.getObjectName() + ' --> loading script from cache',script.ls_item.url);
 
 		//need to make sure we do not add more than one script
-		if (!document.getElementById(script.id)){
+		//if (!document.getElementById(script.id)){
 			script.$script = this.getScriptElm(script);
 			script.$script.appendChild(document.createTextNode( this.decompress(script.ls_item.content) ));
 
@@ -236,7 +236,7 @@ UTILS.SCache = class {
 			script.$script.appendChild(document.createTextNode(this.getSourceUrlMapName(script)));
 
 			this.addToPage(script);
-		}
+		//}
 
 		(this.values.show_timer) && console.timeEnd(script.timer_id); //stopping timer
 		script.promise.resolve();
@@ -366,7 +366,7 @@ UTILS.SCache = class {
 				script.is_js = true;
 
 			//lets check if the script already exists
-			if (!this.values.loaded_scripts.find(s => s.base_url.includes(script.base_url))){
+			if (!this.values.loaded_scripts.find(s => s.base_url===script.base_url)){
 				script.promise = this.createPromise();
 
 				//start timer
