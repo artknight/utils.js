@@ -16,6 +16,6 @@ npm i --save utilsjs
 
 ## Change log
 
-### v2.2.3
+### v0.0.1
 * fixed min,max dates in decade mode
 

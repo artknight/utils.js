@@ -23,8 +23,6 @@ UTILS.Grid = class extends UTILS.Base {
 	constructor(data={}){
 		super(data);
 
-		_log(this.getObjectName()+' --> instantiated!', this.getId(), this);
-
 		('items' in data) && this.setItems(data.items);
 		('width' in data) && this.setGridWidth(data.width);
 		('onChange' in data) && this.addCallback('onChange', data.onChange);
@@ -60,12 +58,10 @@ UTILS.Grid = class extends UTILS.Base {
 		return this.values.is_collapse;
 	}
 	enableCollapse(){
-		_log(this.getObjectName()+' --> collapse setting enabled', this.getId());
 		this.values.is_collapse = true;
 		return this;
 	}
 	disableCollapse(){
-		_log(this.getObjectName()+' --> collapse setting disabled', this.getId());
 		this.values.is_collapse = false;
 		return this;
 	}
@@ -73,7 +69,6 @@ UTILS.Grid = class extends UTILS.Base {
 		return this.values.is_presentation;
 	}
 	setPresentationMode(state){
-		_log(this.getObjectName()+' --> mode changed to '+(state?'presentation':'editable'), this.getId());
 		this.values.is_presentation = state;
 		return this;
 	}
@@ -81,7 +76,6 @@ UTILS.Grid = class extends UTILS.Base {
 		return this.values.grid_cell_height;
 	}
 	_setGridCellHeight(height){
-		_log(this.getObjectName()+' --> cell height changed to ' + height, this.getId());
 		this.values.grid_cell_height = height;
 		return this;
 	}
@@ -103,8 +97,6 @@ UTILS.Grid = class extends UTILS.Base {
 		//lets set the grid width on the grid elm
 		if (gridElm)
 			gridElm.setGridWidth(width);
-
-		_log(this.getObjectName()+' --> width changed to ' + width, this.getId());
 
 		return this;
 	}
@@ -285,7 +277,6 @@ UTILS.Grid = class extends UTILS.Base {
 			$item = $item.closest('.grid-field');
 
 		if ($item.length && $item.hasClass('grid-field-hidden')){
-			_log(this.getObjectName()+' --> item state changed to show',$item);
 			$item.removeClass('grid-field-hidden');
 
 			if (this.isPresentationMode())
@@ -303,7 +294,6 @@ UTILS.Grid = class extends UTILS.Base {
 			$item = $item.closest('.grid-field');
 
 		if ($item.length && !$item.hasClass('grid-field-hidden')){
-			_log(this.getObjectName()+' --> item state changed to hide',$item);
 			$item.addClass('grid-field-hidden');
 
 			if (this.isPresentationMode())
@@ -370,8 +360,6 @@ UTILS.Grid = class extends UTILS.Base {
 		var GridElm = this._getGridElm(),
 			$grid = this.getGrid();
 
-		_log(this.getObjectName()+' --> reloading...', this.getId());
-
 		//lets move items temporarily to avoid being removed (otherwise data values will get lost)
 		var $tmp_container = $('<div class="hide"></div>');
 		$('body').append($tmp_container);
@@ -427,7 +415,6 @@ UTILS.Grid = class extends UTILS.Base {
 
 	//adjust item height and coordinates for presentation
 	_renderGridForPresentation(){
-		_log(this.getObjectName()+' --> CA --> rendering cells for presentation',this.getId());
 		var $grid = this.getGrid(),
 			items = this.getItems(),
 			is_collapsable = this.isCollapsable();

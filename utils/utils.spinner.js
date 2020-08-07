@@ -3,8 +3,6 @@ UTILS.Spinner =  class extends UTILS.Base {
 	constructor(data={}){
 		super(data);
 
-		_log(this.getObjectName()+' --> instantiated!',this.getId(),this);
-
 		this.create();
 
 		('msg' in data) && this.setMessage(data.msg);

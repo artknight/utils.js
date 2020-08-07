@@ -15,7 +15,6 @@ if (typeof all_chart_packages==='undefined')
 UTILS.Chart = class extends UTILS.Base {
 	constructor(data){
 		super(data);
-		_log(this.getObjectName()+' --> instantiated!',this.getId(),this);
 
 		if (_.isPlainObject(data)){
 			('type' in data) && this.setType(data.type);

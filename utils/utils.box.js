@@ -57,7 +57,6 @@
 UTILS.Box =  class extends UTILS.Base {
 	constructor(data={}){
 		super(data);
-		_log(this.getObjectName()+' --> instantiated!',this.getId(),this);
 
 		('onCreate' in data) && this.addCallback('onCreate',data.onCreate);
 		('onShow' in data) && this.addCallback('onShow',data.onShow);
@@ -104,7 +103,7 @@ UTILS.Box =  class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.box',
-			version: '3.2.9',
+			version: '3.3.0',
 			history: {}, //holds the historic box settings (in case of maximize, etc...)
 			is_shown: false, //holds whether this box is shown
 			//holds the divs of the box
@@ -536,7 +535,6 @@ UTILS.Box =  class extends UTILS.Base {
 	//private
 	enableResizeSensor(){
 		if (this.isCentered() && !this.values.resizeSensor){
-			_log(this.getObjectName()+' --> resize sensor enabled',this.getId());
 			this.values.resizeSensor = new ResizeSensor(this.getMainbody(),function(){
 				this.fns('onContentHeightChange',{ height:this.getMainbody().height() });
 			}.bind(this));
@@ -546,7 +544,6 @@ UTILS.Box =  class extends UTILS.Base {
 	//private
 	disableResizeSensor(){
 		if (this.values.resizeSensor){
-			_log(this.getObjectName()+' --> resize sensor disabled',this.getId());
 			this.values.resizeSensor.detach(this.getMainbody());
 		}
 		return this;
@@ -642,8 +639,12 @@ UTILS.Box =  class extends UTILS.Base {
 		var key = UTILS.getCharKey(event),
 			Box = $('.box').last().data('box');
 
-		if (key===27 && Box && Box.getId()===this.getId())
+		if (key===27 && Box && Box.getId()===this.getId() && this.isCloseEnabled())
 			this.clean();
+	}
+
+	isCloseEnabled(){
+		return this.values.buttons.close;
 	}
 
 	//re-render box --> e.q. box.set({w:600, title:'please note',html:'',dd:false,fn:null,center:true});

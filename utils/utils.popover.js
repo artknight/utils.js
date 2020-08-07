@@ -20,8 +20,6 @@ UTILS.Popover = class extends UTILS.Base {
 	constructor(data={}){
 		super(data);
 
-		_log(this.getObjectName()+' --> instantiated!',this.getId());
-
 		('title' in data) && this.setTitle(data.title);
 		('options' in data) && this.setOptions(data.options);
 		('direction' in data) && this.setDirection(data.direction);
@@ -105,8 +103,6 @@ UTILS.Popover = class extends UTILS.Base {
 	}
 	enable(){
 		if (!this.values.is_enabled){
-			_log(this.getObjectName()+' --> enabled', this.getId());
-
 			var $target = this.getTarget(),
 				toggle_action = this.getToggleAction(),
 				title = this.getTitle(),
@@ -160,7 +156,6 @@ UTILS.Popover = class extends UTILS.Base {
 	}
 	disable(){
 		if (this.values.is_enabled){
-			_log(this.getObjectName()+' --> disabled', this.getId());
 			this.getTarget().popover('destroy');
 			$(document).off('click', this.hideOnOutsideClick.bind(this));
 			this.values.is_enabled = false;
@@ -292,7 +287,6 @@ UTILS.Popover = class extends UTILS.Base {
 		}
 	}
 	populate(){
-		_log(this.getObjectName()+' --> content populated', this.getId());
 		var $content = $('<div class="list-group"></div>');
 
 		_.each(this.getItems(), function(item){

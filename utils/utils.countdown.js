@@ -21,7 +21,6 @@
 UTILS.Countdown =  class extends UTILS.Base {
 	constructor(data){
 		super(data);
-		_log(this.getObjectName()+' --> instantiated!',this.getId(),this);
 
 		if (_.isPlainObject(data)){
 			('onTick' in data) && this.addCallback('onTick',data.onTick);

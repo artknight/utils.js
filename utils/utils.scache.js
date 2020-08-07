@@ -2,26 +2,27 @@ if (!UTILS) var UTILS = {};
 
 UTILS.SCache = class {
 	constructor(data={}){
+		!('scache_loaded_scripts' in window) && (window.scache_loaded_scripts = []);
+
 		this.values = {};
 		this.values = this._extend(this.getDefaults(), data);
 
-		this.log(this.getObjectName() + ' --> instantiated');
+		let all_scripts_loaded_promise = this.createOnAllScriptsLoadedPromise();
 
 		('cache_version' in data) && this.setCacheVersion(data.cache_version);
 		('overlay' in data) && this.setOverlayOptions(data.overlay);
 		('scripts' in data) && this.addScripts(data.scripts);
 
-		return this.createOnAllScriptsLoadedPromise();
+		return all_scripts_loaded_promise;
 	}
 	getDefaults(){
 		return {
 			object: 'utils.scache',
-			version:'0.6.1',
+			version:'0.6.3',
 			id: 0, //holds the project id
 			name: '', //holds the name
 			fns: {},
 			LAB: $LAB,
-			loaded_scripts: [], //holds the scripts that have already been loaded
 			overlay: {
 				hide: true //hides the overlay when all scripts finish loading
 			},
@@ -82,7 +83,7 @@ UTILS.SCache = class {
 	createOnAllScriptsLoadedPromise(){
 		var _resolve,
 			_reject,
-			promise = new Promise(function(resolve,reject){
+			promise = new Promise((resolve,reject) => {
 				_resolve = resolve;
 				_reject = reject;
 			});
@@ -162,8 +163,6 @@ UTILS.SCache = class {
 	}
 	addToCache(script){
 		const _onSuccess = function(response){
-			this.log(this.getObjectName() + ' --> added to cache',script.script_url);
-
 			try {
 				localStorage.setItem(script.base_url, JSON.stringify({
 					content: this.compress(response),
@@ -209,34 +208,23 @@ UTILS.SCache = class {
 		return script_url.split('?')[0];
 	}
 
-	isJS(script_url){
-		return /\.js/i.test(script_url);
-	}
-
 	addToPage(script){
 		var $head = document.querySelector('head'),
 			$title = document.querySelector('title'),
 			$insert_before_elm = script.is_js ? $head.firstChild : $title; //the order matters in CSS, so we have to add elements DESC
-
-		this.log(this.getObjectName() + ' --> added to HEAD',this._getFilteredUrl(script.script_url));
 
 		$head.insertBefore(script.$script,$insert_before_elm);
 
 		return this;
 	}
 	loadFromCache(script){
-		this.log(this.getObjectName() + ' --> loading script from cache',script.ls_item.url);
+		script.$script = this.getScriptElm(script);
+		script.$script.appendChild(document.createTextNode( this.decompress(script.ls_item.content) ));
 
-		//need to make sure we do not add more than one script
-		//if (!document.getElementById(script.id)){
-			script.$script = this.getScriptElm(script);
-			script.$script.appendChild(document.createTextNode( this.decompress(script.ls_item.content) ));
+		//adding source map
+		script.$script.appendChild(document.createTextNode(this.getSourceUrlMapName(script)));
 
-			//adding source map
-			script.$script.appendChild(document.createTextNode(this.getSourceUrlMapName(script)));
-
-			this.addToPage(script);
-		//}
+		this.addToPage(script);
 
 		(this.values.show_timer) && console.timeEnd(script.timer_id); //stopping timer
 		script.promise.resolve();
@@ -249,9 +237,9 @@ UTILS.SCache = class {
 
 		var script_url = this._getFilteredUrl(script.script_url);
 
-		//script.$script.onload = this.addToCache.bind(this,script);
-		//script.$script.setAttribute('src', script.script_url);
-		//this.addToPage(script);
+		/*script.$script.onload = script.$script.onreadystatechange = this.addToCache.bind(this,script);
+		script.$script.setAttribute('src', script_url);
+		this.addToPage(script);*/
 
 		this.values.LAB = this.values.LAB.script({ src:script_url, id:script.id }).wait(this.addToCache.bind(this,script));
 
@@ -317,12 +305,10 @@ UTILS.SCache = class {
 		return source_map;
 	}
 	_onAllScriptsLoaded(){
-		this.log(this.getObjectName() + ' --> all scripts loaded');
 		this.hideOverlay();
 		this.getOnAllScriptsLoadedPromise().resolve();
 	}
 	_onScriptsLoadError(response){
-		this.log(this.getObjectName() + ' --> scripts failed to load',response);
 		this.hideOverlay();
 		this.getOnAllScriptsLoadedPromise().reject(response);
 	}
@@ -330,10 +316,10 @@ UTILS.SCache = class {
 		return script.base_url.split('/').slice(-1)[0];
 	}
 	loadScript(script){
-		this.values.loaded_scripts.push(script);
+		window.scache_loaded_scripts.push(script);
 
 		if (!script.ls_item){
-			script.id = this.createScriptId(script); //creates a random id
+			script.id = this.createScriptId(script);
 			this[ script.is_js ? 'loadJS' : 'loadCSS' ](script);
 		}
 		else {
@@ -349,24 +335,20 @@ UTILS.SCache = class {
 			promises = [];
 
 		//lets process the scripts
-		for (var i=0,script_url; script_url=script_urls[i]; i++){
-			var base_url = this.getBaseUrl(script_url),
+		for (let i=0,script_url; script_url=script_urls[i]; i++){
+			let base_url = this.getBaseUrl(script_url),
 				script = {
 					id: null,
 					timer_id: object_name+' --> '+base_url+' ('+(((1+Math.random())*0x10000)|0).toString(16)+')',
 					script_url: script_url,
 					base_url: base_url,
 					ls_item: localStorage.getItem(base_url),
-					is_js: this.isJS(base_url),
+					is_js: /\.js/i.test(base_url) || /\^type=js/i.test(script_url), //lets check if '^type=js' exists
 					promise: null
 				};
 
-			//lets check if '^type=js' exists to override the default type
-			if (/\^type=js/i.test(script_url))
-				script.is_js = true;
-
 			//lets check if the script already exists
-			if (!this.values.loaded_scripts.find(s => s.base_url===script.base_url)){
+			if (!window.scache_loaded_scripts.find(s => s.base_url===script.base_url)){
 				script.promise = this.createPromise();
 
 				//start timer
@@ -376,8 +358,6 @@ UTILS.SCache = class {
 
 				this.loadScript(script);
 			}
-			else
-				this.log(this.getObjectName() + ' --> dupplicate script found',script.script_url);
 		}
 
 		if (promises.length){

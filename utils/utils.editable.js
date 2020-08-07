@@ -656,8 +656,6 @@ UTILS.Editable = class extends UTILS.Base {
 		return this;
 	}
 	enable(){
-		_log(this.getObjectName()+' --> editable enabled');
-
 		if (!this.values.is_enabled){
 			var $target = this.getTarget(),
 				is_type_checkbox = this.isTypeCheckbox(),
@@ -697,8 +695,6 @@ UTILS.Editable = class extends UTILS.Base {
 		return this;
 	}
 	disable(){
-		_log(this.getObjectName()+' --> editable disabled');
-
 		if (this.values.is_enabled){
 			var $target = this.getTarget(),
 				is_type_checkbox = this.isTypeCheckbox();
@@ -852,7 +848,6 @@ UTILS.Editable = class extends UTILS.Base {
 		return this;
 	}
 	_onCancel(){
-		_log(this.getObjectName()+' --> action cancelled');
 		this._hide();
 		this.fns('onCancel');
 	}
@@ -891,7 +886,6 @@ UTILS.Editable = class extends UTILS.Base {
 					.then($cell => {
 						this.values.$cell = $cell;
 						this.fns('onInputCreate');
-						_log(this.getObjectName()+' --> '+JSON.stringify(type)+' cell created');
 						resolve();
 					})
 					.catch(error => {

@@ -903,6 +903,9 @@ $.cssNumber.gridRowStart = $.cssNumber.gridRowEnd = $.cssNumber.gridColumnStart 
 (!String.prototype.toRegex) && (String.prototype.toRegex = function(){ return UTILS.format.toRegex(this); });
 (!String.prototype.isValidRegex) && (String.prototype.isValidRegex = function(){ return UTILS.isValidRegex(this); });
 
+//events
+(!Event.prototype.getCharKey) && (Event.prototype.getCharKey = function(){ return UTILS.getCharKey(this); });
+
 //fix parseInt
 (function(){ var old_parseInt = parseInt; parseInt = function(number,radix){ return old_parseInt(number,radix || 10); }; }());
 

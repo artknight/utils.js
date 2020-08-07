@@ -7,8 +7,7 @@
 UTILS.Event =  class extends UTILS.Base {
 	constructor(data={}){
 		super(data);
-		_log(this.getObjectName()+' --> instantiated!',this.getId(),this);
-		
+
 		('popup' in data) && this.setPopupState(data.popup);
 		('rule' in data) && this.setRule(data.rule);
 		('start' in data) && this.setStartDate(data.start);
@@ -436,8 +435,6 @@ UTILS.Event =  class extends UTILS.Base {
 	//parses rule from string to json
 	_parseRule(rule){
 		var _rule = {};
-
-		_log('app.scheduler --> parsing rule!',rule);
 
 		if (_.isPlainObject(rule))
 			_rule = rule;

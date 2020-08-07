@@ -1,7 +1,7 @@
 UTILS.Scroll = class extends UTILS.Base {
 	init(data){
 		this.parent(data);
-		_log('iscroll --> instantiated!',this.IdToString(),this);
+
 		if (_.isPlainObject(data)){
 			('scroll' in data) && this.setScroll(data.scroll);
 			('start' in data) && this.setStart(data.start);
@@ -15,6 +15,7 @@ UTILS.Scroll = class extends UTILS.Base {
 			('onLoadedComplete' in data) && this.addCallback('onLoadedComplete',data.onLoadedComplete);
 			('onLoadedSuccess' in data) && this.addCallback('onLoadedSuccess',data.onLoadedSuccess);
 		}
+
 		return this;
 	}
 	getDefaults(){
@@ -51,10 +52,9 @@ UTILS.Scroll = class extends UTILS.Base {
 		return this;
 	}
 	setOnLoadedMethod(method){
-		if (_.isFunction(method)){
-			_log('iscroll --> onLoaded method added');
+		if (_.isFunction(method))
 			this.values.onloaded_method = method;
-		}
+
 		return this;
 	}
 	isFetchable(){
@@ -81,21 +81,20 @@ UTILS.Scroll = class extends UTILS.Base {
 	}
 	enable(){
 		if (!this.values.is_enabled){
-			_log('iscroll --> enabled', this.getId());
 			var $scroll = this.getScroll();
 			$scroll.on('scroll',this._observe.bind(this));
 			this._fns('onEnabled');
 			this.values.is_enabled = true;
 		}
+
 		return this;
 	}
 	disable(){
 		if (this.values.is_enabled){
-			_log('iscroll --> disabled', this.getId());
-
 			this.getTarget().off('scroll');
 			this.values.is_enabled = false;
 		}
+
 		return this;
 	}
 	setFetchableState(state){
@@ -120,7 +119,6 @@ UTILS.Scroll = class extends UTILS.Base {
 		return this.values.per_page;
 	}
 	setPerPage(per_page){
-		_log('iscroll --> per page number changed to '+per_page);
 		this.values.per_page = per_page;
 		return this;
 	}
@@ -128,7 +126,6 @@ UTILS.Scroll = class extends UTILS.Base {
 		return this.values.start;
 	}
 	setStart(start){
-		_log('iscroll --> start number changed to '+start);
 		this.values.start = start;
 		return this;
 	}

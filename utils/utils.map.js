@@ -32,8 +32,6 @@ UTILS.Map = class extends UTILS.Base {
 	constructor(data={}){
 		super(data);
 
-		_log(this.getObjectName()+' --> instantiated!', this.getId(), this);
-
 		this.setStyles(this.getDefaultConfig('styles'));
 		this.setSettings(this.getDefaultConfig('settings'));
 		this.setMarker(this.getDefaultConfig('marker'));

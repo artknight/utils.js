@@ -46,7 +46,6 @@ UTILS.Base = class {
 		('scripts' in _data) && this.setScripts(_data.scripts);
 		('id' in _data) && this.setId(_data.id);
 
-		//_log(this.getObjectName()+' --> instantiated!');
 		return this;
 	}
 	getObjectName(){
@@ -80,7 +79,6 @@ UTILS.Base = class {
 	}
 	addCallback(type,callback){
 		if (_.isFunction(callback)){
-			_log(this.getObjectName()+' --> callback added!',callback);
 			if (!_.includes(_.keys(this.values.fns),type))
 				this.values.fns[type] = [];
 

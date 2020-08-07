@@ -9,8 +9,6 @@ UTILS.Autocomplete =  class extends UTILS.Base {
 	constructor(data={}){
 		super(data);
 
-		_log(this.getObjectName()+' --> instantiated!');
-
 		if (!('target' in data))
 			throw new Error('@target must be specified upon initialization!');
 
