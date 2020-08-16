@@ -35,12 +35,12 @@ UTILS.Blur = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object:'utils.blur',
-			version:'2.0.5',
-			$elm: $('<div class="blur"></div>'),
+			version:'2.0.6',
+			$elm: $('<div class="blur"><div class="blur-inside"></div></div>'),
 			is_shown: false,
 			colors: { //holds color combinations
-				'white':{bg:'#fff',opac:0.7},
-				'black':{bg:'#000',opac:0.3}
+				'white':{ bg:'#fff', opac:0.7 },
+				'black':{ bg:'#000', opac:0.3 }
 			},
 			resize: false
 		};
@@ -49,7 +49,7 @@ UTILS.Blur = class extends UTILS.Base {
 		this.values.$elm.remove();
 
 		if (this.values.resize)
-			$(window).on('resize.utils.blur',this.onresize.bind(this));
+			$(window).on('resize.utils.blur',this.onResize.bind(this));
 
 		this.fns('onHide');
 		this.values.is_shown = false;
@@ -72,8 +72,14 @@ UTILS.Blur = class extends UTILS.Base {
 	getZindex(){
 		return parseInt(this.values.$elm.css('zIndex'));
 	}
+	getBlurInside(){
+		return this.values.$elm.find('.blur-inside');
+	}
+	getBlur(){
+		return this.values.$elm;
+	}
 	//private
-	onresize(){
+	onResize(){
 		this.values.$elm.css({
 			width:$(window).width(),
 			height:$(window).height()
@@ -97,7 +103,7 @@ UTILS.Blur = class extends UTILS.Base {
 			//little trick to contain the blur's position:fixed within the parent elm
 			this.values.$target.addClass('blur-target');
 		}
-		
+
 		return this;
 	}
 	set(data){
@@ -108,7 +114,7 @@ UTILS.Blur = class extends UTILS.Base {
 					case /color$/.test(k):
 						this.values.color = data[k];
 						var settings = this.values.colors[this.values.color];
-						this.values.$elm.css({ background:settings.bg, opacity:settings.opac });
+						this.getBlurInside().css({ background:settings.bg, opacity:settings.opac });
 					break;
 					case /^opac$/.test(k):
 						this.values.opac = data[k];
@@ -116,12 +122,13 @@ UTILS.Blur = class extends UTILS.Base {
 							this.values.opac = this.values.colors[this.values.color].opac;
 						else if (this.values.opac>1)
 							this.values.opac = this.values.opac/100;
-						this.values.$elm.css({opacity:this.values.opac});
+
+						this.getBlurInside().css({ opacity:this.values.opac });
 					break;
 					case /^resize$/.test(k):
 						if (data[k] && !this.values.resize){
 							if (this.values.$target.is('body')){
-								$(window).on('resize.utils.blur',this.onresize.bind(this)); //stretch box on-browser-resize
+								$(window).on('resize.utils.blur',this.onResize.bind(this)); //stretch box on-browser-resize
 								this.values.$elm.addClass('pos-fixed');
 								this.values.resize = true;
 							}

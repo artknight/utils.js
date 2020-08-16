@@ -16,9 +16,6 @@
           box-shadow: 0px 3px 6px 0px rgba(50, 50, 50, 0.75);
   border-top: 5px solid #44a2c6;
 }
-.box.maximized .box-top-buttons .box-top-buttons-maximize {
-  background: #eee;
-}
 .box.input-box .box-mainbody {
   position: relative;
 }
@@ -150,15 +147,22 @@
 .box-top-buttons a i.mdi:hover {
   color: #999;
 }
-.box-top-buttons a.box-top-buttons-maximize .mdi-24px:before {
-  font-size: 22px;
-}
 .box-top-buttons a:last-child {
   margin-right: 2px;
 }
 .alert-box .box-top-buttons {
   top: -20px;
   right: -23px;
+}
+.box-top-buttons-maximize {
+  margin-top: 3px;
+  margin-right: 3px;
+}
+.box-top-buttons-maximize .mdi-24px:before {
+  font-size: 22px;
+}
+.maximized .box-top-buttons-maximize {
+  background: #eee;
 }
 .box-controls {
   position: absolute;

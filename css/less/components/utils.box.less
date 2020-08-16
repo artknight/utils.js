@@ -13,14 +13,6 @@
 	box-shadow:  0px 3px 6px 0px rgba(50, 50, 50, 0.75);
 	border-top: 5px solid @brand-primary-retro;
 
-	&.maximized {
-		.box-top-buttons {
-			.box-top-buttons-maximize {
-				background:  #eee;
-			}
-		}
-	}
-
 	//if the box is used for data input, make main-body have relative position
 	&.input-box .box-mainbody {
 		position: relative;
@@ -32,7 +24,7 @@
 		.box-outer {
 
 			.box-inner {
-				padding: 0 15px 0 0;
+				padding: 0 15px 0 0; 
 
 				.box-mainbody { margin: 0; }
 			}
@@ -55,7 +47,10 @@
 
 		.box-outer, & .box-inner { background: transparent; }
 
-		ul.box-top-buttons { top: -20px; right: -20px; }
+		ul.box-top-buttons {
+			top: -20px;
+			right: -20px;
+		}
 	}
 } //.box
 
@@ -142,22 +137,28 @@
 
 			&:hover { color: #999; }
 		}
-
-		&.box-top-buttons-maximize {
-			.mdi-24px {
-
-				&:before {
-					font-size:  22px;
-				}
-			}
-		}
-
+		
 		&:last-child { margin-right: 2px; }
 	}
 
 	.alert-box & {
 		top: -20px;
 		right: -23px;
+	}
+}
+
+.box-top-buttons-maximize {
+	margin-top: 3px;
+	margin-right: 3px;
+
+	.mdi-24px {
+		&:before {
+			font-size:  22px;
+		}
+	}
+
+	.maximized & {
+		background:  #eee;
 	}
 }
 

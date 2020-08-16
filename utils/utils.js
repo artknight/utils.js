@@ -2,7 +2,7 @@ if (!UTILS) var UTILS = {};
 
 UTILS.values = {
 	object:'utils',
-	version:'1.0.4',
+	version:'1.0.5',
 	numbers: '1234567890',
 	letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
 	special: ' .,-!@#$%&()?/":;\'',
@@ -227,11 +227,9 @@ UTILS.getCharKey = function(event){
 };
 
 //generates random uuid number
-UTILS.uuid = function(){
-	var s4 = function(){
-		return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
-	};
-	return (s4()+'-'+s4());
+UTILS.uuid = function(separator='-'){
+	let _getRandonNumbers = () => (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+	return `${_getRandonNumbers()}${separator}${_getRandonNumbers()}`;
 };
 
 UTILS.asc = function(_char){
@@ -425,7 +423,7 @@ UTILS.print = function(url_or_elm=null){
 			.prop('src',url)
 			.appendTo('body');
 	}
-	
+
 	return false;
 };
 
@@ -498,7 +496,7 @@ UTILS.fetch = function(url='',opts={}){
 			options.data = Qs.stringify(options.data,{ encodeValuesOnly:true });
 		}
 	}
-	
+
 	return axios(options).then(response => response.data);
 };
 
@@ -791,7 +789,7 @@ $.extend($.fn,{
 			}
 			else
 				$field.on(custom_focus_event,function(event){
-					setTimeout(function(){ this.selectionStart = this.selectionEnd = 10000; }.bind(this), 0); 
+					setTimeout(function(){ this.selectionStart = this.selectionEnd = 10000; }.bind(this), 0);
 				});
 
 			$field.focus();
