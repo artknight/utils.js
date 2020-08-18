@@ -74,6 +74,7 @@ UTILS.Box =  class extends UTILS.Base {
 		('onCreate' in data) && this.addCallback('onCreate',data.onCreate);
 		('onContentHeightChange' in data) && this.addCallback('onContentHeightChange',data.onContentHeightChange);
 		('onContentUpdate' in data) && this.addCallback('onContentUpdate',data.onContentUpdate);
+		('allow_close' in data) && this.setAllowCloseState(data.allow_close);
 
 		this.values.max_responsive_width = ('w' in data && data.w>768) ? data.w : 768; //maximum width of window before triggering responsiveness
 
@@ -97,13 +98,13 @@ UTILS.Box =  class extends UTILS.Base {
 			resizeDims: data.resizeDims || null
 		};
 
-		this.create().set(_data).enableResizeSensor();
+		this._create().set(_data).enableResizeSensor();
 		return this;
 	}
 	getDefaults(){
 		return {
 			object: 'utils.box',
-			version: '3.3.0',
+			version: '3.3.1',
 			history: {}, //holds the historic box settings (in case of maximize, etc...)
 			is_shown: false, //holds whether this box is shown
 			//holds the divs of the box
@@ -116,7 +117,8 @@ UTILS.Box =  class extends UTILS.Base {
 			fx: { effect:null, base:null },
 			blur: { color:'black' },
 			buttons: { close:true, maximize:false },
-			resizeSensor: null //holds the resize sensor class
+			resizeSensor: null, //holds the resize sensor class
+			is_close_allowed: true //holds whether the box can be closed
 		};
 	}
 	setTarget(target){
@@ -572,8 +574,7 @@ UTILS.Box =  class extends UTILS.Base {
 	getLastZIndex(){
 		return parseInt($('.box').last().css('z-index'))+200 || 20001;
 	}
-	//private
-	create(){
+	_create(){
 		var zindex = this.getLastZIndex();
 
 		//if box exists, remove it
@@ -581,7 +582,7 @@ UTILS.Box =  class extends UTILS.Base {
 			$('#'+this.values.id).remove();
 
 		//create new box
-		this.values.$elm = $('<div id="'+this.values.id+'" class="box '+(this.isGlobalBox()?'pos-fixed':'pos-absolute')+' '+((this.values.light)?' light':'')+'" style="z-index:'+zindex+'">');
+		this.values.$elm = $(`<div id="${this.values.id}" class="box ${this.isGlobalBox() ? 'pos-fixed' : 'pos-absolute'} ${this.values.light ? ' light' : ''}" style="z-index:${zindex}" data-box-allow-close="${this.isCloseAllowed()}">`);
 		//parts
 		this.values.divs.$hd = $('<div id="'+this.values.id+'-box-hd" class="box-hd">');
 		this.values.divs.$mainbody = $('<div id="'+this.values.id+'-box-mainbody" class="box-mainbody cfx">');
@@ -610,20 +611,27 @@ UTILS.Box =  class extends UTILS.Base {
 				this.values.divs.$controls
 			)
 		);
-		//buttons
-		this.values.divs.$cls.on('click.clean.utils.box',function(event){ event.preventDefault(); event.stopPropagation(); this.fns('onCancel'); this.clean('clean'); }.bind(this)); //close button
+
+		//close button
+		this.values.divs.$cls.on('click.clean.utils.box',event => {
+			event.preventDefault();
+			event.stopPropagation();
+			this.fns('onCancel');
+			this.clean('clean');
+		});
 		this.values.divs.$maximize.on('click.maximize.utils.box',this.maximize.bind(this)); //maximize button
 		this.values.$elm.on('resize.selfcorrect.utils.box',this.selfCorrect.bind(this)); //box-mainbody must always have full height & box-controls must be full width
-		
+
 		//onEscape
 		$(document).on('keyup.escape.utils.box',this._onEscapeKeyPressed.bind(this));
-		//lets store 'this' in box element
-		this.values.$elm.data('box',this);
+
+		//lets store 'this' in data('utils.box')
+		this.values.$elm.data(this.getObjectName().split(' v')[0],this);
 
 		this.fns('onCreate');
 
 		return this;
-	} //create
+	}
 
 	getTimestamp(){
 		return this.values.divs.$timestamp.html();
@@ -637,14 +645,19 @@ UTILS.Box =  class extends UTILS.Base {
 	//if escape key is pressed, lets close the box
 	_onEscapeKeyPressed(event){
 		var key = UTILS.getCharKey(event),
-			Box = $('.box').last().data('box');
+			Box = $('.box').last().data('utils.box');
 
-		if (key===27 && Box && Box.getId()===this.getId() && this.isCloseEnabled())
+		if (key===27 && Box && Box.getId()===this.getId() && this.isCloseAllowed())
 			this.clean();
 	}
 
-	isCloseEnabled(){
-		return this.values.buttons.close;
+	isCloseAllowed(){
+		return this.values.is_close_allowed;
+	}
+	setAllowCloseState(state=true){
+		this.values.is_close_allowed = state;
+		this.values.$elm.attr('data-box-allow-close',state);
+		return this;
 	}
 
 	//re-render box --> e.q. box.set({w:600, title:'please note',html:'',dd:false,fn:null,center:true});
@@ -724,9 +737,7 @@ UTILS.Box =  class extends UTILS.Base {
 						//lets show/hide buttons
 						for (var button in this.values.buttons){
 							switch(button){
-								case 'close':
-									(this.values.buttons.close) ? this.values.divs.$cls.removeClass('hide') : this.values.divs.$cls.addClass('hide');
-								break;
+								case 'close': this.setAllowCloseState(this.values.buttons.close); break;
 								case 'maximize':
 									(this.values.buttons.maximize) ? this.values.divs.$maximize.removeClass('hide') : this.values.divs.$maximize.addClass('hide');
 								break;

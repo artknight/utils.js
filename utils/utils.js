@@ -2,7 +2,7 @@ if (!UTILS) var UTILS = {};
 
 UTILS.values = {
 	object:'utils',
-	version:'1.0.5',
+	version:'1.0.7',
 	numbers: '1234567890',
 	letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
 	special: ' .,-!@#$%&()?/":;\'',
@@ -19,6 +19,26 @@ UTILS.values = {
 		pwd: /^((?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,16})$/ //6-16 characters, one lower case, one upper case, one digit
 	},
 	browser: null
+};
+
+//the transition event listener must be attached only after the $elm is added to the DOM otherwise the css properties are not available
+UTILS.attachTransitionEvent = (elm,css_prop) => {
+	let $elm = $(elm),
+		event_regex = UTILS.format.toRegex(`/^${css_prop}/`),
+		orig_value = $elm.css(css_prop);
+
+	//lets record original css value before any transitions take place
+	//it will be used as a point of reference to know the state of the transition
+	$elm
+		.attr('data-orig-trans-value',orig_value)
+		.on(UTILS.values.transition_event_end,event => {
+			//lets filter for the specified transition only
+			if (event_regex.test(event.originalEvent.propertyName)){
+				let event_state = $elm.css(css_prop)!==orig_value ? 'midway' : 'completed';
+
+				$elm.trigger(event_state,{ event:event.originalEvent });
+			}
+		});
 };
 
 UTILS.isRetina = function(){
@@ -185,6 +205,12 @@ UTILS.format = {
 		}
 
 		return regex;
+	},
+	getInitialsFromName: function(name=''){
+		return name
+			.match(/\b\w{1,1}(?=\w*$)|\b\w/g)
+			.map((letter) => letter.toUpperCase())
+			.join('');
 	}
 }; //format
 
@@ -793,6 +819,11 @@ $.extend($.fn,{
 				});
 
 			$field.focus();
+		});
+	},
+	attachTransitionEvent: function(css_prop){
+		return this.each(function(){
+			UTILS.attachTransitionEvent($(this),css_prop);
 		});
 	}
 });

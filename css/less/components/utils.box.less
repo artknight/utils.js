@@ -12,6 +12,7 @@
 	left: 0;
 	box-shadow:  0px 3px 6px 0px rgba(50, 50, 50, 0.75);
 	border-top: 5px solid @brand-primary-retro;
+	overflow-x: hidden;
 
 	//if the box is used for data input, make main-body have relative position
 	&.input-box .box-mainbody {
@@ -24,7 +25,7 @@
 		.box-outer {
 
 			.box-inner {
-				padding: 0 15px 0 0; 
+				padding: 0 15px 0 0;
 
 				.box-mainbody { margin: 0; }
 			}
@@ -57,8 +58,8 @@
 .box-outer {
 	position: relative;
 	z-index: 503;
-	padding: 0;
-	margin: 10px;
+	padding: 10px;
+	margin: 0;
 	background: #fff;
 }
 
@@ -72,7 +73,7 @@
 
 .box-hd {
 	position: absolute;
-	top: -10px;
+	top: 0;
 	left: 0;
 	height: 40px;
 	width: 100%;
@@ -103,7 +104,6 @@
 
 .box-timestamp {
 	margin-right: 10px;
-	margin-top: 2px;
 }
 
 .box-mainbody {
@@ -124,9 +124,10 @@
 // buttons
 .box-top-buttons {
 	position: absolute;
-	top: -15px;
-	right: -10px;
+	top: 0;
+	right: 0;
 	display: flex;
+	padding: 5px;
 
 	a {
 		font-size: 1.1rem;
@@ -137,7 +138,7 @@
 
 			&:hover { color: #999; }
 		}
-		
+
 		&:last-child { margin-right: 2px; }
 	}
 
@@ -148,7 +149,6 @@
 }
 
 .box-top-buttons-maximize {
-	margin-top: 3px;
 	margin-right: 3px;
 
 	.mdi-24px {
@@ -180,12 +180,17 @@
 
 	.box-controls-controls { margin-left: 12px; }
 	.box-controls-result { margin-left: 10px; font-weight: normal; color: @gray; min-width: 1px; }
-	.box-controls-close { margin-left: auto; margin-right: 12px; margin-top: 2px; }
+
+	.box-controls-close {
+		margin-left: auto;
+		margin-right: 12px;
+	}
 }
 
-//some adjustment needed for mdi icons
-.mdi-close:before {
-	margin-top:  5px;
+[data-box-allow-close="false"] {
+	.box-controls-close, .box-top-buttons-close {
+		display: none;
+	}
 }
 
 // scrollable content
@@ -277,5 +282,5 @@
 
 .alert-box {
 	z-index:  10000000 !important;
-	
+
 }
