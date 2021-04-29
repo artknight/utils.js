@@ -121,16 +121,16 @@
   font-family: "Material Design Icons";
 }
 .spinner-mode.success .spinner-icon {
-  color: #17c671;
+  color: #5eba00;
 }
 .spinner-mode.success .spinner-icon:before {
-  content: "\F12C";
+  content: "\F012C";
 }
 .spinner-mode.error .spinner-icon {
-  color: #c4183c;
+  color: #cd201f;
 }
 .spinner-mode.error .spinner-icon:before {
-  content: "\F5D6";
+  content: "\F05D6";
 }
 .standalone .spinner-icon {
   border: 4px solid #ffffff40;

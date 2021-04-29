@@ -2,7 +2,7 @@ if (!UTILS) var UTILS = {};
 
 UTILS.values = {
 	object:'utils',
-	version:'1.0.7',
+	version:'1.1.0',
 	numbers: '1234567890',
 	letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
 	special: ' .,-!@#$%&()?/":;\'',
@@ -45,12 +45,16 @@ UTILS.isRetina = function(){
 	return (window.devicePixelRatio > 1 || (window.matchMedia && window.matchMedia("(-webkit-min-device-pixel-ratio: 1.5),(-moz-min-device-pixel-ratio: 1.5),(min-device-pixel-ratio: 1.5)").matches));
 };
 
-UTILS.isMobile = function(){
-	return !!UTILS.values.browser.satisfies({
-		mobile: {
-			safari: '>=9',
-			'android browser': '>3.10'
-		}});
+UTILS.isMobile = () => {
+	let check = false;
+	(function(a){if(/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(a)||/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0,4))) check = true;})(navigator.userAgent||navigator.vendor||window.opera);
+	return check;
+};
+
+UTILS.isMobileAndTablet = () => {
+	let check = false;
+	(function(a){if(/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino|android|ipad|playbook|silk/i.test(a)||/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0,4))) check = true;})(navigator.userAgent||navigator.vendor||window.opera);
+	return check;
 };
 
 UTILS.isValidCreditCard = function(str){
@@ -207,8 +211,7 @@ UTILS.format = {
 		return regex;
 	},
 	getInitialsFromName: function(name=''){
-		return name
-			.match(/\b\w{1,1}(?=\w*$)|\b\w/g)
+		return (name.match(/\b\w{1,1}(?=\w*$)|\b\w/g) || [])
 			.map((letter) => letter.toUpperCase())
 			.join('');
 	}
@@ -220,9 +223,9 @@ UTILS.inputMask = {
 
 		var mask = new IMask($input[0], {
 			mask: [
-				{ mask:'+0 000-000-0000', startsWith:'1', lazy:false, country:'United States' },
+				//{ mask:'+0 000-000-0000', startsWith:'1', lazy:false, country:'United States' },
 				{ mask:'+00 {0} 000-00-0000', startsWith:'49', lazy:false, country:'Germany' },
-				{ mask:'000-000-0000', startsWith:'', country: 'United States' }
+				{ mask:'000-000-0000', startsWith:'', lazy:true, country: 'United States' }
 			],
 			dispatch: function (appended, dynamic_mask) {
 				var number = (dynamic_mask.value + appended).replace(/\D/g,'');
@@ -412,7 +415,7 @@ UTILS.createPromise = function(){
 	return promise;
 };
 
-UTILS.print = function(url_or_elm=null){
+UTILS.print = (url_or_elm=null) => {
 	if (!url_or_elm)
 		window.print();
 	else {
@@ -451,6 +454,54 @@ UTILS.print = function(url_or_elm=null){
 	}
 
 	return false;
+};
+
+UTILS.imagePreview = ($img=$('.app-thumbnail'),attr='href') => {
+	//distance from the cursor
+	let $image = $($img),
+		offset = { x:10, y:30 },
+		image_dims = { width:500, height:500 },
+		$preview = $('<p class="app-thumbnail-preview"><img alt="Image preview"></p>');
+
+	//display the preview within browser bounderies
+	let _getPosition = ($thumb,$preview,event) => {
+		var pos = { top:event.pageY-offset.x, left:event.pageX+offset.y },
+			page = { w:$(window).width(), h:$(window).height() },
+			preview = { w:$preview.outerWidth(), h:$preview.outerHeight() },
+			thumb = { w:$thumb.width(), h:$thumb.height() },
+			$img = $preview.find('img');
+
+		if (pos.left+preview.w > page.w)
+			pos.left -= (preview.w+thumb.w+offset.x);
+		if (pos.top+preview.h > page.h)
+			pos.top = page.h-preview.h-10;
+
+		//lets try adjust the width/height of the image
+		(page.w<image_dims.width) && ($img.width(page.w-40));
+		(page.h<image_dims.height) && ($img.height(page.h-40));
+
+		if ($(window).width()<768 && pos.left<0)
+			pos.left = event.pageX+offset.y;
+
+		return pos;
+	};
+
+	$image
+		.hover(
+			function(event){
+				this._title = this.title;
+				this.title = '';
+				var content = (this._title != '') ? '<br/>' + this._title : '';
+				$preview.find('img').attr('src',$(this).attr(attr)).html(content);
+				$('body').append($preview);
+				$preview.css(_getPosition($(this).find('img'),$preview,event)).velocity('fadeIn',{ duration:200 });
+			},
+			function(){
+				this.title = this._title;
+				$preview.remove();
+			}
+		)
+		.on('mousemove',function(event){ $preview.css(_getPosition($(this).find('img'),$preview,event)); });
 };
 
 UTILS.cookie = {
@@ -509,7 +560,7 @@ UTILS.log = function(){
 UTILS.fetch = function(url='',opts={}){
 	const options = {
 		url: url,
-		headers: {'X-Requested-With':'XMLHttpRequest'},
+		headers: _.extend({'X-Requested-With':'XMLHttpRequest'},opts.headers||{}),
 		method: ('method' in opts) ? opts.method.toUpperCase() : 'GET'
 	};
 
@@ -523,7 +574,7 @@ UTILS.fetch = function(url='',opts={}){
 		}
 	}
 
-	return axios(options).then(response => response.data);
+	return axios(options).then(response => typeof response.data === 'string' ? JSON.parse(response.data) : response.data);
 };
 
 /* EXTENDING LODASH.JS */
@@ -824,6 +875,18 @@ $.extend($.fn,{
 	attachTransitionEvent: function(css_prop){
 		return this.each(function(){
 			UTILS.attachTransitionEvent($(this),css_prop);
+		});
+	},
+	imagePreview: function(attr='data-src'){
+		return this.each(function(){ UTILS.imagePreview(this,attr); });
+	},
+
+	//$('.app-menu-quickview-control').removeClassRegex(/^hint/);
+	removeClassRegex: function(regex){
+		return $(this).removeClass(function(index, classes){
+			return classes.split(/\s+/).filter(function(c){
+				return regex.test(c);
+			}).join(' ');
 		});
 	}
 });

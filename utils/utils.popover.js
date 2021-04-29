@@ -46,7 +46,7 @@ UTILS.Popover = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object:'utils.popover',
-			version:'0.1.8',
+			version:'0.1.9',
 			items: [], //holds the items
 			$content: '', //holds the content of the popover
 			title: '', //holds the title
@@ -54,7 +54,7 @@ UTILS.Popover = class extends UTILS.Base {
 			direction: 'bottom', //holds the direction of the popover
 			$container: null, //holds DOM where popover will be appended to
 			is_enabled: false, //holds the enable/disable state of the popover
-			PopoverElm: null, //holds the bootstrap popover instance
+			__popover: null, //holds the bootstrap popover instance
 			Blur: null, //holds the UTILS.Blur object
 			is_blur: false, //holds the whether to show the UTILS.Blur
 			hide_on_click: true, //hides popover on outside click
@@ -66,7 +66,7 @@ UTILS.Popover = class extends UTILS.Base {
 	}
 	//method to simplify getting the $tip of the bootstrap popover
 	getPopoverElmContainer(){
-		return this.getPopoverElm().$tip;
+		return $(this.getPopoverElm().tip);
 	}
 	getWidth(){
 		return this.values.width;
@@ -194,10 +194,10 @@ UTILS.Popover = class extends UTILS.Base {
 		return this;
 	}
 	getPopoverElm(){
-		return this.values.PopoverElm;
+		return this.values.__popover;
 	}
-	setPopoverElm(PopoverElm){
-		this.values.PopoverElm = PopoverElm;
+	setPopoverElm(__popover){
+		this.values.__popover = __popover;
 		return this;
 	}
 	_onShow(){
@@ -276,14 +276,15 @@ UTILS.Popover = class extends UTILS.Base {
 	}
 	onContentChanged(){
 		if (this.values.is_shown){
-			var PopoverElm = this.getPopoverElm();
+			let __popover = this.getPopoverElm(),
+				$tip = $(__popover.tip);
 
-			//$target.data('content',this.getContent());
-			PopoverElm.setContent();
-			PopoverElm.$tip.addClass(PopoverElm.options.placement); //fixes the placement
-			// if popover is visible before content has loaded
-			if (PopoverElm.$tip.is(':visible'))
-				PopoverElm.show();
+			__popover.setContent();
+			$tip.addClass(__popover.config.placement); //fixes the placement
+
+			//if popover is visible before content has loaded
+			if ($tip.is(':visible'))
+				__popover.show();
 		}
 	}
 	populate(){

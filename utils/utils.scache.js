@@ -17,8 +17,8 @@ UTILS.SCache = class {
 	}
 	getDefaults(){
 		return {
-			object: 'utils.scache',
-			version:'0.6.3',
+			object: 'utils.scache', 
+			version:'0.6.5',
 			id: 0, //holds the project id
 			name: '', //holds the name
 			fns: {},
@@ -53,30 +53,8 @@ UTILS.SCache = class {
 	getCacheVersion(){
 		return this.values.cache_version;
 	}
-	getLSCacheVersion(){ 
-		return localStorage.getItem('scache_version');
-	}
-	setLSCacheVersion(cache_version){
-		localStorage.setItem('scache_version',cache_version);
-		return this;
-	}
 	setCacheVersion(cache_version){
 		this.values.cache_version = cache_version;
-
-		//lets try to clear the local storage
-		this.resetStorage();
-
-		return this;
-	}
-	resetStorage(){
-		let ls_cache_version = this.getLSCacheVersion(),
-			cache_version = this.getCacheVersion();
-		
-		if (ls_cache_version!=cache_version){
-			this.log(this.getObjectName() + ' --> clearing local cache');
-			localStorage.clear();
-			this.setLSCacheVersion(cache_version);
-		}
 
 		return this;
 	}
@@ -110,16 +88,10 @@ UTILS.SCache = class {
 		var options = this.getOverlayOptions();
 
 		if (options.hide || force_hide){
-			var overlay = document.getElementById('body-overlay'),
-				overlay_msg = document.getElementById('body-overlay-msg');
-
-			if (overlay || overlay_msg){
-				try {
-					overlay.parentNode.removeChild(overlay);
-					overlay_msg.parentNode.removeChild(overlay_msg);
-				}
-				catch(e){}
+			try {
+				document.querySelectorAll('.body-overlay,.body-overlay-msg').forEach(e => e.parentNode.removeChild(e));
 			}
+			catch(e){}
 		}
 
 		return this;
@@ -161,38 +133,6 @@ UTILS.SCache = class {
 
 		return this;
 	}
-	addToCache(script){
-		const _onSuccess = function(response){
-			try {
-				localStorage.setItem(script.base_url, JSON.stringify({
-					content: this.compress(response),
-					url: script.script_url,
-					id: script.id
-				}));
-			}
-			catch(e){
-				this.log(this.getObjectName() + ' --> error or local storage limit reached',e);
-			}
-		}.bind(this);
-
-		var script_url = this._getFilteredUrl(script.script_url);
-
-		//if external URL we need to get the content regardless of CORS
-		if (/^http/i.test(script_url))
-			script_url = 'https://cors-anywhere.herokuapp.com/'+script_url;
-
-		if (!/\^nocache=/i.test(script.script_url)){
-			axios.get(script_url, { headers:{'X-Requested-With':'XMLHttpRequest'} })
-				.then(response => response.data)
-				.then(_onSuccess)
-				.catch(); 
-		}
-
-		(this.values.show_timer) && console.timeEnd(script.timer_id); //stopping timer
-		script.promise.resolve();
-		
-		return this;
-	}
 
 	_getFilteredUrl(script_url){
 		//lets remove '^type,^nocache'
@@ -217,20 +157,6 @@ UTILS.SCache = class {
 
 		return this;
 	}
-	loadFromCache(script){
-		script.$script = this.getScriptElm(script);
-		script.$script.appendChild(document.createTextNode( this.decompress(script.ls_item.content) ));
-
-		//adding source map
-		script.$script.appendChild(document.createTextNode(this.getSourceUrlMapName(script)));
-
-		this.addToPage(script);
-
-		(this.values.show_timer) && console.timeEnd(script.timer_id); //stopping timer
-		script.promise.resolve();
-
-		return this;
-	}
 
 	loadJS(script){
 		script.$script = this.getScriptElm(script);
@@ -241,7 +167,12 @@ UTILS.SCache = class {
 		script.$script.setAttribute('src', script_url);
 		this.addToPage(script);*/
 
-		this.values.LAB = this.values.LAB.script({ src:script_url, id:script.id }).wait(this.addToCache.bind(this,script));
+		this.values.LAB = this.values.LAB
+			.script({ src:script_url, id:script.id })
+			.wait(() => {
+				(this.values.show_timer) && console.timeEnd(script.timer_id); //stopping timer
+				script.promise.resolve();
+			});
 
 		return this;
 	}
@@ -255,7 +186,8 @@ UTILS.SCache = class {
 		script.$script.setAttribute('media', 'print');
 		script.$script.onload = () => {
 			script.$script.setAttribute('media', 'all');
-			this.addToCache(script);
+			(this.values.show_timer) && console.timeEnd(script.timer_id); //stopping timer
+			script.promise.resolve();
 		}
 
 		this.addToPage(script);
@@ -294,16 +226,6 @@ UTILS.SCache = class {
 		return promise;
 	}
 
-	//this method is merely to provide a way to debug files inserted as a script tag
-	getSourceUrlMapName(script){
-		var script_id = script.ls_item.id,
-			ext = script.is_js ? '.js' : '.css',
-			wrapper = script.is_js ? '//{url}' : '/*{url}*/',
-			url = '# sourceURL='+(/\.(js|css)$/i.test(script_id) ? script_id : script_id+''+ext),
-			source_map = wrapper.replace(/\{url\}/g,url);
-
-		return source_map;
-	}
 	_onAllScriptsLoaded(){
 		this.hideOverlay();
 		this.getOnAllScriptsLoadedPromise().resolve();
@@ -318,15 +240,8 @@ UTILS.SCache = class {
 	loadScript(script){
 		window.scache_loaded_scripts.push(script);
 
-		if (!script.ls_item){
-			script.id = this.createScriptId(script);
-			this[ script.is_js ? 'loadJS' : 'loadCSS' ](script);
-		}
-		else {
-			script.ls_item = JSON.parse(script.ls_item);
-			script.id = script.ls_item.id;
-			this.loadFromCache(script);
-		}
+		script.id = this.createScriptId(script);
+		this[ script.is_js ? 'loadJS' : 'loadCSS' ](script);
 
 		return this;
 	}
@@ -342,7 +257,6 @@ UTILS.SCache = class {
 					timer_id: object_name+' --> '+base_url+' ('+(((1+Math.random())*0x10000)|0).toString(16)+')',
 					script_url: script_url,
 					base_url: base_url,
-					ls_item: localStorage.getItem(base_url),
 					is_js: /\.js/i.test(base_url) || /\^type=js/i.test(script_url), //lets check if '^type=js' exists
 					promise: null
 				};

@@ -4,6 +4,8 @@
   position: relative;
   border: 2px dashed #fff;
   display: inline-block;
+  min-height: 70px;
+  min-width: 70px;
   /* not an image */
   /*& canvas.final { background-color: #eee;}*/
 }
@@ -36,6 +38,9 @@
   width: 100%;
   text-align: center;
   z-index: 0;
+}
+.image-uploader-dropzone.image-exists:after {
+  content: "";
 }
 .image-uploader-dropzone.loading:after {
   content: 'Please wait, image is loading';

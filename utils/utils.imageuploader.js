@@ -151,7 +151,7 @@
 				$(element).addClass('smalltools smalltext');
 			}
 
-			$(element).css({height:height, width: width});
+			//$(element).css({height:height, width: width});
 			_self.widthPercentage		= ($(element).outerWidth() / $(element).offsetParent().width()) * 100;
 
 			if (options.resize == true) {
@@ -172,7 +172,10 @@
 
 			if (!empty(options.image) && options.editstart == false) {
 
-				$(element).data('name',options.image).append($('<img />').addClass('preview').attr('src',options.image));
+				$(element)
+					.data('name',options.image)
+					.addClass('image-exists')
+					.append($('<img />').addClass('preview').attr('src',options.image));
 
 				_self.toggleDropzoneClass(false);
 
@@ -245,7 +248,7 @@
 
 			// _self.reset();
 			//_self.imageRemove();
-			
+
 			$(element).removeClass('notAnImage').addClass('loading');//.unbind('dragover').unbind('drop');
 
 			for (var i = 0, f; f = files[i]; i++) {
@@ -631,10 +634,10 @@
 					$(element).find('.tools .saving').remove();
 					$(element).find('.tools').children().toggle();
 					_self.from_server = response; //adding this line so that i can read it later
-					$(element).data('name',response.image_base64encoded);
+					$(element).data('name',response.image).addClass('image-exists');
 					$(element).data('filename',response.filename);
 					if (!options.canvas)
-						$(element).append($('<img src="' + response.image_base64encoded + '" class="final" style="width: 100%" />'));
+						$(element).append($('<img src="' + response.image + '" class="final" style="width: 100%" />'));
 					_self.imageFinal();
 				},
 				error: function(response, status) {
@@ -727,7 +730,8 @@
 					url: _self.options.removeurl.url,
 					data: _self.options.removeurl.data || {},
 					success: function (response){
-						$(_self.element).data('name',null);
+						$(_self.element).data('name',null).removeClass('image-exists');
+
 						if (_self.options.onAfterRemoveImage)
 							_self.options.onAfterRemoveImage.call(_self, response, _self);
 					},

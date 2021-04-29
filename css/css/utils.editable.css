@@ -11,7 +11,7 @@
   padding-left: 0;
 }
 .popover-editable .popover-editable-control.save {
-  color: #6cbb23;
+  color: #206bc4;
 }
 .popover-editable .popover-editable-control.cancel {
   color: #eee;
@@ -131,9 +131,9 @@ form.editable-form .selectize-dropdown-content [data-value] .editable-text .high
 }
 .editable-target {
   cursor: pointer;
-  border-bottom: 1px dashed #6cbb23;
+  border-bottom: 1px dashed #206bc4;
   word-wrap: break-word;
-  color: #6cbb23;
+  color: #206bc4;
 }
 .editable-target.readonly {
   border-bottom: none;
@@ -156,7 +156,7 @@ form.editable-form .selectize-dropdown-content [data-value] .editable-text .high
   border: 1px dashed transparent;
 }
 .editable-target.editable-wysiwyg:hover {
-  border-color: #6cbb23;
+  border-color: #206bc4;
 }
 .editable-target[contenteditable="true"] {
   color: #c00 !important;

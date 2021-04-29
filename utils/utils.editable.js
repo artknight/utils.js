@@ -51,7 +51,7 @@ UTILS.Editable = class extends UTILS.Base {
 			}
 		}
 
-		 this._onSave = _.debounce(this.__onSave__.bind(this),500);
+		 this._onSave = _.debounce(this.__onSave__.bind(this),500,{ leading:true });
 
 		('params' in data) && this.setParams(data.params);
 		('field' in data) && this.setFieldName(data.field);
@@ -85,7 +85,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.8.1',
+			version: '0.8.4',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -96,13 +96,14 @@ UTILS.Editable = class extends UTILS.Base {
 			value: null, //holds the new value
 			DatePicker: null, //holds the date picker object
 			DateRangePicker: null, //holds the date range picker object
-			Selectize: null, //holds the selectize object
+			__selectize: null, //holds the selectize object
+			__summernote: null, //holds the summernote object
 			options: {}, //holds options
 			field_name: '@field', //holds the field name to be passed to the server
 			placeholder: '--', //holds the placeholder value when there is no value to be displayed
 			is_lazyload: false, //holds whether the element is lazy-loaded ( true --> the trigger event was extrapolated and there is no need to add another one )
 			toggle_action: 'click', //toggle action to show/hide the popover
-			Spinner: new UTILS.Spinner({ type:'medium', center:true, color:'black', blur:true }), //holds the spinner
+			__spinner: new UTILS.Spinner({ type:'medium', center:true, color:'black', blur:true }), //holds the spinner
 			is_inline_tabbing: false, //holds whether tabbing should be allowed for inline editing
 			items: [], //holds the items
 			is_enabled: false, //holds the enable/disable state of the popover
@@ -197,7 +198,7 @@ UTILS.Editable = class extends UTILS.Base {
 	//formats the input field value ( on edit )
 	filterValueForEditing(value){
 		var _value = value;
-		
+
 		if (this.getPlaceholder()===_value)
 			_value = '';
 
@@ -251,14 +252,14 @@ UTILS.Editable = class extends UTILS.Base {
 	_onItemSearch(query=''){
 		return new Promise((resolve,reject) => {
 			let $cell = this.getCell(),
-				spinner = this.getSpinner(),
+				__spinner = this.getSpinner(),
 				options = this.getOptions(),
 				ajax_options = {
 					method: 'GET',
 					data: ('onBeforeSearch' in options) ? options.onBeforeSearch.call(null,query.urlEncode(),this) : { q:query.urlEncode() }
 				},
 				onAfterSearch = response => {
-					spinner.hide();
+					__spinner.hide();
 
 					if (_.isString(response))
 						response = JSON.parse(response);
@@ -280,7 +281,7 @@ UTILS.Editable = class extends UTILS.Base {
 						reject();
 				},
 				onError = error => {
-					spinner.hide();
+					__spinner.hide();
 
 					if (error instanceof Error)
 						UTILS.Errors.show(error.message);
@@ -298,7 +299,7 @@ UTILS.Editable = class extends UTILS.Base {
 					ajax_options.data = JSON.stringify(ajax_options.data);
 			}
 
-			spinner.setTarget($cell).show();
+			__spinner.setTarget($cell).show();
 			$.fetch(options.search_url, ajax_options).then(onAfterSearch).catch(onError);
 		});
 	}
@@ -441,22 +442,30 @@ UTILS.Editable = class extends UTILS.Base {
 						this.setValue(value);
 					};
 
-					let selectize_options = {
-						create: false,
-						selectOnTab: this.isInlineTabbing(),
-						onFocus: () => {
-							is_processing = false;
-							this.removeErrorTooltip();
-						},
-						onBlur: () => {
-							var value = this.getSelectize().getValue();
+					let is_last_key_tab = false,
+						selectize_options = {
+							create: false,
+							selectOnTab: this.isInlineTabbing(),
+							onFocus: event => {
+								is_processing = false;
+								this.removeErrorTooltip();
+							},
+							onBlur: event => {
+								let value = this.getSelectize().getValue();
 
-							if (!is_processing){
-								this._onSave(value);
-								is_processing = true;
+								if (!is_processing){
+									if (is_last_key_tab && this.isInlineTabbing() && $next_editable.length) //tab
+										this._onSave(value).then(_triggerNextEditable);
+									else
+										this._onSave(value);
+
+									is_processing = true;
+								}
+							},
+							onKeyDown: event => {
+								is_last_key_tab = [keys.TAB].isIn(UTILS.getCharKey(event));
 							}
-						}
-					};
+						};
 
 					if (is_selectize){
 						_.extend(selectize_options, {
@@ -514,40 +523,39 @@ UTILS.Editable = class extends UTILS.Base {
 						.selectize(selectize_options);
 
 					//lets store the selectize object
-					this.values.Selectize = $input[0].selectize;
+					this.values.__selectize = $input[0].selectize;
 				}
 				else if (is_wysiwyg){
-					var self = this; //workaround to make sure the controls reference the utils.editable
-
 					$input.summernote(_.extend({},options,{
 						followingToolbar: false,//lets disable summernote native 'followScroll' method
 						callbacks: {
-							onInit: function(divs){
+							onInit: divs => {
 								//lets add the save/close controls
-								var summernote = $(this).data('summernote'),
-									$editor = divs.editor,
+								this.values.__summernote = $input.data('summernote');
+
+								let $editor = divs.editor,
 									$controls = $(`
-									<div class="textarea-wysiwyg-controls">
-									 	<a href="#" class="badge badge-primary control-item control-save"><i class="mdi mdi-check"></i></a>
-									 	<a href="#" class="badge badge-primary control-item control-cancel"><i class="mdi mdi-close"></i></a>
-									</div>
-								`);
+										<div class="textarea-wysiwyg-controls">
+											<a href="#" class="badge badge-primary control-item control-save"><i class="mdi mdi-check"></i></a>
+											<a href="#" class="badge badge-primary control-item control-cancel"><i class="mdi mdi-close"></i></a>
+										</div>
+									`);
 
 								//lets add events
 								$controls.find('.control-save').on('click',event => {
 									event.preventDefault();
 
-									var value = summernote.code();
+									let value = this.values.__summernote.code();
 
 									if (value.length && !is_processing){
-										self._onSave(value);
+										this._onSave(value);
 										is_processing = true;
 									}
 								});
 
 								$controls.find('.control-cancel').on('click',event => {
 									event.preventDefault();
-									self._onBeforeHide()._hide();
+									this._onBeforeHide()._hide();
 									is_processing = false;
 								});
 
@@ -689,6 +697,10 @@ UTILS.Editable = class extends UTILS.Base {
 					});
 			}
 
+			//setting spinner target here b/c in certain instances if there exists a blogal blur and the editable action gets cancelled
+			//the spinner removes the global blur
+			this.getSpinner().setTarget($cell);
+
 			this.values.is_enabled = true;
 		}
 
@@ -718,7 +730,7 @@ UTILS.Editable = class extends UTILS.Base {
 		return this;
 	}
 	getSpinner(){
-		return this.values.Spinner;
+		return this.values.__spinner;
 	}
 	getFieldName(){
 		return this.values.field_name; //field name to be passed in the ajax call
@@ -760,7 +772,7 @@ UTILS.Editable = class extends UTILS.Base {
 				option = subtypes.join('-');
 
 			this.values.type = {
-				base: base, 
+				base: base,
 				option: option
 			};
 
@@ -793,6 +805,9 @@ UTILS.Editable = class extends UTILS.Base {
 	isSelectize(){
 		return /selectize/i.test(this.getType().option);
 	}
+	isSummernote(){
+		return this.getSummernote()!==null;
+	}
 	isMultiSelect(){
 		return /multiselect/i.test(this.getType().option);
 	}
@@ -803,7 +818,7 @@ UTILS.Editable = class extends UTILS.Base {
 		return /^wysiwyg/i.test(this.getType().option);
 	}
 	getValue(){
-		return this.values.value;
+		return _.clone(this.values.value);
 	}
 	setValue(value){
 		return new Promise((resolve,reject) => {
@@ -1108,7 +1123,10 @@ UTILS.Editable = class extends UTILS.Base {
 		return this.values.DateRangePicker;
 	}
 	getSelectize(){
-		return this.values.Selectize;
+		return this.values.__selectize;
+	}
+	getSummernote(){
+		return this.values.__summernote;
 	}
 	//save values
 	__onSave__(value){
@@ -1121,7 +1139,7 @@ UTILS.Editable = class extends UTILS.Base {
 				$target = this.getTarget(),
 				$cell = this.getCell(),
 				$editable = null,
-				spinner = this.getSpinner(),
+				__spinner = this.getSpinner(),
 				ajax_settings = this.getAjaxData(),
 				params = this.getParams(),
 				field_name = this.getFieldName(),
@@ -1143,7 +1161,7 @@ UTILS.Editable = class extends UTILS.Base {
 				$editable = $cell;
 
 			//spinner
-			spinner.setTarget($editable);
+			__spinner.setTarget($editable);
 
 			let _updateContentEditable = () => {
 				$target
@@ -1167,7 +1185,7 @@ UTILS.Editable = class extends UTILS.Base {
 					prev_values = this.getDisplayValue();
 					is_changed = curr_values.replace(/[\s,]/g,'')!==prev_values.replace(/[\s,]/g,''); //removing all spaces and commas to compare two strings
 				}
-				
+
 				return is_changed;
 			};
 
@@ -1176,7 +1194,7 @@ UTILS.Editable = class extends UTILS.Base {
 				_log(this.getObjectName()+' --> value changed, saving...');
 
 				let _onError = error => {
-					spinner.hide();
+					__spinner.hide();
 
 					if (error instanceof Error)
 						UTILS.Errors.show(error.message);
@@ -1200,7 +1218,7 @@ UTILS.Editable = class extends UTILS.Base {
 				};
 
 				let _onSuccess = response => {
-					spinner.hide();
+					__spinner.hide();
 
 					if (_.isString(response))
 						response = JSON.parse(response);
@@ -1239,7 +1257,7 @@ UTILS.Editable = class extends UTILS.Base {
 				};
 
 				this.fns('onBeforeSave', value);
-				spinner.show();
+				__spinner.show();
 
 				var _getFormatedParams = () => {
 					let data = {};
@@ -1254,7 +1272,7 @@ UTILS.Editable = class extends UTILS.Base {
 
 				//if checkbox lets move the spinner right over the control
 				if (is_type_checkbox)
-					spinner.getSpinner().css({ left:15 });
+					__spinner.getSpinner().css({ left:15 });
 
 				if ('url' in ajax_settings && ajax_settings.url.length){
 					let url = ajax_settings.url,

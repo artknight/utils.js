@@ -24,7 +24,6 @@
 	@controls - (optional) control buttons at the bottom of the box --> defaults to ''
 	@classname - (optional) adds an extra class to the box (sometimes used to identify the set of boxes) --> defaults to ''
 	@buttons - (optional) sets show|hide for certain buttons --> defaults to {close:true,maximize:false}
-	@dd - (optional) enable|disable drag n drop --> defaults to 'false'
 	@center - (optional) center box --> defaults to 'false'
 	@coords - (optional) position box at certain place --> defaults to 'null'
 	@offset - (optional) offset box from center when opening --> defaults to '{left:0,top:0}'
@@ -87,7 +86,6 @@ UTILS.Box =  class extends UTILS.Base {
 			controls: data.controls || '',
 			classname: data.classname || '',
 			buttons: data.buttons || null,
-			dd: !!data.dd,
 			coords: data.coords || null,
 			center: !!data.center,
 			offset: (data.offset && _.isPlainObject(data.offset)) ? data.offset : {left:0,top:0},
@@ -104,9 +102,10 @@ UTILS.Box =  class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.box',
-			version: '3.3.1',
+			version: '3.3.7',
 			history: {}, //holds the historic box settings (in case of maximize, etc...)
 			is_shown: false, //holds whether this box is shown
+			$elm: null,
 			//holds the divs of the box
 			divs: {
 				scrolling_wrapper: null //holds the wrapper inside which the box is placed if scrolling is enabled
@@ -136,7 +135,6 @@ UTILS.Box =  class extends UTILS.Base {
 		this.values.$elm.remove();
 	}
 	clean(){
-		this.values.$elm.off('resize.selfcorrect.utils.box',this.selfCorrect);
 		$(window).off('resize.utils.box resize.center.utils.box',this.onResize);
 		$(document).off('keyup.escape.utils.box',this._onEscapeKeyPressed);
 		this.fns('onBeforeClose');
@@ -189,7 +187,7 @@ UTILS.Box =  class extends UTILS.Base {
 			else { //we are within another DOM elm
 				var blur = new UTILS.Blur({
 					target: this.values.$target,
-					color: (this instanceof APP.Confirm) ? 'black' : 'white',
+					color: 'black',
 					onShow: _show
 				});
 				onClose = blur.hide.bind(blur);
@@ -210,9 +208,6 @@ UTILS.Box =  class extends UTILS.Base {
 	}
 	isShown(){
 		return this.values.is_shown;
-	}
-	isDragable(){
-		return this.values.dd;
 	}
 	//private - only used to determine if the box is insterted into the body or within another DOM elm
 	isGlobalBox(){
@@ -263,7 +258,7 @@ UTILS.Box =  class extends UTILS.Base {
 				this.values.$elm.addClass(_.joinArray(this.values.history.scrollable.classes,' '));
 
 				if (this.values.center)
-					this.values.$elm.setCenter(this.values.offset,this.isGlobalBox()?$(window):this.getTargetDOM());
+					this.setCenter();
 			}
 			delete this.values.history.scrollable;
 		}
@@ -294,7 +289,6 @@ UTILS.Box =  class extends UTILS.Base {
 					this.set({w:this.values.history.on_static.w,h:this.values.history.on_static.h,coords:this.values.history.on_static.coords});
 					delete this.values.history.on_static;
 					this.values.resizeDims = null; //reset resizeDims to default
-					this.values.divs.$mainbody.height('auto');
 					$(window).off('resize.utils.box',this.onResize); //remove this.onResize that was added when the box was maximized
 				}
 
@@ -358,8 +352,10 @@ UTILS.Box =  class extends UTILS.Base {
 		var dims = {
 			w: page.w-(this.values.resizeDims[1]+this.values.resizeDims[3]),
 			h: page.h-(this.values.resizeDims[0]+this.values.resizeDims[2]),
-			left: this.values.resizeDims[3],
-			top: this.values.resizeDims[0]
+			top: this.values.resizeDims[0],
+			right: this.values.resizeDims[1],
+			bottom: this.values.resizeDims[2],
+			left: this.values.resizeDims[3]
 		};
 
 		//special condition when this.values.center==true and responsive kicked in
@@ -370,42 +366,23 @@ UTILS.Box =  class extends UTILS.Base {
 			this.enableScrolling();
 		}
 
-		this.set({w:dims.w,h:dims.h,coords:{left:dims.left,top:dims.top}},true); //resize box
+		//resize box
+		this.set({
+			w: dims.w,
+			h: dims.h,
+			coords: { top:dims.top, right:dims.right, bottom:dims.bottom, left:dims.left }
+		});
 	}
 
-	//private
-	onCenter(){
-		//if screen < 768 and no resizeDims set, lets
-		if ($(window).width()<this.values.max_responsive_width){
-			if (!('responsive' in this.values.history)){
-				this.values.history.responsive = {
-					resizeDims: this.values.resizeDims,
-					w: this.values.w,
-					h: this.values.h,
-					coords: this.values.coords
-				};
-			}
-			this.values.resizeDims = [20,20,20,20];
-			this.onResize();
-		}
-		else {
-			var $parent = this.isGlobalBox() ? $(window) : this.getTargetDOM();
+	setCenter(){
+		let $box = this.getBox();
 
-			if ('responsive' in this.values.history){
-				this.values.resizeDims = this.values.history.responsive.resizeDims;
-				this.set({ w:this.values.history.responsive.w, h:this.values.history.responsive.h, coords:this.values.history.responsive.coords });
-				delete this.values.history.responsive;
-			}
+		$box.toggleClass('box-center',this.values.center);
 
-			this.values.$elm.setCenter(this.values.offset,$parent);
+		if (!this.isGlobalBox())
+			this.getTargetDOM().toggleClass('box-center-support');
 
-			if ($parent.height()<this.values.$elm.outerHeight()){
-				this.values.$elm.css({top:0});
-				this.enableScrolling();
-			}
-			else
-				this.disableScrolling();
-		}
+		return this;
 	}
 
 	//private
@@ -551,21 +528,6 @@ UTILS.Box =  class extends UTILS.Base {
 		return this;
 	}
 
-	//private
-	//only used to keep the proper dims for box-mainbody & box-controls
-	//an event listener was added to window
-	selfCorrect(){
-		var m = parseInt(this.values.divs.$mainbody.css('marginTop').replace(/\D/g,'')); //box-mainbody margin top e.q. 15px --> 15
-		var p = parseInt(this.values.divs.$inner.css('paddingTop').replace(/\D/g,'')); //box-inner padding top
-		var h = (this.values.divs.$controls.html().length) ? this.values.divs.$controls.outerHeight() : 0; //box-controls height
-
-		if (this.values.resizeDims!=null)
-			this.values.divs.$mainbody.height(this.values.divs.$outer.outerHeight()-h-p-m);
-		else
-			this.values.divs.$mainbody.height('auto');
-
-		this.values.divs.$controls.width(this.values.divs.$outer.outerWidth()-20);
-	}
 	//if the this.values.$target happens to be another UTILS.Box, we need to get the parent to append it to
 	getTargetDOM(){
 		return this.values.$target instanceof UTILS.Box ? this.values.$target.values.$elm : this.values.$target;
@@ -575,42 +537,57 @@ UTILS.Box =  class extends UTILS.Base {
 		return parseInt($('.box').last().css('z-index'))+200 || 20001;
 	}
 	_create(){
-		var zindex = this.getLastZIndex();
+		let zindex = this.getLastZIndex(),
+			box_id = this.getId(),
+			$target = this.getTargetDOM();
 
 		//if box exists, remove it
 		if (this.boxExists())
-			$('#'+this.values.id).remove();
+			this.values.$elm.remove();
 
-		//create new box
-		this.values.$elm = $(`<div id="${this.values.id}" class="box ${this.isGlobalBox() ? 'pos-fixed' : 'pos-absolute'} ${this.values.light ? ' light' : ''}" style="z-index:${zindex}" data-box-allow-close="${this.isCloseAllowed()}">`);
+		let $elm = $(`
+			<div id="${box_id}" class="box ${this.isGlobalBox()?'pos-fixed':'pos-absolute'} ${this.values.light?'light':''}" data-box-allow-close="${this.isCloseAllowed()}">
+				<div class="box-hd">
+					<div class="box-hd-title"></div>
+					<div class="box-top-buttons">
+						<small class="box-timestamp text-muted"></small>
+						<a href="#" title="maximize" class="box-top-buttons-maximize"><i class="mdi mdi-arrow-expand-all mdi-fw"></i></a>
+						<a href="#" title="close" class="box-top-buttons-close"><i class="mdi mdi-close mdi-fw"></i></a>
+					</div>
+				</div>
+				<div class="box-outer">
+					<div class="box-inner">
+						<div class="box-mainbody"></div>
+					</div>
+				</div>
+				<div class="box-controls"></div>
+			</div>
+		`);
+
+		//update box
+		$elm.css('zIndex',zindex);
+
 		//parts
-		this.values.divs.$hd = $('<div id="'+this.values.id+'-box-hd" class="box-hd">');
-		this.values.divs.$mainbody = $('<div id="'+this.values.id+'-box-mainbody" class="box-mainbody cfx">');
-		this.values.divs.$controls = $('<div id="'+this.values.id+'-box-controls" class="box-controls cfx" style="z-index:'+parseInt(zindex+4)+'">');
-		this.values.divs.$inner = $('<div id="'+this.values.id+'-box-inner" class="box-inner">');
-		this.values.divs.$outer = $('<div id="'+this.values.id+'-box-outer" class="box-outer">');
-		this.values.divs.$buttons = $('<div id="'+this.values.id+'-box-top-buttons" class="box-top-buttons">');
-		this.values.divs.$cls = $('<a id="'+this.values.id+'-box-boxcls" href="#" title="close" class="box-top-buttons-close"><i class="mdi mdi-close mdi-fw"></i></a>');
-		this.values.divs.$maximize = $('<a id="'+this.values.id+'-box-maximize" href="#" title="maximize" class="box-top-buttons-maximize"><i class="mdi mdi-arrow-expand-all mdi-fw"></i></a>');
-		this.values.divs.$timestamp = $('<small id="'+this.values.id+'-box-timestamp" class="box-timestamp text-muted"></small>');
+		this.values.divs.$hd = $elm.find('.box-hd');
+		this.values.divs.$title = $elm.find('.box-hd-title');
+		this.values.divs.$mainbody = $elm.find('.box-mainbody');
+		this.values.divs.$controls = $elm.find('.box-controls');
+		this.values.divs.$inner = $elm.find('.box-inner');
+		this.values.divs.$outer = $elm.find('.box-outer');
+		this.values.divs.$buttons = $elm.find('.box-top-buttons');
+		this.values.divs.$cls = $elm.find('.box-top-buttons-close');
+		this.values.divs.$maximize = $elm.find('.box-top-buttons-maximize');
+		this.values.divs.$timestamp = $elm.find('.box-timestamp');
+		this.values.$elm = $elm;
 
-		//appending
-		this.getTargetDOM().append(
-			this.values.$elm.append(
-				this.values.divs.$outer.append(
-					this.values.divs.$inner.append(
-						this.values.divs.$hd,
-						this.values.divs.$mainbody
-					),
-					this.values.divs.$buttons.append(
-						this.values.divs.$timestamp,
-						this.values.divs.$maximize,
-						this.values.divs.$cls
-					)
-				),
-				this.values.divs.$controls
-			)
-		);
+		$target.append(this.values.$elm);
+
+
+		//on content change
+		new MutationObserver(() => {
+			this.enableResizeSensor(); //must enable this sensor after content is loaded
+			this.fns('onContentUpdate');
+		}).observe(this.values.divs.$mainbody[0], { childList:true, subtree:true } );
 
 		//close button
 		this.values.divs.$cls.on('click.clean.utils.box',event => {
@@ -620,7 +597,6 @@ UTILS.Box =  class extends UTILS.Base {
 			this.clean('clean');
 		});
 		this.values.divs.$maximize.on('click.maximize.utils.box',this.maximize.bind(this)); //maximize button
-		this.values.$elm.on('resize.selfcorrect.utils.box',this.selfCorrect.bind(this)); //box-mainbody must always have full height & box-controls must be full width
 
 		//onEscape
 		$(document).on('keyup.escape.utils.box',this._onEscapeKeyPressed.bind(this));
@@ -661,8 +637,7 @@ UTILS.Box =  class extends UTILS.Base {
 	}
 
 	//re-render box --> e.q. box.set({w:600, title:'please note',html:'',dd:false,fn:null,center:true});
-	//skip: only passed to avoid calling this.selfCorrect() if self recursive
-	set(data,skip){
+	set(data){
 		if (data && _.isPlainObject(data)){
 			for (var k in data){
 				switch(true){
@@ -679,34 +654,32 @@ UTILS.Box =  class extends UTILS.Base {
 					break;
 					case /^h$/.test(k):
 						this.values.h = data[k];
-						this.values.divs.$outer.height(_.isNumber(this.values.h) ? this.values.h-20 : this.values.h);
+
+						let extra_h = this.values.divs.$controls.height();
+
+						this.values.divs.$outer.height(_.isNumber(this.values.h) ? this.values.h-extra_h : this.values.h);
 					break; //set height minus 20px due to box padding
 					case /^title$/.test(k):
 						this.values.title = data[k];
 
-						if (this.values.title.length){
-							this.values.divs.$mainbody.removeClass('margin-t0');
-							this.values.divs.$hd.html('<span>'+this.values.title+'</span>').show();
-						}
-						else if (!this.isDragable()){
-							this.values.divs.$mainbody.addClass('margin-t0');
-							this.values.divs.$hd.empty().hide();
-						}
+						if (this.values.title.length)
+							this.values.divs.$title.html('<span>'+this.values.title+'</span>').show();
+						else
+							this.values.divs.$title.hide();
 					break;
 					case /^html$/.test(k):
-						var $mainbody = this.values.divs.$mainbody;
+						let $mainbody = this.values.divs.$mainbody;
 						this.values.html = data[k];
 						$mainbody.velocity('fadeIn',{
 							duration: 500,
-							begin: function(){
-								var $sensor = $mainbody.find('.resize-sensor');
+							begin: () => {
+								let $sensor = $mainbody.find('.resize-sensor');
+
 								$mainbody.html(this.values.html);
-								($sensor.length) && $mainbody.append($sensor);
-							}.bind(this),
-							complete: function(){
-								this.enableResizeSensor(); //must enable this sensor after content is loaded
-								this.fns('onContentUpdate');
-							}.bind(this)
+
+								if ($sensor.length)
+									$mainbody.append($sensor);
+							}
 						});
 					break;
 					case /^controls$/.test(k):
@@ -715,7 +688,6 @@ UTILS.Box =  class extends UTILS.Base {
 
 						if (this.values.divs.$controls.html().length){
 							this.values.divs.$controls.addClass('expressed');
-							this.values.divs.$mainbody.css({'marginBottom':this.values.divs.$controls.height()});
 
 							//check for close button
 							var $close_btn = this.values.divs.$controls.find('.box-controls-close');
@@ -725,7 +697,7 @@ UTILS.Box =  class extends UTILS.Base {
 						}
 						else {
 							this.values.divs.$controls.removeClass('expressed');
-							this.values.divs.$mainbody.css({'marginBottom':0});
+							this.values.divs.$mainbody.css({'paddingBottom':0});
 						}
 					break;
 					case /^classname$/.test(k):
@@ -744,27 +716,11 @@ UTILS.Box =  class extends UTILS.Base {
 							}
 						}
 					break;
-					case /^dd$/.test(k):
-						this.values.dd = data[k];
-						if (this.values.dd){
-							this.values.divs.$hd.addClass('cursor-movable');
-							if (this.values.$elm.data('draggable'))
-								this.values.$elm.draggable('enable');
-							else
-								this.values.$elm.draggable({ handle:this.values.divs.$hd.get(0) });
-						}
-						else {
-							this.values.divs.$hd.removeClass('cursor-movable');
-							//note: only call this if $elm is indeed udraggable (otherwise it sets position:absolute)
-							this.values.$elm.data('draggable') && this.values.$elm.draggable('disable');
-						}
-					break;
 					case /^coords$/.test(k):
 						this.values.coords = data[k];
-						if (this.values.coords && _.isPlainObject(this.values.coords)){
-							(this.values.coords.left!=null) && this.values.$elm.css({left:this.values.coords.left});
-							(this.values.coords.top!=null) && this.values.$elm.css({top:this.values.coords.top});
-						}
+
+						if (this.values.coords)
+							this.values.$elm.css(this.values.coords);
 						else
 							this.values.coords = null;
 					break;
@@ -772,19 +728,13 @@ UTILS.Box =  class extends UTILS.Base {
 						this.values.freeze = data[k];
 
 						if (this.values.freeze)
-							this.set({h:this.values.divs.$outer.outerHeight()+20},'skip');
+							this.set({h:this.values.divs.$outer.outerHeight()+20});
 						else
-							this.set({h:'auto'},'skip'); //dynamic box height, depending on content
+							this.set({h:'auto'}); //dynamic box height, depending on content
 					break;
 					case /^center$/.test(k):
 						this.values.center = data[k];
-						$(window).off('resize.center.utils.box',this.onCenter); //remove possible event listener
-
-						if (this.values.center){
-							$(window).on('resize.center.utils.box',this.onCenter.bind(this));
-							this.onCenter();
-							this.addCallback('onContentHeightChange',this.onCenter.bind(this));
-						}
+						this.setCenter();
 					break;
 					case /^blur$/.test(k): _.isPlainObject(data[k]) && (this.values.blur = _.extend(this.values.blur,data[k])); break;
 					case /^dimmer$/.test(k): this.values.dimmer = !!data[k]; break;
@@ -797,25 +747,28 @@ UTILS.Box =  class extends UTILS.Base {
 						this.values.resizeDims = data[k];
 						$(window).off('resize.utils.box',this.onResize); //remove possible event listener
 
-						if (this.values.resizeDims!=null){
+						if (this.values.resizeDims){
 							$(window).on('resize.utils.box',this.onResize.bind(this)); //stretch box on-browser-resize
+
 							if (!_.isNumber(this.values.resizeDims))
 								var tmp = this.values.resizeDims.split('x');
 							else
 								var tmp = [this.values.resizeDims,this.values.resizeDims,this.values.resizeDims,this.values.resizeDims];
+
 							this.values.resizeDims = [];
+
 							for (var i=0; i<tmp.length; i++){
 								this.values.resizeDims.push(parseInt(tmp[i]));
 							}
+
+							//lets add a class to box to make sure the $outer height is ignored
+							this.getBox().toggleClass('box-resize-dims',!!this.values.resizeDims);
+
 							this.onResize();
 						}
 					break;
 				} //switch
 			} //end if
-
-			//self correct box dims
-			if (!skip)
-				this.selfCorrect();
 		}
 		return this;
 	} //set
@@ -827,6 +780,9 @@ UTILS.Box =  class extends UTILS.Base {
 	}
 	getMainbody(){
 		return this.values.divs.$mainbody;
+	}
+	getOuter(){
+		return this.values.divs.$outer;
 	}
 	getParentBox(){
 		return this.values.$elm.parent().closest('.box');

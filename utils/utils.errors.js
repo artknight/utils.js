@@ -1,5 +1,6 @@
 UTILS.Errors = {
 	values:{
+		version: '0.0.2',
 		space:{}, //will be populated from DB
 		effects: { //effects to apply to base elm before showing the errors
 			shake: 'callout.shake',
@@ -34,6 +35,14 @@ UTILS.Errors = {
 					data.container.set({ html:html });
 				else
 					$(data.container).html(html);
+			}
+			else if ('opts' in data){
+				new APP.Alert(_.extend({
+					type: 'error',
+					html: _.map(data.errors, error => `<p>${UTILS.Errors.getMessage(error.error)}</p>`),
+					delay: 3000,
+					is_header: true
+				}, data.opts)).show();
 			}
 			else if ('fields' in error && error.fields.length){
 				_.each(error.fields,function(field){
@@ -77,21 +86,26 @@ UTILS.Errors = {
 		@silent - whether or not display the error or to suppress it --> defaults to 'false'
 		@type - simple | full --> defaults to 'full'
 	*/
-	isError: function(data={},silent=false){
-		var is_error = false;
-		var data = _.isString(data) ? { errors:[{ error:data, fields:[] }] } : data;
+	isError: function(data={},silent=false,opts=null){
+		let is_error = false,
+			_data = _.isString(data) ? { errors:[{ error:data, fields:[] }] } : data;
 
-		if ('errors' in data && data.errors.length){
+		//lets add the opts
+		if (opts)
+			data.opts = opts;
+
+		if ('errors' in _data && _data.errors.length){
 
 			let _onComplete = () => {
-				(!silent) && UTILS.Errors.showTooltips(data);
+				if (!silent)
+					UTILS.Errors.showTooltips(_data);
 			};
 
-			if ('fx' in data && data.fx){
-				effect = UTILS.Errors.values.effects[data.fx.effect];
+			if ('fx' in _data && _data.fx){
+				effect = UTILS.Errors.values.effects[_data.fx.effect];
 
 				if (effect)
-					$(data.fx.base).velocity(effect,{ complete:_onComplete });
+					$(_data.fx.base).velocity(effect,{ complete:_onComplete });
 			}
 			else
 				_onComplete();
@@ -108,11 +122,22 @@ UTILS.Errors = {
 		return (error in UTILS.Errors.values.space) ? UTILS.Errors.values.space[error] : error.replace(/\\n/g,'<br>');
 	},
 
-	show: function(error,callback){
-		var message = UTILS.Errors.getMessage(error);
+	renderErrorsInPage: response => {
+		return $(`<span class="errors-in-page-wrapper">${_.map(response.errors, error => `<p class="errors-in-page-error">${UTILS.Errors.getMessage(error.error)}</p>`)}</span>`);
+	},
 
-		if (message.length)
-			new APP.Alert({ type:'error', html:message.replace(/\\n/g,'<br>'), onClose:callback }).show();
+	show: function(error, callback, opts={}){
+		let message = UTILS.Errors.getMessage(error);
+
+		if (message.length){
+			let options = _.extend({
+				type: 'error',
+				html: message.replace(/\\n/g,'<br>'),
+				onClose: callback
+			}, opts);
+
+			new APP.Alert(options).show();
+		}
 	}
 
 };

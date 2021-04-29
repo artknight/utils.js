@@ -5,21 +5,9 @@ APP.Box = class extends UTILS.Box {
 			data.object = 'utils.box[app.box]';
 
 		if (!('version' in data))
-			data.version = '0.0.3';
+			data.version = '0.0.4';
 
 		super(data);
-
-		//lets check for mappers (by now the 'set' method has executed)
-		if ('mapper' in data){
-			this.values.mapper = APP.public.getMapper(data.mapper);
-			var title = '';
-			var stacked_boxes = APP.stack.getBoxes();
-			for (var i=0,box; box=stacked_boxes[i]; i++){
-				var lnk = (i<stacked_boxes.length-1) ? '<span class="label label-primary"><a href="javascript:;" onclick="APP.stack.resetDepth('+(i+1)+');return false;">'+box.values.mapper.single+'</a></span>' : '<span class="label label-default">'+this.values.mapper.single+'</span>';
-				title += ((i) ? ' &raquo; ' : '') + lnk;
-			}
-			this.set({ title:title });
-		}
 
 		return this;
 	}
@@ -40,6 +28,13 @@ APP.Box = class extends UTILS.Box {
 		}
 		super.fns(type);
 	}
+	_onEscapeKeyPressed(event){
+		let key = UTILS.getCharKey(event),
+			__box = $('.box').last().data(this.values.object);
+
+		if (key===27 && __box && __box.getId()===this.getId() && this.isCloseAllowed())
+			this.clean();
+	}
 };
 
 /*
@@ -48,8 +43,8 @@ APP.Box = class extends UTILS.Box {
  */
 APP.Confirm = class extends APP.Box {
 	constructor(data){
-		var defaults = {
-			version: '0.0.4',
+		let defaults = {
+			version: '0.0.5',
 			w: 400,
 			title: '',
 			html: '<p>Do you want to proceed?</p>',
@@ -63,41 +58,78 @@ APP.Confirm = class extends APP.Box {
 
 		super(_.extend(defaults,data));
 
-		//lets check for onConfirm (by now the 'set' method has executed)
-		if ('onConfirm' in data){
-			this.addCallback('onConfirm',data.onConfirm);
+		//content
+		let $controls = $(`
+			<div class="box-confirm-inner-controls">
+			   <button type="button" class="btn btn-light btn-sm box-confirm-inner-control" data-control="cancel">cancel</button>
+			   <button type="button" class="btn btn-danger btn-sm box-confirm-inner-control" data-control="confirm">proceed</button>
+			</div>
+		`);
 
-			if ('onBeforeConfirm' in data)
-				this.addCallback('onBeforeConfirm',data.onBeforeConfirm);
+		//lets check for custom buttons
+		if ('customButtons' in data){
+			let $confirm = $controls.find('[data-control="confirm"]'),
+				$cancel = $controls.find('[data-control="cancel"]')
 
-			//create buttons
-			this.values.divs.$inner_controls = $('<div class="regular text-right">');
-			this.values.divs.$confirm = $('<button type="button" class="btn btn-danger">proceed</button>');
-			this.values.divs.$cancel = $('<button type="button" class="btn btn-light">cancel</button>');
-			this.values.divs.$inner_controls.append(this.values.divs.$cancel,this.values.divs.$confirm);
-			this.values.divs.$mainbody.append(this.values.divs.$inner_controls);
-			//add onclick events
-			this.values.divs.$confirm.on('click.confirm.utils.box',function(event){
-				event.preventDefault();
-				event.stopPropagation();
+			if ('confirm' in data.customButtons){
+				let $custom_confirm = $(data.customButtons.confirm);
+
+				$confirm.replaceWith($custom_confirm);
+
+				$custom_confirm
+					.attr('data-control','confirm')
+					.addClass('btn btn-sm box-confirm-inner-control');
+			}
+			else
+				$confirm.remove();
+
+			if ('cancel' in data.customButtons){
+				let $custom_cancel = $(data.customButtons.cancel);
+
+				$cancel.replaceWith($custom_cancel);
+
+				$custom_cancel
+					.attr('data-control','cancel')
+					.addClass('btn btn-sm box-confirm-inner-control');
+			}
+			else
+				$cancel.remove();
+		}
+
+		this.values.divs.$mainbody.append($controls);
+
+		$controls.on('click','.box-confirm-inner-control', event => {
+			event.preventDefault();
+			event.stopImmediatePropagation();
+
+			let $control = $(event.currentTarget);
+
+			if (/^cancel$/i.test($control.attr('data-control')))
+				_onCancelClicked();
+			else if (/^confirm$/i.test($control.attr('data-control')))
+				_onConfirmClicked();
+		});
+
+		let _onCancelClicked = () => {
+			if ('onCancel' in data){
+				this.addCallback('onCancel',data.onCancel);
+				this.clean('clean').fns('onCancel');
+			}
+			else
+				this.clean();
+		};
+
+		let _onConfirmClicked = () => {
+			if ('onConfirm' in data){
+				this.addCallback('onConfirm',data.onConfirm);
+
+				if ('onBeforeConfirm' in data)
+					this.addCallback('onBeforeConfirm',data.onBeforeConfirm);
 
 				this.fns('onBeforeConfirm');
 				this.clean('confirm').fns('onConfirm');
-			}.bind(this));
-
-			if ('onCancel' in data){
-				this.addCallback('onCancel',data.onCancel);
-				this.values.divs.$cancel.on('click.clean.utils.box',function(event){ event.preventDefault(); event.stopPropagation(); this.clean('clean').fns('onCancel'); }.bind(this));
 			}
-			else
-				this.values.divs.$cancel.on('click.clean.utils.box',function(event){ event.preventDefault(); event.stopPropagation(); this.clean(); }.bind(this));
-		}
-
-		//lets check for buttons
-		if ('customButtons' in data){
-			('confirm' in data.customButtons) && this.values.divs.$confirm.html(data.customButtons.confirm);
-			('cancel' in data.customButtons) && this.values.divs.$cancel.html(data.customButtons.cancel);
-		}
+		};
 
 		return this;
 	}
@@ -131,7 +163,7 @@ APP.Alert = class extends UTILS.Box {
 			data.object = 'utils.box[app.alert]';
 
 		var defaults = {
-			version: '0.0.5',
+			version: '0.0.9',
 			w: 600,
 			title: '',
 			html: '',
@@ -142,18 +174,21 @@ APP.Alert = class extends UTILS.Box {
 		};
 
 		var custom = {
-			error: { w:600, classname:'box-red alert-box', html:$('<span class="alert-box-content"><i class="mdi mdi-alert mdi-24px"></i></span>'), fx:{effect:'expand-in'} },
+			error: { w:600, classname:'box-red alert-box', html:$('<span class="alert-box-content"><i class="mdi mdi-alert-circle-outline mdi-24px"></i></span>'), fx:{effect:'expand-in'} },
 			success: { w:400, classname:'box-green alert-box', html:$('<span class="alert-box-content"><i class="mdi mdi-check mdi-24px"></i></span>'), fx:{effect:'slide-up'} },
-			info: { w:400, classname:'box-blue alert-box', html:$('<span class="alert-box-content"><i class="mdi mdi-info mdi-24px"></i></span>'), fx:{effect:'slide-right'} },
-			warning: { w:400, classname:'box-yellow alert-box', html:$('<span class="alert-box-content"><i class="mdi mdi-exclamation mdi-24px"></i></span>'), fx:{effect:'expand-in'} },
+			info: { w:400, classname:'box-blue alert-box', html:$('<span class="alert-box-content"><i class="mdi mdi-information-outline mdi-24px"></i></span>'), fx:{effect:'slide-right'} },
+			warning: { w:400, classname:'box-yellow alert-box', html:$('<span class="alert-box-content"><i class="mdi mdi-alert-outline mdi-24px"></i></span>'), fx:{effect:'expand-in'} },
 		};
 
 		//lets change the default html for soft error msgs
 		if (/error/.test(data.type) && 'classname' in data && /soft/.test(data.classname))
-			custom[data.type].html = $('<span class="alert-box-content"><h4><i class="mdi mdi-alert mdi-24px"></i> Oops...</h4></span>');
+			custom[data.type].html = $('<span class="alert-box-content"><h4><i class="mdi mdi-alert-outline mdi-24px"></i><span>Oops...</span></h4></span>');
 
 		//lets add the html
-		custom[data.type].html.append(' ').append(data.html||'');
+		if (typeof data.html!=='object')
+			data.html = `<span>${data.html||''}</span>`;
+
+		custom[data.type].html.append($(data.html));
 
 		//update default values with custom overwrites
 		_.extend(defaults,custom[data.type]);
@@ -164,13 +199,19 @@ APP.Alert = class extends UTILS.Box {
 			delete data.classname;
 		}
 
+		//lets check for is_header
+		if ('is_header' in data){
+			defaults.classname += ' alert-is-header-box';
+			custom[data.type].fx.effect = 'slide-down';
+		}
+
 		super(_.extend(defaults,data));
 
 		//lets update the type
 		this.setBoxType(data.type);
 
 		//now that box is created, we can update its coords
-		if (/error|warning/.test(data.type)){
+		if (/error|warning/.test(data.type) && !('is_header' in data)){
 			this.getBox().on('click', this.clean.bind(this));
 			this.set({center: true});
 		}
@@ -178,10 +219,28 @@ APP.Alert = class extends UTILS.Box {
 			this.set({
 				classname:'alert-box',
 				onShow: box => {
-					let delay = this.getDelay();
+					let delay = this.getDelay(),
+						is_stop_delay = false; //would be set to true if mouse is hovering over the box
 
-					if (delay)
-						box.clean.bind(box).delay(delay);
+					if (delay){
+						let _runDelayedClose = () => {
+							_.delay(() => {
+								if (!is_stop_delay)
+									box.clean();
+							},delay);
+						};
+
+						this.getBox()
+							.on('mouseenter',event => {
+								is_stop_delay = true;
+							})
+							.on('mouseleave',event => {
+								is_stop_delay = false;
+								_runDelayedClose();
+							});
+
+						_runDelayedClose();
+					}
 				}
 			});
 		}
@@ -245,6 +304,13 @@ APP.Alert = class extends UTILS.Box {
 		super.show();
 
 		return this;
+	}
+	_onEscapeKeyPressed(event){
+		let key = UTILS.getCharKey(event),
+			__box = $('.box').last().data(this.values.object);
+
+		if (key===27 && __box && __box.getId()===this.getId() && this.isCloseAllowed())
+			this.clean();
 	}
 };
 

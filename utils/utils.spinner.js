@@ -21,7 +21,7 @@ UTILS.Spinner =  class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object:'utils.spinner',
-			version:'2.1.3',
+			version:'2.1.4',
 			opts: {},
 			divs: {}, //holds all the divs of the main elm
 			is_shown: false, //holds whether the spinner is shown
@@ -83,10 +83,8 @@ UTILS.Spinner =  class extends UTILS.Base {
 		else
 			this.values.$target.append(this.values.$elm);
 
-		if (this.values.center){
-			var target = (this.values.$target[0]===$('#container')[0] || this.values.$target.is('body')) ? null : this.values.$target;
-			this.values.$elm.setCenter(null,target);
-		}
+		if (this.values.center)
+			this.setCenter();
 
 		//lets check if the prev elm is a blur, and if so we need to adjust the z-index
 		if (blur_instance)
@@ -101,6 +99,11 @@ UTILS.Spinner =  class extends UTILS.Base {
 		this.fns('onHide');
 		this.clean();
 
+		return this;
+	}
+	setCenter(){
+		let $target = (this.values.$target[0]===$('#container')[0] || this.values.$target.is('body')) ? null : this.values.$target;
+		this.values.$elm.setCenter(null,$target);
 		return this;
 	}
 	//private function

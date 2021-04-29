@@ -4,7 +4,7 @@ UTILS.Base = class {
 	constructor(data={}){
 		this.values = {
 			object: 'utils.base',
-			version: '0.2.1',
+			version: '0.2.2',
 			id: UTILS.uuid(), //id of the class
 			$target: $('body'), //holds the target elm
 			ajax:{ url:'', method:'', type:'POST', params:{} },
@@ -112,11 +112,12 @@ UTILS.Base = class {
 		return this.values.$target;
 	}
 	setTarget(target){
-		let object_name = this.getObjectName().split(' v')[0]; //just need the object w/out version
+		let object_name = this.getObjectName()
+			.split(' v')[0] //just need the object w/out version
+			.replace(/\[(.*)$/,''); //lets add 'this' to target ( remove any [...] brackets )
 
 		this.values.$target = (target instanceof UTILS.Box) ? target.getMainbody() : $(target);
 
-		//lets add 'this' to target
 		this.values.$target.data(object_name,this);
 
 		return this;
