@@ -1,0 +1,25 @@
+@import (once) "../globals/variables";
+@import (once) "../globals/mixins";
+
+.errors-in-page-wrapper { 
+	display: flex;
+	flex-flow: column;
+	height: 100%;
+	width: 100%;
+	justify-content: center;
+	align-items: center;
+}
+
+.errors-in-page-error {
+	margin: 0;
+	color: @red;
+
+	&:before {
+		content: "\00bb";
+		margin-right: 5px;
+	}
+
+	& + .errors-in-page-error {
+		margin-top: 10px;
+	}
+}
