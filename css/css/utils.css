@@ -110,6 +110,21 @@
   -webkit-transform: scale(1.1);
           transform: scale(1.1);
 }
+.app-hr-text {
+  position: relative;
+}
+.app-hr-text:after {
+  content: attr(data-hr-text);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -webkit-transform: translate(-50%, -50%) !important;
+          transform: translate(-50%, -50%) !important;
+  background: #fff;
+  padding: 0 10px;
+  font-size: 1rem;
+  font-weight: 300;
+}
 .loading-dots:after {
   display: inline-block;
   overflow: hidden;
@@ -1184,6 +1199,14 @@
 }
 .pos-relative {
   position: relative !important;
+}
+.pos-centered {
+  position: absolute !important;
+  z-index: 501;
+  top: 50% !important;
+  left: 50% !important;
+  -webkit-transform: translate(-50%, -50%) !important;
+          transform: translate(-50%, -50%) !important;
 }
 .div-center-hor {
   margin-left: auto !important;

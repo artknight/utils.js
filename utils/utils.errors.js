@@ -1,6 +1,6 @@
 UTILS.Errors = {
 	values:{
-		version: '0.0.2',
+		version: '0.0.3',
 		space:{}, //will be populated from DB
 		effects: { //effects to apply to base elm before showing the errors
 			shake: 'callout.shake',
@@ -21,65 +21,77 @@ UTILS.Errors = {
 
 	/*
 		must be JSON --> e.q. {errors:[{error:"invalidUsername",fields:["username"]}], direction:'right'}
-		@direction - the direction the error message will be shown at
+		@direction - the direction the error message will be shown in
 	 */
 
-	showTooltips: function(data){
-		var direction = ('direction' in data) ? data.direction : 'right';
-		_.each(data.errors,function(error){
-			//sometimes we want to show the error message inside a different container
-			if ('container' in data){
-				var html = '<div class="alert alert-danger" role="alert"><i class="mdi mdi-alert mdi-24px margin-r10"></i>'+this.getMessage(error.error)+'</div>';
+	_showErrorsAsHeader(error, opts={}){
+		new APP.Alert(
+			_.extend({
+				type: 'error',
+				html: error,
+				delay: 3000,
+				is_header: true
+			}, opts)
+		).show();
+	},
 
-				if (data.container instanceof UTILS.Box)
-					data.container.set({ html:html });
-				else
-					$(data.container).html(html);
-			}
-			else if ('opts' in data){
-				new APP.Alert(_.extend({
-					type: 'error',
-					html: _.map(data.errors, error => `<p>${UTILS.Errors.getMessage(error.error)}</p>`),
-					delay: 3000,
-					is_header: true
-				}, data.opts)).show();
-			}
-			else if ('fields' in error && error.fields.length){
-				_.each(error.fields,function(field){
-					let $input = field instanceof jQuery ? field : (/^(\.|#)/.test(field) ? $(field) : $('#'+field));
+	showTooltips: function(data={}){
+		if ('opts' in data)
+			this._showErrorsAsHeader(_.map(data.errors, error => `<p>${this.getMessage(error.error)}</p>`).join(''),data.opts);
+		else {
+			let direction = ('direction' in data) ? data.direction : 'right',
+				errors_as_header = [];
 
-					if ($input.length){
-						//lets check if perhaps the $input is 'selectized' --> if yes, we need to re-set the visible field
-						if ($input.hasClass('selectized'))
-							$input = $input.nextNodeByClass('selectize-input')
-						//lets check if the field is editable
-						else if (Editable = $input.data('utils.editable'))
-							$input = Editable.isContentEditable() ? Editable.getTarget() : Editable.getInputField();
-						else
-							$input.select();
+			_.each(data.errors, error => {
+				let _error = this.getMessage(error.error);
 
-						if (('type' in data) && data.type=='simple'){
-							$input.velocity('callout.pulse',{
-								begin: function(){
-									$input.addClass('error-field');
-									_.delay(function(){ $input.removeClass('error-field') },5000);
-								}
-							});
+				//sometimes we want to show the error message inside a different container
+				if ('container' in data){
+					let html = '<div class="alert alert-danger" role="alert"><i class="mdi mdi-alert mdi-24px margin-r10"></i>'+_error+'</div>';
+
+					if (data.container instanceof UTILS.Box)
+						data.container.set({ html:html });
+					else
+						$(data.container).html(html);
+				}
+				else if ('fields' in error && error.fields.length){
+					_.each(error.fields, field => {
+						let $input = field instanceof jQuery ? field : (/^(\.|#)/.test(field) ? $(field) : $('#'+field));
+
+						if ($input.length){
+							//lets check if perhaps the $input is 'selectized' --> if yes, we need to re-set the visible field
+							if ($input.hasClass('selectized'))
+								$input = $input.nextNodeByClass('selectize-input')
+							//lets check if the field is editable
+							else if (Editable = $input.data('utils.editable'))
+								$input = Editable.isContentEditable() ? Editable.getTarget() : Editable.getInputField();
+							else
+								$input.select();
+
+							if (('type' in data) && data.type=='simple'){
+								$input.velocity('callout.pulse',{
+									begin: () => {
+										$input.addClass('error-field');
+										_.delay(() => { $input.removeClass('error-field') },5000);
+									}
+								});
+							}
+							else
+								TOOLTIP.hint({ target:$input, type:'error', msg:_error, duration:5000, direction:direction });
 						}
-						else
-							TOOLTIP.hint({ target:$input, type:'error', msg:UTILS.Errors.getMessage(error.error), duration:5000, direction:direction });
-					}
-				});
-			}
-			else
-				UTILS.Errors.show(error.error);
+					});
+				}
+				else
+					errors_as_header.push(_error);
+			});
+			
+			if (errors_as_header.length)
+				this._showErrorsAsHeader(_.map(errors_as_header, err => `<p>${err}</p>`).join(''));
+		}
 
-			//run callback if available
-			if ('callback' in data && _.isFunction(data.callback))
-				data.callback(data);
-
-			is_error = true;
-		}.bind(this));
+		//run callback if available
+		if ('callback' in data && _.isFunction(data.callback))
+			data.callback(data);
 	},
 	/*
 		@data.fx = { base: [elm to apply the effect to], effect:'shake' }

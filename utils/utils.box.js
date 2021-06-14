@@ -102,7 +102,7 @@ UTILS.Box =  class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.box',
-			version: '3.3.7',
+			version: '3.3.8',
 			history: {}, //holds the historic box settings (in case of maximize, etc...)
 			is_shown: false, //holds whether this box is shown
 			$elm: null,
@@ -536,6 +536,12 @@ UTILS.Box =  class extends UTILS.Base {
 	getLastZIndex(){
 		return parseInt($('.box').last().css('z-index'))+200 || 20001;
 	}
+	_onBoxCloseClicked(event){
+		event.preventDefault();
+		event.stopPropagation();
+		this.fns('onCancel');
+		this.clean('clean');
+	}
 	_create(){
 		let zindex = this.getLastZIndex(),
 			box_id = this.getId(),
@@ -552,7 +558,7 @@ UTILS.Box =  class extends UTILS.Base {
 					<div class="box-top-buttons">
 						<small class="box-timestamp text-muted"></small>
 						<a href="#" title="maximize" class="box-top-buttons-maximize"><i class="mdi mdi-arrow-expand-all mdi-fw"></i></a>
-						<a href="#" title="close" class="box-top-buttons-close"><i class="mdi mdi-close mdi-fw"></i></a>
+						<a href="#" title="close" class="box-top-buttons-close box-control-clean"><i class="mdi mdi-close mdi-fw"></i></a>
 					</div>
 				</div>
 				<div class="box-outer">
@@ -589,13 +595,9 @@ UTILS.Box =  class extends UTILS.Base {
 			this.fns('onContentUpdate');
 		}).observe(this.values.divs.$mainbody[0], { childList:true, subtree:true } );
 
-		//close button
-		this.values.divs.$cls.on('click.clean.utils.box',event => {
-			event.preventDefault();
-			event.stopPropagation();
-			this.fns('onCancel');
-			this.clean('clean');
-		});
+		//lets add the box close event
+		this.values.$elm.on('click.clean.utils.box','.box-control-clean',this._onBoxCloseClicked.bind(this));
+
 		this.values.divs.$maximize.on('click.maximize.utils.box',this.maximize.bind(this)); //maximize button
 
 		//onEscape
@@ -686,15 +688,8 @@ UTILS.Box =  class extends UTILS.Base {
 						this.values.controls = data[k];
 						this.values.divs.$controls.html(this.values.controls);
 
-						if (this.values.divs.$controls.html().length){
+						if (this.values.divs.$controls.html().length)
 							this.values.divs.$controls.addClass('expressed');
-
-							//check for close button
-							var $close_btn = this.values.divs.$controls.find('.box-controls-close');
-
-							if ($close_btn.length)
-								$close_btn.on('click.clean.utils.box',this.clean.bind(this));
-						}
 						else {
 							this.values.divs.$controls.removeClass('expressed');
 							this.values.divs.$mainbody.css({'paddingBottom':0});

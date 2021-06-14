@@ -2,7 +2,7 @@ if (!UTILS) var UTILS = {};
 
 UTILS.values = {
 	object:'utils',
-	version:'1.1.0',
+	version:'1.1.3',
 	numbers: '1234567890',
 	letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
 	special: ' .,-!@#$%&()?/":;\'',
@@ -567,8 +567,8 @@ UTILS.fetch = function(url='',opts={}){
 	options[/^GET/i.test(options.method)?'params':'data'] = ('data' in opts) ? opts.data : {};
 
 	if ('method' in opts){
-		if (/^POST$/i.test(opts.method)){
-			options.method = 'POST';
+		if (/^POST|PUT$/i.test(opts.method)){
+			options.method = opts.method.toUpperCase();
 			options.headers['content-type'] = ('content_type' in opts ? opts.content_type : 'application/x-www-form-urlencoded;charset=UTF-8');
 			options.data = Qs.stringify(options.data,{ encodeValuesOnly:true });
 		}
@@ -798,26 +798,13 @@ $.extend($.fn,{
 		return this.each(function(){
 			var $elm = $(this);
 			var $parent = _.isObject(parent) ? $(parent) : null;
-			var offset = (offset && _.isPlainObject(offset)) ? offset : {x:0,y:0};
 
-			//if box inside scrollable, we do not need to set anything
-			if ($elm.parent().hasClass('box-scrollable'))
-				return;
+			//lets check if the target has a position set
+			if ($parent && $parent.length && !/^(fixed|absolute|relative)$/i.test($parent.css('position')))
+				$parent.addClass('pos-relative');
 
-			(!$elm.attr('class').match(/pos-fixed|pos-absolute/g)) && $elm.addClass('pos-absolute'); //add class if not found
-			var data = {
-				left:($parent!=null) ? ($parent.outerWidth()/2) : (($(window).width()+$(window).scrollLeft())-$(window).width()/2),
-				top:($parent!=null) ? ($parent.outerHeight()/2) : (($(window).height()+$(window).scrollTop())-$(window).height()/2)
-			};
-			//if position is 'fixed' then we must only consider the width & height of the window, no scrolling
-			if ($elm.hasClass('pos-fixed')){
-				data.left = $(window).width()/2;
-				data.top = $(window).height()/2;
-			}
-			//getting coords in regards to the elm
-			data.left -= ($elm.outerWidth()/2)+offset.x;
-			data.top -= ($elm.outerHeight()/2)+offset.y;
-			$elm.css(data);
+			//lets add class to center the spinner
+			$elm.addClass('pos-centered');
 		});
 	},
 	//ignore children from .text()

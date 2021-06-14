@@ -49,6 +49,22 @@
 	.grow-on-hover();
 }
 
+.app-hr-text {
+	position: relative;
+
+	&:after {
+		content: attr(data-hr-text);
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%) !important;
+		background: #fff;
+		padding: 0 10px;
+		font-size: 1rem;
+		font-weight: 300;
+	}
+}
+
 .loading-dots {
 	&:after {
 		display: inline-block;
@@ -204,6 +220,13 @@
 .pos-absolute { position:absolute !important; z-index:501; }
 .pos-fixed { position:fixed !important; z-index:501; }
 .pos-relative { position:relative !important; }
+.pos-centered {
+	position: absolute !important;
+	z-index: 501;
+	top: 50% !important;
+	left: 50% !important;
+	transform: translate(-50%, -50%) !important;
+}
 
 // centering
 .div-center-hor { margin-left:auto !important; margin-right:auto !important; }

@@ -59,6 +59,13 @@
   background: #000;
   opacity: 0.75;
 }
+.spinner.spinner-centered {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  -webkit-transform: translate(-50%, -50%) !important;
+          transform: translate(-50%, -50%) !important;
+}
 .spinner-icon {
   position: relative;
   clear: both;

@@ -225,7 +225,7 @@ UTILS.Event =  class extends UTILS.Base {
 		$controls.find('.box-controls-save').on('click',this._onSave.bind(this));
 
 		if (this.isPopup()){
-			$controls.append('<button type="button" class="btn btn-link control-button box-controls-close">Cancel</button>');
+			$controls.append('<button type="button" class="btn btn-link control-button box-controls-close box-control-clean">Cancel</button>');
 
 			$controls.find('.box-controls-close').on('click',function(){ _clean(); this._onCancel(); }.bind(this));
 		}

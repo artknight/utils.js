@@ -21,7 +21,7 @@ UTILS.Spinner =  class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object:'utils.spinner',
-			version:'2.1.4',
+			version:'2.1.6',
 			opts: {},
 			divs: {}, //holds all the divs of the main elm
 			is_shown: false, //holds whether the spinner is shown
@@ -55,7 +55,7 @@ UTILS.Spinner =  class extends UTILS.Base {
 		this.fns('onBeforeShow');
 		let blur_instance = null,
 			color = this.getColor();
-		
+
 		//this must happen here instead of the "set" function to avoid having "this.values.$target" being null and therefore being set to $('body');
 		if (this.values.blur && this.values.$target.length){
 			blur_instance = this.values.$target.data('utils.blur');
@@ -103,7 +103,14 @@ UTILS.Spinner =  class extends UTILS.Base {
 	}
 	setCenter(){
 		let $target = (this.values.$target[0]===$('#container')[0] || this.values.$target.is('body')) ? null : this.values.$target;
-		this.values.$elm.setCenter(null,$target);
+
+		//lets check if the target has a position set
+		if ($target && $target.length && !/^(fixed|absolute|relative)$/i.test($target.css('position')))
+			$target.addClass('pos-relative');
+
+		//lets add class to center the spinner
+		this.values.$elm.addClass('spinner-centered');
+
 		return this;
 	}
 	//private function
