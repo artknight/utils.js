@@ -372,7 +372,7 @@ UTILS.Daterange =  class extends UTILS.Base {
 						$topbar.append($normal_top);
 					}
 
-					$topbar.append('<button class="apply-btn btn btn-primary btn-sm disabled '+(is_autoclose ? 'hide' :'')+'">'+this.translate('apply')+'</button>');
+					$topbar.append('<button class="apply-btn btn btn-primary  disabled '+(is_autoclose ? 'hide' :'')+'">'+this.translate('apply')+'</button>');
 				}
 
 				let _colspan = this.values.show_week_numbers ? 6 : 5,
@@ -1958,10 +1958,10 @@ UTILS.Daterange =  class extends UTILS.Base {
 			'<span>' + this.translate('Time') + ': <span class="hour-val">00</span>:<span class="minute-val">00</span></span>' +
 			'</div>' +
 			'<div class="hour">' +
-			'<label>' + this.translate('Hour') + ': <input type="range" class="hour-range" name="hour" min="0" max="23"></label>' +
+			'<label class="form-label">' + this.translate('Hour') + ': <input type="range" class="hour-range" name="hour" min="0" max="23"></label>' +
 			'</div>' +
 			'<div class="minute">' +
-			'<label>' + this.translate('Minute') + ': <input type="range" class="minute-range" name="minute" min="0" max="59"></label>' +
+			'<label class="form-label">' + this.translate('Minute') + ': <input type="range" class="minute-range" name="minute" min="0" max="59"></label>' +
 			'</div>';
 	}
 

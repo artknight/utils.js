@@ -34,14 +34,31 @@ UTILS.Editable = class extends UTILS.Base {
 			else if (/^textarea\-wysiwyg/i.test(data.type)){
 				this.values.options = {
 					toolbar: [
-						['style', ['bold', 'italic', 'underline', 'strikethrough','color','clear']],
-						['para', ['ul', 'ol']],
-						['insert', ['picture', 'link', 'table', 'hr']],
-						//['misc', ['undo', 'redo']],
-						//['view', ['fullscreen', 'codeview']],
-						['code', ['gxcode']],
-						['misc2', ['print']]
-					]
+						'bold','italic','heading','strikethrough','|',
+						'quote','unordered-list','ordered-list','table','|',
+						'horizontal-rule','|',
+						'preview','side-by-side','guide','|',
+						'undo','redo'
+					],
+					minHeight: '100px',
+					uploadImage: false,
+					autofocus: true,
+					autoDownloadFontAwesome: false,
+					renderingConfig: {
+						codeSyntaxHighlighting: true
+					},
+					placeholder: 'Start typing...',
+					tabSize: 4,
+					previewClass: 'utils-editable-editor-preview',
+					sideBySideFullscreen: false,
+					onToggleFullScreen: is_fullscreen => {
+						let __easyMDE = this.getEasyMDE();
+						$(__easyMDE.gui.easyMDEContainer).toggleClass('utils-editable-is-fullscreen', is_fullscreen);
+						this.fns('onToggleFullScreen', { is_fullscreen });
+					},
+					onSideBySideToggle: (__editor,preview) => {
+						__editor.toggleFullScreen();
+					}
 				};
 			}
 			else if (/^select\-multiselect/i.test(data.type)){
@@ -75,8 +92,11 @@ UTILS.Editable = class extends UTILS.Base {
 		('onActionTriggered' in data) && this.addCallback('onActionTriggered',data.onActionTriggered);
 		('onAfterActionTriggered' in data) && this.addCallback('onAfterActionTriggered', data.onAfterActionTriggered);
 		('onNoChange' in data) && this.addCallback('onNoChange',data.onNoChange);
+		('onEnable' in data) && this.addCallback('onEnable',data.onEnable);
+		('onDisable' in data) && this.addCallback('onDisable',data.onDisable);
 		('onInputCreate' in data) && this.addCallback('onInputCreate', data.onInputCreate);
-		('value' in data) && this.setValue(data.value);
+		('onToggleFullScreen' in data) && this.addCallback('onToggleFullScreen',data.onToggleFullScreen);
+		('value' in data) && this.setValue(this.isTypeInput() && data.value ? `${data.value}` : data.value);
 		('placeholder' in data) && this.setPlaceholder(data.placeholder); //lets put it at the end to avoid race conditions
 		('min_chars' in data) && this.setMinChars(data.min_chars);
 
@@ -85,7 +105,7 @@ UTILS.Editable = class extends UTILS.Base {
 	getDefaults(){
 		return {
 			object: 'utils.editable',
-			version: '0.8.4',
+			version: '0.9.4',
 			direction: 'top',
 			type: { base:'input', option:null }, //holds the type of the editable input field
 			css: '', //holds the css classes to be added to the input field
@@ -97,7 +117,7 @@ UTILS.Editable = class extends UTILS.Base {
 			DatePicker: null, //holds the date picker object
 			DateRangePicker: null, //holds the date range picker object
 			__selectize: null, //holds the selectize object
-			__summernote: null, //holds the summernote object
+			__easyMDE: null, //holds the easy mde object
 			options: {}, //holds options
 			field_name: '@field', //holds the field name to be passed to the server
 			placeholder: '--', //holds the placeholder value when there is no value to be displayed
@@ -205,7 +225,7 @@ UTILS.Editable = class extends UTILS.Base {
 		return _value;
 	}
 	//formats the display value of target ( after edit )
-	filterValueForDisplay(value){
+	filterValueForDisplay(value, omit_placeholder=false){
 		var type = this.getType(),
 			is_multiselect_dropdown = this.isMultiSelect() && this.isTypeDropDown(),
 			items = this.getItems(),
@@ -227,7 +247,7 @@ UTILS.Editable = class extends UTILS.Base {
 				_value = item.label;
 		}
 
-		if (!_value.length)
+		if (typeof _value!=='number' && !_value.length && !omit_placeholder)
 			_value = this.getPlaceholder();
 
 		return _value;
@@ -518,55 +538,53 @@ UTILS.Editable = class extends UTILS.Base {
 
 					_.extend(selectize_options, options);
 
-					$input
-						.data('prev-value',value)
-						.selectize(selectize_options);
+					$input.data('prev-value',value)
 
-					//lets store the selectize object
-					this.values.__selectize = $input[0].selectize;
+					this.values.__selectize = new TomSelect($input[0], selectize_options);
 				}
 				else if (is_wysiwyg){
-					$input.summernote(_.extend({},options,{
-						followingToolbar: false,//lets disable summernote native 'followScroll' method
-						callbacks: {
-							onInit: divs => {
-								//lets add the save/close controls
-								this.values.__summernote = $input.data('summernote');
+					let __easyMDE = new EasyMDE(_.extend({}, options, {
+						element: $input[0],
+						initialValue: value,
+						onRendered: __easyMDE => {
+							let $statusbar = $(__easyMDE.gui.statusbar), //bottom status bar of the editor
+								$controls_wrapper = $(`
+									<div class="utils-editable-wysiwyg-controls">
+										 <button type="button" class="btn  btn-primary utils-editable-wysiwyg-control utils-editable-wysiwyg-save-control">Save</button>
+										 <button type="button" class="btn  btn-link utils-editable-wysiwyg-control utils-editable-wysiwyg-cancel-control">Cancel</button>
+									</div>
+								`);
 
-								let $editor = divs.editor,
-									$controls = $(`
-										<div class="textarea-wysiwyg-controls">
-											<a href="#" class="badge badge-primary control-item control-save"><i class="mdi mdi-check"></i></a>
-											<a href="#" class="badge badge-primary control-item control-cancel"><i class="mdi mdi-close"></i></a>
-										</div>
-									`);
+							//lets add the save button
+							$statusbar
+								.addClass('utils-editable-statusbar')
+								.append($controls_wrapper);
 
-								//lets add events
-								$controls.find('.control-save').on('click',event => {
-									event.preventDefault();
+							//listeners
+							$controls_wrapper.on('click','.utils-editable-wysiwyg-control', event => {
+								let $control = $(event.currentTarget);
 
-									let value = this.values.__summernote.code();
-
-									if (value.length && !is_processing){
-										this._onSave(value);
-										is_processing = true;
-									}
-								});
-
-								$controls.find('.control-cancel').on('click',event => {
-									event.preventDefault();
-									this._onBeforeHide()._hide();
+								if ($control.hasClass('utils-editable-wysiwyg-save-control')){
+									let value = __easyMDE.value();
+									this._onSave(value);
+									is_processing = true;
+								}
+								else if ($control.hasClass('utils-editable-wysiwyg-cancel-control')){
 									is_processing = false;
-								});
-
-								$editor.append($controls);
-							},
-							onFocus: () => {
-								is_processing = false;
-								this.removeErrorTooltip();
-							}
+									this._onBeforeHide();
+									this._hide();
+									this.fns('onNoChange');
+								}
+							});
 						}
 					}));
+
+					this.values.__easyMDE = __easyMDE;
+
+					__easyMDE.codemirror.on('focus', () => {
+						is_processing = false;
+						this.removeErrorTooltip();
+					});
 				}
 				else {
 					if (!is_type_radio){
@@ -594,7 +612,7 @@ UTILS.Editable = class extends UTILS.Base {
 					//for radios the blur events override the change events and cause weirdness, so we need to check for that differently
 					if (is_type_radio){
 						$(document).on('click.utils.editable',event => {
-							if (!/(^|\s)(editable-target|custom-control-label|popup-editable-field)(\s|$)/.test($(event.target).attr("class"))){
+							if (!/(^|\s)(editable-target|form-check-label|popup-editable-field)(\s|$)/.test($(event.target).attr("class"))){
 								this._onBeforeHide();
 								this._hide();
 							}
@@ -616,7 +634,14 @@ UTILS.Editable = class extends UTILS.Base {
 					}
 				}
 
-				if (!is_contenteditable){
+				if (is_wysiwyg){
+					$target
+						.addClass('is-edited')
+						.after($cell);
+
+					$target.parent().addClass('wysiwyg-shown');
+				}
+				else if (!is_contenteditable){
 					$target.addClass('is-edited').after($cell.css({ position:'absolute' }));
 
 					//lets make sure the parent has the relative class
@@ -642,11 +667,11 @@ UTILS.Editable = class extends UTILS.Base {
 
 				//need to focus on the field so that the onblur kicks in
 				if (is_selectize || is_multiselect_dropdown)
-					$input[0].selectize.focus();
-				else if (is_wysiwyg)
-					$input.summernote('focus');
+					this.values.__selectize.focus();
 				else if (is_type_radio)
 					$input.filter(':checked').focus();
+				else if (is_wysiwyg)
+					this.values.__easyMDE.codemirror.focus();
 				else
 					$input.focus();
 			}
@@ -697,11 +722,12 @@ UTILS.Editable = class extends UTILS.Base {
 					});
 			}
 
-			//setting spinner target here b/c in certain instances if there exists a blogal blur and the editable action gets cancelled
+			//setting spinner target here b/c in certain instances if there exists a global blur then the editable action gets cancelled
 			//the spinner removes the global blur
 			this.getSpinner().setTarget($cell);
 
 			this.values.is_enabled = true;
+			this.fns('onEnable');
 		}
 
 		return this;
@@ -717,6 +743,7 @@ UTILS.Editable = class extends UTILS.Base {
 				$target.addClass('readonly');
 
 			this.values.is_enabled = false;
+			this.fns('onDisable');
 		}
 		return this;
 	}
@@ -805,8 +832,8 @@ UTILS.Editable = class extends UTILS.Base {
 	isSelectize(){
 		return /selectize/i.test(this.getType().option);
 	}
-	isSummernote(){
-		return this.getSummernote()!==null;
+	isEasyMDE(){
+		return this.getEasyMDE()!==null;
 	}
 	isMultiSelect(){
 		return /multiselect/i.test(this.getType().option);
@@ -932,14 +959,14 @@ UTILS.Editable = class extends UTILS.Base {
 		return new Promise((resolve,reject) => {
 			var display_value = this.getDisplayValue(),
 				css = this.getCss(),
-				$wrapper = $('<form class="form-inline editable-form" data-form-type="input"><div class="form-group ' + css + '"><label class="sr-only">Enter Text</label></div></form>'),
-				$input = $('<input type="text" class="form-control popup-editable-field" value="' + this.filterValueForEditing(display_value) + '">');
+				$wrapper = $(`<form class="form-inline editable-form" data-form-type="input"><div class="editable-input-wrapper ${css}"><label class="form-label sr-only">Enter Text</label></div></form>`),
+				$input = $(`<input type="text" class="form-control popup-editable-field" value="${this.filterValueForEditing(display_value)}">`);
 
 			//adding onFocus event listener to make sure when focused the cursor is at the end of text
 			$input.putCursorAtEnd('focus.utils.editable');
 
 			this.setInputField($input);
-			$wrapper.find('.form-group').append($input);
+			$wrapper.find('.editable-input-wrapper').append($input);
 
 			resolve($wrapper);
 		});
@@ -948,11 +975,11 @@ UTILS.Editable = class extends UTILS.Base {
 		return new Promise((resolve,reject) => {
 			var display_value = this.getDisplayValue(),
 				css = this.getCss(),
-				$wrapper = $('<form class="form-inline editable-form" data-form-type="textarea"><div class="form-group '+css+'"><label class="sr-only">Enter Text</label></div></form>'),
-				$textarea = $('<textarea class="form-control popup-editable-field" rows="3">'+this.filterValueForEditing(display_value)+'</textarea>');
+				$wrapper = $(`<form class="form-inline editable-form" data-form-type="textarea"><div class="editable-input-wrapper ${css}"><label class="form-label sr-only">Enter Text</label></div></form>`),
+				$textarea = $(`<textarea class="form-control popup-editable-field" rows="3">${this.filterValueForEditing(display_value)}</textarea>`);
 
 			this.setInputField($textarea);
-			$wrapper.find('.form-group').append($textarea);
+			$wrapper.find('.editable-input-wrapper').append($textarea);
 
 			resolve($wrapper);
 		});
@@ -961,11 +988,11 @@ UTILS.Editable = class extends UTILS.Base {
 		return new Promise((resolve,reject) => {
 			var is_multiselect = this.isMultiSelect(),
 				css = this.getCss(),
-				$wrapper = $('<form class="form-inline editable-form" data-form-type="dropdown"><div class="form-group ' + css + '"><label class="sr-only">Select One</label></div></form>'),
-				$dropdown = $('<select class="form-control popup-editable-field custom-select" '+(is_multiselect ? 'multiple="multiple"' : '')+'></select>');
+				$wrapper = $(`<form class="form-inline editable-form" data-form-type="dropdown"><div class="editable-input-wrapper ${css}"><label class="form-label sr-only">Select One</label></div></form>`),
+				$dropdown = $(`<select class="form-control popup-editable-field custom-select" ${is_multiselect ? 'multiple="multiple"' : ''}></select>`);
 
 			this.setInputField($dropdown);
-			$wrapper.find('.form-group').append($dropdown);
+			$wrapper.find('.editable-input-wrapper').append($dropdown);
 
 			resolve($wrapper);
 		});
@@ -1031,14 +1058,27 @@ UTILS.Editable = class extends UTILS.Base {
 		return new Promise((resolve,reject) => {
 			var $target = this.getTarget(),
 				id = UTILS.uuid(),
-				control_class = /switch/i.test(this.getType().option) ? 'custom-toggle my-2' : 'custom-checkbox mb-3',
+				control_class = /switch/i.test(this.getType().option) ? 'form-switch' : '',
 				display_value = this.getDisplayValue(),
 				css = this.getCss(),
 				options = this.getOptions(),
-				$wrapper = $('<form class="form-inline editable-form" data-form-type="checkbox"><div class="form-group '+css+'"><div class="custom-control '+control_class+'"><label class="custom-control-label" for="'+id+'">'+('desc' in options ? options.desc : '')+'</label></div></div></form>'),
-				$input = $('<input type="checkbox" id="'+id+'" class="custom-control-input popup-editable-field" value="'+display_value+'">');
+				$wrapper = $(`
+					<form class="form-inline editable-form" data-form-type="checkbox">
+						<div class="form-check ${control_class} ${css}">
+							<input type="checkbox" id="${id}" class="form-check-input popup-editable-field" value="${display_value}">
+							<label class="form-check-label" for="${id}"><span class="form-check-label-inner">${'desc' in options ? options.desc : ''}</span></label>
+						</div>
+					</form>
+				`),
+				$input = $wrapper.find('input');
 
 			$input.prop('checked',/^(true|yes|ok)$/i.test(display_value));
+
+			if ('tooltip' in options){
+				$wrapper.find('.custom-control')
+					.attr('data-hint', UTILS.format.stripOutHtml(options.tooltip.text))
+					.addClass(`hint hint-${options.tooltip?.direction || 'top'}`);
+			}
 
 			this.setInputField($input);
 
@@ -1049,7 +1089,9 @@ UTILS.Editable = class extends UTILS.Base {
 				this._onSave($input.prop('checked'));
 			}.bind(this));
 
-			$target.html($wrapper);
+			$target
+				.html($wrapper)
+				.addClass('no-underline');
 
 			resolve($wrapper);
 		});
@@ -1059,22 +1101,22 @@ UTILS.Editable = class extends UTILS.Base {
 			var value = this.getValue(),
 				name = UTILS.uuid(),
 				css = this.getCss(),
-				$wrapper = $('<form class="form-inline editable-form radio-type'+css+'" data-form-type="radio"></form>');
+				$wrapper = $('<form class="form-inline editable-form radio-type '+css+'" data-form-type="radio"></form>');
 
 			//lets populate
-			$wrapper.append(_.map(this.getItems(), function(item){
+			$wrapper.append(_.map(this.getItems(), item => {
 				var id = UTILS.uuid(),
-					$input = `<div class="form-group row">
-								<div class="custom-control custom-radio mb-1">
-									<input type="radio" id="${id}" name="${name}" class="custom-control-input popup-editable-field" value="${item.value}">
-									<label class="custom-control-label" for="${id}">${item.label}</label>
+					$input = `<div class="row">
+								<div class="form-check">
+									<input type="radio" id="${id}" name="${name}" class="form-check-input popup-editable-field" value="${item.value}">
+									<label class="form-check-label" for="${id}">${item.label}</label>
 								</div>
 							</div>`;
 
 				return $input;
-			}.bind(this)));
+			}));
 
-			var $inputs = $wrapper.find('.custom-control-input[type="radio"]');
+			var $inputs = $wrapper.find('.form-check-input[type="radio"]');
 
 			this.setInputField($inputs);
 
@@ -1097,9 +1139,14 @@ UTILS.Editable = class extends UTILS.Base {
 		if (!is_type_checkbox && !is_date_range){
 			if ($input){
 				if (is_selectize || is_multiselect_dropdown)
-					$input[0].selectize.destroy();
-				else if (is_wysiwyg)
-					$input.summernote('destroy');
+					this.values.__selectize.destroy();
+				else if (is_wysiwyg){
+					let __easyMDE = this.getEasyMDE();
+					this.fns('onToggleFullScreen', { is_fullscreen:false });
+					__easyMDE.toTextArea();
+					__easyMDE.cleanup();
+					$target.parent().removeClass('wysiwyg-shown');
+				}
 				else
 					$input.off('keydown.utils.editable change.utils.editable blur.utils.editable focus.utils.editable');
 
@@ -1125,8 +1172,14 @@ UTILS.Editable = class extends UTILS.Base {
 	getSelectize(){
 		return this.values.__selectize;
 	}
-	getSummernote(){
-		return this.values.__summernote;
+	getEasyMDE(){
+		return this.values.__easyMDE;
+	}
+	getMarkdownHtml(value){
+		if (this.isWysiwyg())
+			return this.getEasyMDE().markdown(value).match(/\<body[^>]*\>([^]*)\<\/body/m)[1]; //grabbing everything within <body></body> tags
+		else
+			return value;
 	}
 	//save values
 	__onSave__(value){
@@ -1136,6 +1189,7 @@ UTILS.Editable = class extends UTILS.Base {
 				is_type_checkbox = this.isTypeCheckbox(),
 				is_multiselect = this.isMultiSelect(),
 				is_autocomplete = this.isAutoComplete(),
+				is_wysiwyg = this.isWysiwyg(),
 				$target = this.getTarget(),
 				$cell = this.getCell(),
 				$editable = null,
@@ -1190,7 +1244,7 @@ UTILS.Editable = class extends UTILS.Base {
 			};
 
 			//lets check if the value has changed
-			if ((is_multiselect && _isMultiSelectValueChanged()) || (!is_multiselect && this.getDisplayValue()!=this.filterValueForDisplay(value))){
+			if ((is_multiselect && _isMultiSelectValueChanged()) || (!is_multiselect && this.getDisplayValue()!=this.filterValueForDisplay(value,true))){
 				_log(this.getObjectName()+' --> value changed, saving...');
 
 				let _onError = error => {
@@ -1239,7 +1293,7 @@ UTILS.Editable = class extends UTILS.Base {
 						this.setValue(value)
 							.then(() => {
 								this._onBeforeHide();
-								$target.velocity('callout.flash');
+								UTILS.animateCss($target,'flash');
 								this._hide();
 
 								if (is_type_date){
@@ -1259,13 +1313,21 @@ UTILS.Editable = class extends UTILS.Base {
 				this.fns('onBeforeSave', value);
 				__spinner.show();
 
-				var _getFormatedParams = () => {
-					let data = {};
+				let _getFormatedParams = () => {
+					let data = {},
+						val = value;
+
+					if (is_wysiwyg){
+						val = {
+							markdown: val,
+							html: this.getMarkdownHtml(val)
+						};
+					}
 
 					if (params)
-						data = _.assign({}, (_.isFunction(params) ? params.call(null, value, this) : {...params, [field_name]: value}));
+						data = _.extend({}, (_.isFunction(params) ? params.call(null, val, this) : {...params, [field_name]: val}));
 					else
-						data[field_name] = is_type_checkbox ? !!(value) : value
+						data[field_name] = is_type_checkbox ? !!(val) : val
 
 					return data;
 				};

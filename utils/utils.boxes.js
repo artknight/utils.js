@@ -5,14 +5,27 @@ APP.Box = class extends UTILS.Box {
 			data.object = 'utils.box[app.box]';
 
 		if (!('version' in data))
-			data.version = '0.0.4';
+			data.version = '0.0.5';
 
 		super(data);
 
 		return this;
 	}
-	create(){
-		super.create();
+	_create(){
+		super._create();
+
+		//in case the target is another UTILS.Box but not APP.Box, we need to add it as well
+		let $target = this.getTarget();
+		if ($target instanceof UTILS.Box && !($target instanceof APP.Box)){
+			APP.stack.addBox($target);
+
+			//onClose we need to remove the previously added UTILS.Box
+			this.addCallback('onBeforeClose', () => {
+				$target.unblur();
+				APP.stack.removeBox($target)
+			});
+		}
+
 		APP.stack.addBox(this);
 		return this;
 	}
@@ -56,13 +69,13 @@ APP.Confirm = class extends APP.Box {
 		if (!('object' in data))
 			data.object = 'utils.box[app.confirm]';
 
-		super(_.extend(defaults,data));
+		super(UTILS.extend(defaults,data));
 
 		//content
 		let $controls = $(`
 			<div class="box-confirm-inner-controls">
-			   <button type="button" class="btn btn-light btn-sm box-confirm-inner-control" data-control="cancel">cancel</button>
-			   <button type="button" class="btn btn-danger btn-sm box-confirm-inner-control" data-control="confirm">proceed</button>
+			   <button type="button" class="btn btn-light  box-confirm-inner-control" data-control="cancel">cancel</button>
+			   <button type="button" class="btn btn-danger  box-confirm-inner-control" data-control="confirm">proceed</button>
 			</div>
 		`);
 
@@ -78,7 +91,7 @@ APP.Confirm = class extends APP.Box {
 
 				$custom_confirm
 					.attr('data-control','confirm')
-					.addClass('btn btn-sm box-confirm-inner-control');
+					.addClass('btn  box-confirm-inner-control');
 			}
 			else
 				$confirm.remove();
@@ -90,7 +103,7 @@ APP.Confirm = class extends APP.Box {
 
 				$custom_cancel
 					.attr('data-control','cancel')
-					.addClass('btn btn-sm box-confirm-inner-control');
+					.addClass('btn  box-confirm-inner-control');
 			}
 			else
 				$cancel.remove();
@@ -152,7 +165,7 @@ APP.Confirm = class extends APP.Box {
  */
 
 //holds all the opened alert boxes
-var alert_boxes = { error:[], success:[], info:[], warning:[] };
+var alert_boxes = { error:[], success:[], info:[], warning:[], general:[] };
 
 APP.Alert = class extends UTILS.Box {
 	constructor(data){
@@ -174,15 +187,16 @@ APP.Alert = class extends UTILS.Box {
 		};
 
 		var custom = {
-			error: { w:600, classname:'box-red alert-box', html:$('<span class="alert-box-content"><i class="mdi mdi-alert-circle-outline mdi-24px"></i></span>'), fx:{effect:'expand-in'} },
-			success: { w:400, classname:'box-green alert-box', html:$('<span class="alert-box-content"><i class="mdi mdi-check mdi-24px"></i></span>'), fx:{effect:'slide-up'} },
-			info: { w:400, classname:'box-blue alert-box', html:$('<span class="alert-box-content"><i class="mdi mdi-information-outline mdi-24px"></i></span>'), fx:{effect:'slide-right'} },
-			warning: { w:400, classname:'box-yellow alert-box', html:$('<span class="alert-box-content"><i class="mdi mdi-alert-outline mdi-24px"></i></span>'), fx:{effect:'expand-in'} },
+			error: { w:600, classname:'box-red alert-box', html:$('<span class="alert-box-content"><i class="ti ti-alert-triangle "></i></span>'), fx:{effect:'expand-in'} },
+			success: { w:400, classname:'box-green alert-box', html:$('<span class="alert-box-content"><i class="ti ti-check "></i></span>'), fx:{effect:'slide-up'} },
+			info: { w:400, classname:'box-blue alert-box', html:$('<span class="alert-box-content"><i class="ti ti-info-square "></i></span>'), fx:{effect:'slide-right'} },
+			warning: { w:400, classname:'box-yellow alert-box', html:$('<span class="alert-box-content"><i class="ti ti-alert-triangle "></i></span>'), fx:{effect:'expand-in'} },
+			general: { w:400, classname:'box-gray alert-box', html:$('<span class="alert-box-content"><i class="ti ti-alert-triangle "></i></span>'), fx:{effect:'expand-in'} }
 		};
 
 		//lets change the default html for soft error msgs
 		if (/error/.test(data.type) && 'classname' in data && /soft/.test(data.classname))
-			custom[data.type].html = $('<span class="alert-box-content"><h4><i class="mdi mdi-alert-outline mdi-24px"></i><span>Oops...</span></h4></span>');
+			custom[data.type].html = $('<span class="alert-box-content"><h4><i class="ti ti-alert-triangle "></i><span>Oops...</span></h4></span>');
 
 		//lets add the html
 		if (typeof data.html!=='object')
@@ -191,7 +205,7 @@ APP.Alert = class extends UTILS.Box {
 		custom[data.type].html.append($(data.html));
 
 		//update default values with custom overwrites
-		_.extend(defaults,custom[data.type]);
+		UTILS.extend(defaults,custom[data.type]);
 		delete data.html; //now that data.html has already been updated, we should not overwrite it
 
 		if ('classname' in data){
@@ -205,7 +219,7 @@ APP.Alert = class extends UTILS.Box {
 			custom[data.type].fx.effect = 'slide-down';
 		}
 
-		super(_.extend(defaults,data));
+		super(UTILS.extend(defaults,data));
 
 		//lets update the type
 		this.setBoxType(data.type);
@@ -224,7 +238,7 @@ APP.Alert = class extends UTILS.Box {
 
 					if (delay){
 						let _runDelayedClose = () => {
-							_.delay(() => {
+							setTimeout(() => {
 								if (!is_stop_delay)
 									box.clean();
 							},delay);
@@ -290,7 +304,7 @@ APP.Alert = class extends UTILS.Box {
 
 		//lets remove all existing boxes (of the same type) except for the last one
 		if (existing_boxes.length){
-			_.each(existing_boxes,function(box){
+			existing_boxes.forEach(box => {
 				box.values.$elm.remove();
 				box.clean();
 			});

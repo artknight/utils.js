@@ -2,7 +2,7 @@ if (!UTILS) var UTILS = {};
 
 UTILS.values = {
 	object:'utils',
-	version:'1.1.3',
+	version:'1.2.7',
 	numbers: '1234567890',
 	letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
 	special: ' .,-!@#$%&()?/":;\'',
@@ -39,6 +39,32 @@ UTILS.attachTransitionEvent = (elm,css_prop) => {
 				$elm.trigger(event_state,{ event:event.originalEvent });
 			}
 		});
+};
+
+UTILS.deepCopy = obj => {
+	if (typeof obj !== 'object' || obj === null)
+		return obj;
+
+	//DOM
+	if (obj.nodeType && typeof obj.cloneNode == "function")
+		return obj.cloneNode(true);
+
+	if (obj instanceof Date)
+		return new Date(obj.getTime());
+
+	if (obj instanceof Array){
+		return obj.reduce((arr, item, i) => {
+			arr[i] = UTILS.deepCopy(item);
+			return arr;
+		}, []);
+	}
+
+	if (obj instanceof Object){
+		return Object.keys(obj).reduce((newObj, key) => {
+			newObj[key] = UTILS.deepCopy(obj[key]);
+			return newObj;
+		}, {})
+	}
 };
 
 UTILS.isRetina = function(){
@@ -95,6 +121,17 @@ UTILS.isValidDate = function(str,format='MM/DD/YYYY'){
 	return moment(str,format).isValid();
 };
 
+UTILS.openPopup = (url='', name='_blank', parent_win=window, w=500, h=600, stripped=false) => {
+	let y = parent_win.outerHeight/2 + parent_win.screenY - ( h/2),
+		x = parent_win.outerWidth/2 + parent_win.screenX - ( w/2),
+		options = `width=${w},height=${h},top=${y},left=${x}`;
+
+	if (stripped)
+		options += `,directories=no,titlebar=no,toolbar=no,location=no,status=no,menubar=no,scrollbars=no,resizable=yes`;
+
+	return parent_win.open(url,name,options);
+}
+
 UTILS.format = {
 
 	//formats the phone number to (555) 555-5555 x11111
@@ -146,12 +183,11 @@ UTILS.format = {
 		@scope: one			first character of the first word
 		@scope: all			first character of every word
 	*/
-	capitalize: function(str,scope){
-		var scope = scope || 'all';
+	capitalize: (str,scope='all') => {
 		if (scope=='one')
-			return str.toLowerCase().replace(/\b[a-z]/, function(match){ return match.toUpperCase(); });
+			return str.toLowerCase().replace(/\b[a-z]/, match => match.toUpperCase());
 		else
-			return str.toLowerCase().replace(/\b[a-z]/g, function(match){ return match.toUpperCase(); });
+			return str.toLowerCase().replace(/\b[a-z]/g, match => match.toUpperCase());
 	},
 
 	/*
@@ -175,6 +211,10 @@ UTILS.format = {
 			_html = _html.replace(new RegExp('\\[/'+_tags_to_ignore[i]+'*?\\]','gi'),'</'+_tags_to_ignore[i]+'>');
 		}
 		return _html;
+	},
+
+	stripOutHtml: html => {
+		return html.replace(/(<([^>]+)>)/ig,'');
 	},
 
 	urlEncode: function(str){
@@ -214,11 +254,21 @@ UTILS.format = {
 		return (name.match(/\b\w{1,1}(?=\w*$)|\b\w/g) || [])
 			.map((letter) => letter.toUpperCase())
 			.join('');
+	},
+	anchorify(str=''){
+		return str.replace(/\b(http|https)?:\/\/\S+/gi, '<a href="$&" class="link-wrap" target="_blank" title="$&">$&</a>');
+	},
+	linkify(str='', opts={}){ 
+		if (typeof linkifyHtml==='undefined')
+			return UTILS.format.anchorify(str);
+		
+		let options = _.extend(APP.values.linkify_options,opts);
+		return linkifyHtml(str, options);
 	}
 }; //format
 
 UTILS.inputMask = {
-	phone: function(input){
+	phone: input => {
 		var $input = $(input);
 
 		var mask = new IMask($input[0], {
@@ -235,6 +285,30 @@ UTILS.inputMask = {
 				});
 			}
 		});
+
+		$input.data('imask',mask);
+
+		return mask;
+	},
+	url: input => {
+		let $input = $(input),
+			mask = new IMask($input[0], { mask:/^[a-zA-Z0-9-_]*$/, lazy:false, overwrite:false });
+
+		$input.data('imask',mask);
+
+		return mask;
+	},
+	route: input => {
+		let $input = $(input),
+			mask = new IMask($input[0], { mask:/^[a-zA-Z\-_]*$/, lazy:false, overwrite:false });
+
+		$input.data('imask',mask);
+
+		return mask;
+	},
+	email: input => {
+		let $input = $(input),
+			mask = new IMask($input[0], { mask:/^[a-zA-Z0-9\-_\+\.\@]*$/, lazy:false, overwrite:false });
 
 		$input.data('imask',mask);
 
@@ -256,9 +330,10 @@ UTILS.getCharKey = function(event){
 };
 
 //generates random uuid number
-UTILS.uuid = function(separator='-'){
-	let _getRandonNumbers = () => (((1+Math.random())*0x10000)|0).toString(16).substring(1);
-	return `${_getRandonNumbers()}${separator}${_getRandonNumbers()}`;
+UTILS.uuid = () => {
+	return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+		(c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+	);
 };
 
 UTILS.asc = function(_char){
@@ -274,11 +349,10 @@ UTILS.dim = {
 	},
 	show: function(callback,options){
 		var defaults = {
-			target:$('body'),
-			color:'black',
-			opac:0.3,
-			resize:true,
-			onShow:callback||null
+			target: $('body'),
+			color: 'black',
+			opac: 0.3,
+			onShow: callback||null
 		};
 		var options = _.extend(defaults,options||{});
 		UTILS.dim.values.$elm = new UTILS.Blur(options);
@@ -292,7 +366,62 @@ UTILS.dim = {
 	}
 }; //dim
 
+UTILS.animateCss = (element, animation, prefix ='animate__') => {
+	return new Promise((resolve, reject) => {
+		let animation_name = `${prefix}${animation}`,
+			$node = $(element),
+			classes = [`${prefix}animated`,animation_name];
 
+		$node.removeClass('marked-for-removal');
+
+		if (!/(shake|bounce|flash|pulse|tada|zoom)/.test(animation))
+			classes.push('animate__faster2x');
+
+		if (/^fadeIn/i.test(animation) && $node.is(':hidden'))
+			$node.show();
+
+		$node.addClass(classes.join(' '));
+
+		// When the animation ends, we clean the classes and resolve the Promise
+		let _handleAnimationEnd = event => {
+			event.stopImmediatePropagation();
+			$node.removeClass(classes.join(' '));
+			resolve($node);
+		};
+
+		$node.one('animationend webkitAnimationEnd oAnimationEnd MSAnimationEnd', _handleAnimationEnd);
+	});
+};
+
+UTILS.flashItem = ($item, callback, background={}) => {
+	if ($item && $item.length){
+		if (background?.from)
+			$item.css({ backgroundColor:background.from });
+
+		UTILS.animateCss($item,'flash').then(() => {
+			if (background?.to)
+				$item.css('transition','backgroundColor 5s').css({ backgroundColor:background.to });
+
+			if (typeof callback==='function')
+				callback($item);
+		});
+	}
+};
+
+UTILS.tadaItem = ($item, callback, background={}) => {
+	if ($item && $item.length){
+		if (background?.from)
+			$item.css({ backgroundColor:background.from });
+
+		UTILS.animateCss($item,'tada').then(() => {
+			if (background?.to)
+				$item.css('transition','backgroundColor 5s').css({ backgroundColor:background.to });
+
+			if (typeof callback==='function')
+				callback($item);
+		});
+	}
+};
 
 /*
 	FILE
@@ -372,28 +501,24 @@ UTILS.addParamToURL = function(url='',params=[]){
 	return url;
 };
 
-UTILS.getIframe = function(iframe){
-	var $iframe = $(iframe);
-
-	return {
-		window: ($iframe.length) ? ($iframe[0].contentWindow ? $iframe[0].contentWindow : $iframe[0].contentDocument.defaultView) : null,
-		document: ($iframe.length) ? ($iframe[0].contentDocument || $iframe[0].contentWindow.document) : null
-	};
-};
-
 UTILS.getIframeWindowObj = function(iframe){
 	let iframe_window = null,
-		$iframe = UTILS.getIframe(iframe);
+		$iframe = $(iframe);
 
-	if ($iframe.length)
-		iframe_window = $iframe[0].contentWindow ? $iframe[0].contentWindow : $iframe[0].contentDocument.defaultView;
+	if ($iframe.length){
+		try { iframe_window = $iframe[0].contentWindow; }
+		catch(e){
+			try { iframe_window = $iframe[0].contentDocument.defaultView; }
+			catch(e){}
+		}
+	}
 
 	return iframe_window;
 };
 
 UTILS.getIframeDocObj = function(iframe){
-	let iframe_document = null,
-		$iframe = UTILS.getIframe(iframe);
+	let iframe_document,
+		$iframe = $(iframe);
 
 	if ($iframe.length)
 		iframe_document = $iframe[0].contentDocument || $iframe[0].contentWindow.document;
@@ -413,6 +538,11 @@ UTILS.createPromise = function(){
 	promise.reject = _reject;
 
 	return promise;
+};
+
+UTILS.includesClass = (elm,_classes) => {
+	let classes = typeof _classes==='array' ? _classes : [_classes];
+	return classes.flat().some(c => [...$(elm)[0].classList].includes(c));
 };
 
 UTILS.print = (url_or_elm=null) => {
@@ -456,52 +586,53 @@ UTILS.print = (url_or_elm=null) => {
 	return false;
 };
 
-UTILS.imagePreview = ($img=$('.app-thumbnail'),attr='href') => {
-	//distance from the cursor
-	let $image = $($img),
-		offset = { x:10, y:30 },
-		image_dims = { width:500, height:500 },
-		$preview = $('<p class="app-thumbnail-preview"><img alt="Image preview"></p>');
+//uses zooming.js
+UTILS.__imagePreviewZooming = null;
+UTILS.imagePreview = (img) => {
+	if (img)
+		$(img).addClass('img-preview');
 
-	//display the preview within browser bounderies
-	let _getPosition = ($thumb,$preview,event) => {
-		var pos = { top:event.pageY-offset.x, left:event.pageX+offset.y },
-			page = { w:$(window).width(), h:$(window).height() },
-			preview = { w:$preview.outerWidth(), h:$preview.outerHeight() },
-			thumb = { w:$thumb.width(), h:$thumb.height() },
-			$img = $preview.find('img');
+	if (!UTILS.__imagePreviewZooming){
+		UTILS.__imagePreviewZooming = new Zooming({
+			bgOpacity: 0,
+			enableGrab: false,
+			zIndex: 100000,
+			onBeforeOpen: target => {
+				let $target = $(target),
+					$box = $target.closest('.box'),
+					$chat_page = $('#page-chat, #page-proxy'),
+					$parent = $target.parent();
 
-		if (pos.left+preview.w > page.w)
-			pos.left -= (preview.w+thumb.w+offset.x);
-		if (pos.top+preview.h > page.h)
-			pos.top = page.h-preview.h-10;
+				if ($parent.length)
+					$parent.height($parent.height());
 
-		//lets try adjust the width/height of the image
-		(page.w<image_dims.width) && ($img.width(page.w-40));
-		(page.h<image_dims.height) && ($img.height(page.h-40));
+				if ($box.length)
+					$box.addClass('img-preview-wrapper');
+				else if ($chat_page.length)
+					$chat_page.addClass('img-preview-wrapper');
 
-		if ($(window).width()<768 && pos.left<0)
-			pos.left = event.pageX+offset.y;
-
-		return pos;
-	};
-
-	$image
-		.hover(
-			function(event){
-				this._title = this.title;
-				this.title = '';
-				var content = (this._title != '') ? '<br/>' + this._title : '';
-				$preview.find('img').attr('src',$(this).attr(attr)).html(content);
-				$('body').append($preview);
-				$preview.css(_getPosition($(this).find('img'),$preview,event)).velocity('fadeIn',{ duration:200 });
+				$target.addClass('img-preview-zoomed');
 			},
-			function(){
-				this.title = this._title;
-				$preview.remove();
+			onClose: target => {
+				let $target = $(target),
+					$box = $target.closest('.box'),
+					$chat_page = $('#page-chat'),
+					$parent = $target.parent();
+
+				if ($parent.length)
+					$parent.height('auto');
+
+				if ($box.length)
+					$box.removeClass('img-preview-wrapper');
+				else if ($chat_page.length)
+					$chat_page.removeClass('img-preview-wrapper');
+
+				$target.removeClass('img-preview-zoomed');
 			}
-		)
-		.on('mousemove',function(event){ $preview.css(_getPosition($(this).find('img'),$preview,event)); });
+		});
+
+		UTILS.__imagePreviewZooming.listen('.img-preview');
+	}
 };
 
 UTILS.cookie = {
@@ -557,6 +688,32 @@ UTILS.log = function(){
 	}
 };
 
+UTILS.extend = (target, ...sources) => {
+	const length = sources.length;
+
+	if (length < 1 || target == null) return target;
+	for (let i = 0; i < length; i++) {
+		const source = sources[i];
+
+		for (const key in source) {
+			target[key] = source[key];
+		}
+	}
+	return target;
+};
+
+UTILS.debounce = (callback, wait) => {
+	let timeoutId = null;
+
+	return (...args) => {
+		window.clearTimeout(timeoutId);
+
+		timeoutId = window.setTimeout(() => {
+			callback.apply(null, args);
+		}, wait);
+	};
+};
+
 UTILS.fetch = function(url='',opts={}){
 	const options = {
 		url: url,
@@ -575,6 +732,15 @@ UTILS.fetch = function(url='',opts={}){
 	}
 
 	return axios(options).then(response => typeof response.data === 'string' ? JSON.parse(response.data) : response.data);
+};
+
+UTILS.joinArray = (list,delim) => {
+	try { return list.join(delim); }
+	catch(e){
+		var r = list[0] || '';
+		list.forEach(elm => { r += delim + elm; }, 1);
+		return r + '';
+	}
 };
 
 /* EXTENDING LODASH.JS */
@@ -600,16 +766,7 @@ _.mixin({
 		return arr2;
 	},
 	//a better version of the native join array method
-	joinArray: function(list,delim){
-		try{
-			return list.join(delim);
-		}
-		catch(e){
-			var r = list[0] || '';
-			_.each(list, function(elm){ r += delim + elm; }, 1);
-			return r + '';
-		}
-	},
+	joinArray: UTILS.joinArray,
 	/*
 		checks whether an elm is found in the array
 		@greedy - if true, performs a greedy comparison (instead of '==' it uses '===') --> defaults to 'false'
@@ -642,6 +799,11 @@ _.mixin({
 
 			return result;
 		},[]);
+	},
+	reorderItem: (arr,from,to) => {
+		let item = arr.splice(from,1)[0];
+		arr.splice(to,0,item);
+		return arr;
 	}
 });
 
@@ -864,8 +1026,8 @@ $.extend($.fn,{
 			UTILS.attachTransitionEvent($(this),css_prop);
 		});
 	},
-	imagePreview: function(attr='data-src'){
-		return this.each(function(){ UTILS.imagePreview(this,attr); });
+	imagePreview: function(){
+		return this.each(function(){ UTILS.imagePreview(this); });
 	},
 
 	//$('.app-menu-quickview-control').removeClassRegex(/^hint/);
@@ -875,6 +1037,25 @@ $.extend($.fn,{
 				return regex.test(c);
 			}).join(' ');
 		});
+	},
+
+	moveToIndex: function(index){
+		if (!Number.isInteger(index))
+			throw new Error('Incorrect index format! Allowed formats are: "up", "down" or an index of the sibling to swap with');
+
+		if (Number.isInteger(index)){
+			let self_index = this.index(),
+				siblings = this.siblings();
+
+			if (index < self_index)
+				this.insertBefore(siblings[index]);
+			else
+				this.insertAfter(siblings[index-1]);
+		}
+	},
+
+	includesClass: function(_classes){
+		return UTILS.includesClass($(this),_classes);
 	}
 });
 
@@ -942,6 +1123,12 @@ $.extend($.expr[':'],{
 	}
 });
 
+jQuery.event.special.touchstart = {
+	setup: function( _, ns, handle ) {
+		this.addEventListener("touchstart", handle, { passive: !ns.includes("noPreventDefault") });
+	}
+};
+
 //css-grid support
 $.cssNumber.gridRowStart = $.cssNumber.gridRowEnd = $.cssNumber.gridColumnStart = $.cssNumber.gridColumnEnd = true;
 
@@ -958,6 +1145,8 @@ $.cssNumber.gridRowStart = $.cssNumber.gridRowEnd = $.cssNumber.gridColumnStart 
 (!Array.prototype.compare) && (Array.prototype.compare = function(arr){ return _.compare(this,arr); });
 (!Array.prototype.prepend) && (Array.prototype.prepend = function(elm){ return this.unshift(elm); });
 (!Array.prototype.reGroup) && (Array.prototype.reGroup = function(delim){ return _.reGroup(this,delim); });
+(!Array.prototype.reorderItem) && (Array.prototype.reorderItem = function(from,to){ return _.reorderItem(this,from,to); });
+(!Array.prototype.sortBy) && (Array.prototype.sortBy = function(attr){ return _.sortBy(this,attr); });
 
 //functions
 (!Function.prototype.delay) && (Function.prototype.delay = function(interval,args){ return _.delay(this,interval,args); });
@@ -981,6 +1170,9 @@ $.cssNumber.gridRowStart = $.cssNumber.gridRowEnd = $.cssNumber.gridColumnStart 
 (!String.prototype.shorten) && (String.prototype.shorten = function(limit,ending){ return UTILS.format.shorten(this,limit,ending); });
 (!String.prototype.toRegex) && (String.prototype.toRegex = function(){ return UTILS.format.toRegex(this); });
 (!String.prototype.isValidRegex) && (String.prototype.isValidRegex = function(){ return UTILS.isValidRegex(this); });
+(!String.prototype.anchorify) && (String.prototype.anchorify = function(){ return UTILS.format.anchorify(this); });
+(!String.prototype.linkify) && (String.prototype.linkify = function(opts={}){ return UTILS.format.linkify(this,opts); });
+(!String.prototype.stripOutHtml) && (String.prototype.stripOutHtml = function(opts={}){ return UTILS.format.stripOutHtml(this); });
 
 //events
 (!Event.prototype.getCharKey) && (Event.prototype.getCharKey = function(){ return UTILS.getCharKey(this); });
