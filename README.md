@@ -16,6 +16,11 @@ npm i --save utilsjs
 
 ## Change log
 
+### v0.0.2 & v0.0.3
+* adjusted the way the UTILS.Box was opening in compliance with ES6
+* fixed bugs
+* performance imporovements
+
 ### v0.0.1
 * fixed min,max dates in decade mode
 
