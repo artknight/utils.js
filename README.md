@@ -4,6 +4,9 @@ A collection of useful light-weight components to replace already existing overb
 
 ![utilsjs image](https://github.com/artknight/utils.js/raw/master/images/utilsjs-landing.png)
 
+## Demo
+http://utilsjs.com/
+
 ## Install
 
 ### npm
